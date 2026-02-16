@@ -68,6 +68,24 @@
       <DependentUpon>CRAPV_IVPBILL.rpt</DependentUpon>
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Clients\IVP\CRCV_IVP.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CRCV_IVP.rpt</DependentUpon>
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Clients\IVP\CRCV_IVPBILL.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CRCV_IVPBILL.rpt</DependentUpon>
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Clients\IVP\CRJV_IVP.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CRJV_IVP.rpt</DependentUpon>
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Clients\IVP\Dashboard_IVP.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -91,6 +109,18 @@
     <EmbeddedResource Include="Clients\IVP\CRAPV_IVPBILL.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRAPV_IVPBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\IVP\CRCV_IVP.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_IVP.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\IVP\CRCV_IVPBILL.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_IVPBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\IVP\CRJV_IVP.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRJV_IVP.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
@@ -118,6 +148,15 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <COMReference Include="PROMPTINGLib">
+      <Guid>{8106BAD6-FB6E-49D5-8368-3F7030C9F6E7}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
     <COMReference Include="QBFC16Lib">
       <Guid>{1D05360B-2536-4277-83FD-BDF639E20F9E}</Guid>
       <VersionMajor>1</VersionMajor>

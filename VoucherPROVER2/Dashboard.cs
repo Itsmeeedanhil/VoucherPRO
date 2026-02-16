@@ -28,7 +28,7 @@ namespace VoucherPROVER2
             InitializeComponent();
 
             this.WindowState = FormWindowState.Maximized;
-            this.Text = "VoucherPro " + GlobalVariables.client;
+            this.Text = "VoucherPro";
 
             Panel panel = ContainerPanel();
             this.Controls.Add(panel);
