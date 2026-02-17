@@ -39,7 +39,7 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_782950D8B7EE4E4FAA47483987E9F79F"
+        "MsmKey" = "8:_79FC810610614EE4BA28FACBB55AF3B9"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -58,19 +58,13 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_2308FDC33B8AD30D39A47015D0AF0840"
+        "OwnerKey" = "8:_E8F2E26F1CFB98720DD34A0CA93A0624"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_21C77D52BEA24BBEB7B8166586C8E751"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_E8F2E26F1CFB98720DD34A0CA93A0624"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -83,6 +77,12 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_374CE107CCAE15EA7784521D98CB1389"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_2308FDC33B8AD30D39A47015D0AF0840"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -110,6 +110,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.7.2"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.7.2"
+                    }
+                }
             }
         }
         "Release"
@@ -134,6 +142,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.7.2"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.7.2"
+                    }
+                }
             }
         }
     }
@@ -246,7 +262,7 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_782950D8B7EE4E4FAA47483987E9F79F"
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_79FC810610614EE4BA28FACBB55AF3B9"
             {
             "SourcePath" = "8:..\\VoucherPROVER2\\bin\\x64\\Release\\CheckDatabase.accdb"
             "TargetName" = "8:CheckDatabase.accdb"
