@@ -478,6 +478,7 @@ namespace VoucherPROVER2.Clients.IVP
                 "Check Voucher",
                 "Check",
                 "Journal Voucher",
+                "Accounts Payable Voucher",
 
             });
                 comboBox_Forms.SelectedIndex = 0;
@@ -861,7 +862,7 @@ namespace VoucherPROVER2.Clients.IVP
                         {
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
                             // You can reuse GenerateBillPaymentReport_IVP or create a specific APV one:
-                           /* GenerateAPVReport_IVP(refNumberCR);*/
+                            GenerateAPVReport_IVP(refNumberCR);
                         }
                     }
 
@@ -875,7 +876,7 @@ namespace VoucherPROVER2.Clients.IVP
             return panel_RefNumber_CR;
         }
 
-        /*private bool GenerateAPVReport_IVP(string refNumberCR)
+        private bool GenerateAPVReport_IVP(string refNumberCR)
         {
             try
             {
@@ -1109,7 +1110,7 @@ namespace VoucherPROVER2.Clients.IVP
                 MessageBox.Show($"KAYAK ERROR HEHEHE:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
-        }*/
+        }
 
         private bool GenerateBillPaymentReport_IVP(string refNumberCR)
         {
@@ -2209,7 +2210,7 @@ namespace VoucherPROVER2.Clients.IVP
                 }*/
 
 
-                if (comboBox_Forms.SelectedIndex == 1 || comboBox_Forms.SelectedIndex == 3) // CV or JV
+                if (comboBox_Forms.SelectedIndex == 1 || comboBox_Forms.SelectedIndex == 3 || comboBox_Forms.SelectedIndex == 4) // CV or JV
                 {
                     panel_Company.Visible = true;
                 }

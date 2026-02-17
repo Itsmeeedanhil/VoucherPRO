@@ -1167,9 +1167,10 @@ namespace VoucherPROVER2.Clients.IVP
         public int GetSeriesNumberFromDatabase(string columnName)
         {
             string accessConnectionString = GetAccessConnectionString();
+            int currentSeries = 1;
 
-            int currentSeries = 1; // Default to 1 if no value is found
-            string query = $"SELECT {columnName} FROM Series"; // Replace 'SeriesTable' with your actual table name
+            // FIX: Wrap the columnName in square brackets
+            string query = $"SELECT [{columnName}] FROM Series";
 
             using (OleDbConnection connection = new OleDbConnection(accessConnectionString))
             {
@@ -1179,18 +1180,18 @@ namespace VoucherPROVER2.Clients.IVP
                     using (OleDbCommand command = new OleDbCommand(query, connection))
                     {
                         object result = command.ExecuteScalar();
-                        if (result != null && int.TryParse(result.ToString(), out int series))
+                        if (result != null && result != DBNull.Value)
                         {
-                            currentSeries = series;
+                            currentSeries = Convert.ToInt32(result);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
+                    // This will now help you see if the table 'Series' actually exists
                     MessageBox.Show($"Error fetching series number: {ex.Message}");
                 }
             }
-
             return currentSeries;
         }
 
