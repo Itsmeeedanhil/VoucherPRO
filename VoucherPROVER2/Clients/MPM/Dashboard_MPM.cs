@@ -754,7 +754,7 @@ namespace VoucherPROVER2.Clients.MPM
                             }
                         }
 
-                        else if (comboBox_Forms.SelectedIndex == 3)
+                        else if (comboBox_Forms.SelectedIndex == 4)
                         {
                             CRJV_MPM cRJV_MPM = new CRJV_MPM();
                             string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
@@ -849,11 +849,11 @@ namespace VoucherPROVER2.Clients.MPM
                                 MessageBox.Show("No Journal Entry found for this Reference Number.");
                             }
                         }
-                        else if (comboBox_Forms.SelectedIndex == 4) // APV
+                        else if (comboBox_Forms.SelectedIndex == 3) // APV
                         {
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
                             // You can reuse GenerateBillPaymentReport_IVP or create a specific APV one:
-                            GenerateAPVReport_IVP(refNumberCR);
+                            GenerateAPVReport_MPM(refNumberCR);
                         }
                     }
 
@@ -867,7 +867,7 @@ namespace VoucherPROVER2.Clients.MPM
             return panel_RefNumber_CR;
         }
 
-        private bool GenerateAPVReport_IVP(string refNumberCR)
+        private bool GenerateAPVReport_MPM(string refNumberCR)
         {
             try
             {
@@ -1121,6 +1121,7 @@ namespace VoucherPROVER2.Clients.MPM
                 //TextObject textObject_CVBILLAmountInWords = null;
                 TextObject textObject_CVBILLCheckDate = null;
                 TextObject textObject_CVBILLPayee = null;
+                TextObject textObject_CVBILLPayee2 = null;
                 //TextObject textObject_CVBILLTotalAmount = null;
                 TextObject textObject_CVBILLTotalDebitAmount = null;
                 TextObject textObject_CVBILLTotalCreditAmount = null;
@@ -1139,6 +1140,7 @@ namespace VoucherPROVER2.Clients.MPM
                     //textObject_CVBILLAmountInWords = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLAmountInWords"] as TextObject;
                     textObject_CVBILLCheckDate = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
                     textObject_CVBILLPayee = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
+                    textObject_CVBILLPayee2 = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLPayee2"] as TextObject;
                     //textObject_CVBILLTotalAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
                     textObject_CVBILLTotalDebitAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
                     textObject_CVBILLTotalCreditAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
@@ -1228,6 +1230,7 @@ namespace VoucherPROVER2.Clients.MPM
                 //if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
+                if (textObject_CVBILLPayee2 != null) textObject_CVBILLPayee2.Text = bills[0].PayeeFullName ?? "";
                 //if (textObject_CVBILLTotalAmount != null) textObject_CVBILLTotalAmount.Text = bills[0].AmountDue.ToString("N2");
 
                 SubreportObject subreportObject = null;
@@ -1687,7 +1690,7 @@ namespace VoucherPROVER2.Clients.MPM
 
                     object data = null;
                     
-                    if (GlobalVariables.client == "IVP")
+                    if (GlobalVariables.client == "MPM")
                     {
                         if (comboBox_Forms.SelectedIndex == 2) // Check
                         {
@@ -1699,7 +1702,7 @@ namespace VoucherPROVER2.Clients.MPM
                     //if (checks.Count > 0 || bills.Count > 0 || receipts.Count > 0)
                     if (data is System.Collections.ICollection colletion && colletion.Count > 0)
                     {
-                        if (GlobalVariables.client == "IVP")
+                        if (GlobalVariables.client == "MPM")
                         {
                             Layouts_MPM layouts_IVP = new Layouts_MPM();
                             System.Drawing.Printing.PaperSize paperSize = new System.Drawing.Printing.PaperSize("Custom", 850, 1100);
@@ -2142,8 +2145,8 @@ namespace VoucherPROVER2.Clients.MPM
                             // 1. Determine Form Type
                             string formType = "";
                             if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
-                            else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
-                            else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
+                            else if (comboBox_Forms.SelectedIndex == 4) formType = "JV";
+                            else if (comboBox_Forms.SelectedIndex == 3) formType = "APV";
 
                             if (formType != "")
                             {
@@ -2215,8 +2218,8 @@ namespace VoucherPROVER2.Clients.MPM
                 string prefix = "";
 
                 if (comboBox_Forms.SelectedIndex == 1) prefix = "CV";
-                else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
-                else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
+                else if (comboBox_Forms.SelectedIndex == 3) prefix = "APV";
+                else if (comboBox_Forms.SelectedIndex == 4) prefix = "JV";
 
                 if (prefix != "")
                 {
@@ -2261,8 +2264,22 @@ namespace VoucherPROVER2.Clients.MPM
                         panel_Main.Visible = true;
                         panel_Main_CR.Visible = false;
                         break;
+                    
+                    case 3: // Accounts Payable Voucher
+                        prefix = "APV";
+                        panel_SeriesNumber.Visible = true;
+                        panel_RefNumber.Visible = false;
+                        panel_RefNumberCrystalReport.Visible = true;
+                        panel_Signatory.Visible = true;
 
-                    case 3: // Journal Voucher
+                        label_SeriesNumberText.Text = "Current Series Number: APV";
+
+                        // Layout settings
+                        panel_Main.Visible = false;
+                        panel_Main_CR.Visible = true;
+                        break;
+
+                    case 4: // Journal Voucher
                         prefix = "JV";
                         panel_RefNumber.Visible = false;
                         panel_RefNumberCrystalReport.Visible = true;
@@ -2277,19 +2294,6 @@ namespace VoucherPROVER2.Clients.MPM
                         if (label_CurrencyText != null) label_CurrencyText.Visible = false;
                         if (comboBox_Currency != null) comboBox_Currency.Visible = false;
                         panel_Company.Height = 61;
-                        break;
-                    case 4: // Accounts Payable Voucher
-                        prefix = "APV";
-                        panel_SeriesNumber.Visible = true;
-                        panel_RefNumber.Visible = false;
-                        panel_RefNumberCrystalReport.Visible = true;
-                        panel_Signatory.Visible = true;
-
-                        label_SeriesNumberText.Text = "Current Series Number: APV";
-
-                        // Layout settings
-                        panel_Main.Visible = false;
-                        panel_Main_CR.Visible = true;
                         break;
 
                     default:
