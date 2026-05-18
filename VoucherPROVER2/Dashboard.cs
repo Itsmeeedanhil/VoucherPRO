@@ -8,12 +8,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using VoucherPROVER2.Clients.IVP;
+using VoucherPROVER2.Clients.MPM;
 
 namespace VoucherPROVER2
 {
     public class GlobalVariables
     {
-        public static string client = "IVP";
+        public static string client = "MPM";
         public static bool includeImage = true;
         public static bool includeItemReceipt = true;
         public static bool testWithoutData = true;
@@ -51,6 +52,17 @@ namespace VoucherPROVER2
 
                 // 3. Add that panel into the current panel's controls
                 panel.Controls.Add(ivpContent);
+            }
+            if (GlobalVariables.client == "MPM")
+            {
+                // 1. Instantiate the specific dashboard class
+                Dashboard_MPM dashboard_MPM = new Dashboard_MPM();
+
+                // 2. Call the method that returns the panel
+                Panel mpmContent = dashboard_MPM.ContainerPanel();
+
+                // 3. Add that panel into the current panel's controls
+                panel.Controls.Add(mpmContent);
             }
             else
             {
