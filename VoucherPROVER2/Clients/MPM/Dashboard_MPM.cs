@@ -639,8 +639,12 @@ namespace VoucherPROVER2.Clients.MPM
 
                                     TextObject textObject_CVRefNumber = cRCV_MPM.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
                                     TextObject textObject_CVCheckDate = cRCV_MPM.ReportDefinition.ReportObjects["TextCVCheckDate"] as TextObject;
+                                    TextObject textObject_CVCheckDate2 = cRCV_MPM.ReportDefinition.ReportObjects["TextCVCheckDate2"] as TextObject;
                                     TextObject textObject_CVPayee = cRCV_MPM.ReportDefinition.ReportObjects["TextCVPayee"] as TextObject;
+                                    TextObject textObject_CVPayee2 = cRCV_MPM.ReportDefinition.ReportObjects["TextCVPayee2"] as TextObject;
                                     TextObject textObject_CVTotalDebitAmount = cRCV_MPM.ReportDefinition.ReportObjects["TextCVTotalDebitAmount"] as TextObject;
+                                    TextObject textObject_CVTotalAmount = cRCV_MPM.ReportDefinition.ReportObjects["TextCVTotalAmount"] as TextObject;
+                                    TextObject textObject_CVAmountinWords = cRCV_MPM.ReportDefinition.ReportObjects["TextCVAmountinWords"] as TextObject;
                                     TextObject textObject_CVTotalCreditAmount = cRCV_MPM.ReportDefinition.ReportObjects["TextCVTotalCreditAmount"] as TextObject;
 
                                     TextObject textObject_CompanyName = cRCV_MPM.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
@@ -665,10 +669,12 @@ namespace VoucherPROVER2.Clients.MPM
                                     string amountInWords = AccessToDatabase_MPM.AmountToWordsConverter.Convert(amount);
 
                                     textObject_CVRefNumber.Text = textBox_SeriesNumber.Text;
-                                    //textObject_CVAmountInWords.Text = amountInWords;
+                                    textObject_CVAmountinWords.Text = amountInWords;
                                     textObject_CVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                                    textObject_CVCheckDate2.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                                     textObject_CVPayee.Text = cvData[0].PayeeFullName;
-                                    //textObject_CVTotalAmount.Text = cvData[0].TotalAmount.ToString("N2");
+                                    textObject_CVPayee2.Text = cvData[0].PayeeFullName;
+                                    textObject_CVTotalAmount.Text = cvData[0].TotalAmount.ToString("N2");
 
                                     textObject_PreparedBy.Text = signatories.PreparedByName;
                                     textObject_PreparedByPos.Text = signatories.PreparedByPosition;
@@ -1118,11 +1124,12 @@ namespace VoucherPROVER2.Clients.MPM
                     return false;
 
                 TextObject textObject_CVBILLCheckNumber = null;
-                //TextObject textObject_CVBILLAmountInWords = null;
+                TextObject textObject_CVBILLAmountInWords = null;
                 TextObject textObject_CVBILLCheckDate = null;
+                TextObject textObject_CVBILLCheckDate2 = null;
                 TextObject textObject_CVBILLPayee = null;
                 TextObject textObject_CVBILLPayee2 = null;
-                //TextObject textObject_CVBILLTotalAmount = null;
+                TextObject textObject_CVBILLTotalAmount = null;
                 TextObject textObject_CVBILLTotalDebitAmount = null;
                 TextObject textObject_CVBILLTotalCreditAmount = null;
                 TextObject textObject_PreparedBy = null;
@@ -1137,11 +1144,12 @@ namespace VoucherPROVER2.Clients.MPM
                 try
                 {
                     textObject_CVBILLCheckNumber = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
-                    //textObject_CVBILLAmountInWords = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLAmountInWords"] as TextObject;
+                    textObject_CVBILLAmountInWords = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLAmountinWords"] as TextObject;
                     textObject_CVBILLCheckDate = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
+                    textObject_CVBILLCheckDate2 = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate2"] as TextObject;
                     textObject_CVBILLPayee = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
                     textObject_CVBILLPayee2 = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLPayee2"] as TextObject;
-                    //textObject_CVBILLTotalAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
+                    textObject_CVBILLTotalAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
                     textObject_CVBILLTotalDebitAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
                     textObject_CVBILLTotalCreditAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
 
@@ -1227,11 +1235,12 @@ namespace VoucherPROVER2.Clients.MPM
                 string amountInWords = AccessToDatabase_MPM.AmountToWordsConverter.Convert(amount);
 
                 if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
-                //if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
+                if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLCheckDate2 != null) textObject_CVBILLCheckDate2.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
                 if (textObject_CVBILLPayee2 != null) textObject_CVBILLPayee2.Text = bills[0].PayeeFullName ?? "";
-                //if (textObject_CVBILLTotalAmount != null) textObject_CVBILLTotalAmount.Text = bills[0].AmountDue.ToString("N2");
+                if (textObject_CVBILLTotalAmount != null) textObject_CVBILLTotalAmount.Text = bills[0].AmountDue.ToString("N2");
 
                 SubreportObject subreportObject = null;
                 try
@@ -1785,8 +1794,8 @@ namespace VoucherPROVER2.Clients.MPM
                     "Select Signatory Option",
                     "Prepared By:",
                     "Checked By:",
+                    "Audited By:",
                     "Approved By:",
-                    "Released By:",
                 });
             }
 
