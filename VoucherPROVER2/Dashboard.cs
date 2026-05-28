@@ -9,12 +9,13 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using VoucherPROVER2.Clients.IVP;
 using VoucherPROVER2.Clients.MPM;
+using VoucherPROVER2.Clients.OWI;
 
 namespace VoucherPROVER2
 {
     public class GlobalVariables
     {
-        public static string client = "MPM";
+        public static string client = "OWI";
         public static bool includeImage = true;
         public static bool includeItemReceipt = true;
         public static bool testWithoutData = true;
@@ -60,6 +61,17 @@ namespace VoucherPROVER2
 
                 // 2. Call the method that returns the panel
                 Panel mpmContent = dashboard_MPM.ContainerPanel();
+
+                // 3. Add that panel into the current panel's controls
+                panel.Controls.Add(mpmContent);
+            }
+            if (GlobalVariables.client == "OWI")
+            {
+                // 1. Instantiate the specific dashboard class
+                Dashboard_OWI dashboard_OWI = new Dashboard_OWI();
+
+                // 2. Call the method that returns the panel
+                Panel mpmContent = dashboard_OWI.ContainerPanel();
 
                 // 3. Add that panel into the current panel's controls
                 panel.Controls.Add(mpmContent);

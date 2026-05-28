@@ -128,6 +128,40 @@
     </Compile>
     <Compile Include="Clients\MPM\Dataclass_MPM.cs" />
     <Compile Include="Clients\MPM\Layouts_MPM.cs" />
+    <Compile Include="Clients\OWI\AccessQueries_OWI.cs" />
+    <Compile Include="Clients\OWI\AccessToDatabase_OWI.cs" />
+    <Compile Include="Clients\OWI\CRAPV_OWIBILL.cs">
+      <DependentUpon>CRAPV_OWIBILL.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\OWI\CRCV_OWI.cs">
+      <DependentUpon>CRCV_OWI.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\OWI\CRCV_OWIBILL.cs">
+      <DependentUpon>CRCV_OWIBILL.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\OWI\CRJV_OWI.cs">
+      <DependentUpon>CRJV_OWI.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\OWI\Dashboard_OWI.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Clients\OWI\Dashboard_OWI.Designer.cs">
+      <DependentUpon>Dashboard_OWI.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Clients\OWI\Dataclass_OWI.cs" />
+    <Compile Include="Clients\OWI\Layouts_OWI.cs" />
     <Compile Include="Dashboard.cs" />
     <Compile Include="Dashboard.Designer.cs">
       <DependentUpon>Dashboard.cs</DependentUpon>
@@ -174,6 +208,22 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Clients\MPM\Dashboard_MPM.resx">
       <DependentUpon>Dashboard_MPM.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\OWI\CRAPV_OWIBILL.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRAPV_OWIBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\OWI\CRCV_OWI.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_OWI.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\OWI\CRCV_OWIBILL.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_OWIBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\OWI\CRJV_OWI.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRJV_OWI.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
