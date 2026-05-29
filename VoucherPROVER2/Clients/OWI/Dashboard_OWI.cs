@@ -1263,6 +1263,7 @@ namespace VoucherPROVER2.Clients.OWI
                         TextObject textObject_BILLCVSubCheckDate = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckDate"] as TextObject;
                         TextObject textObject_BILLCVSubTotal = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSUBTotalAmount"] as TextObject;
                         TextObject textObject_BILLCVSubCheckNumber = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckNumber"] as TextObject;
+                        TextObject textObject_BILLCVAPVSubCheckNumber = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLAPVSubCheckNumber"] as TextObject;
                         TextObject textObject_BILLSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountPayable"] as TextObject;
                         TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
                         TextObject textObject_PaidSign = subReportDocument.ReportDefinition.ReportObjects["TextPaidSign"] as TextObject;
@@ -1275,6 +1276,7 @@ namespace VoucherPROVER2.Clients.OWI
                         if (textObject_BILLCVSubCheckDate != null) textObject_BILLCVSubCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                         if (textObject_BILLCVSubTotal != null) textObject_BILLCVSubTotal.Text = bills[0].Amount.ToString("N2");
                         if (textObject_BILLCVSubCheckNumber != null) textObject_BILLCVSubCheckNumber.Text = bills[0].RefNumber ?? "";
+                        if (textObject_BILLCVAPVSubCheckNumber != null) textObject_BILLCVAPVSubCheckNumber.Text = bills[0].AppliedRefNumber ?? "";
                         if (textObject_BILLCVSubCheckNumber != null) textObject_BILLSubAccountPayable.Text = bills[0].BankAccount ?? "";
                         if (textObject_BILLSubAmountPayable != null)
                         {
