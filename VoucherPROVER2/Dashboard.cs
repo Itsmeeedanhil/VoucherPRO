@@ -15,7 +15,7 @@ namespace VoucherPROVER2
 {
     public class GlobalVariables
     {
-        public static string client = "OWI";
+        public static string client = "IVP";
         public static bool includeImage = true;
         public static bool includeItemReceipt = true;
         public static bool testWithoutData = true;
@@ -53,6 +53,8 @@ namespace VoucherPROVER2
 
                 // 3. Add that panel into the current panel's controls
                 panel.Controls.Add(ivpContent);
+
+                return panel;
             }
             if (GlobalVariables.client == "MPM")
             {
@@ -64,6 +66,8 @@ namespace VoucherPROVER2
 
                 // 3. Add that panel into the current panel's controls
                 panel.Controls.Add(mpmContent);
+
+                return panel;
             }
             if (GlobalVariables.client == "OWI")
             {
@@ -75,13 +79,13 @@ namespace VoucherPROVER2
 
                 // 3. Add that panel into the current panel's controls
                 panel.Controls.Add(mpmContent);
+
+                return panel;
             }
             else
             {
                 throw new NotImplementedException("Client not implemented: " + GlobalVariables.client);
             }
-
-            return panel;
         }
     }
 }
