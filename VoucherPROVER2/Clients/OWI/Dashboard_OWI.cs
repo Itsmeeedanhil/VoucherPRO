@@ -39,8 +39,10 @@ namespace VoucherPROVER2.Clients.OWI
         ComboBox comboBox_Forms;
         ComboBox comboBox_Company;
 
-
+        private bool isHistoricalPreview = false;
         private TextBox txt_SearchHistory;
+        private string historicalSeriesOverride = "";
+        private string historicalDateOverride = "";
         Label label_SeriesNumberText;
         Label label_SignatoryRRStatus;
 
@@ -159,6 +161,7 @@ namespace VoucherPROVER2.Clients.OWI
                 Text = "Search by Series or Payee..."
             };
 
+            // Placeholder behavior logic
             txt_SearchHistory.Enter += (s, e) =>
             {
                 if (txt_SearchHistory.Text == "Search by Series or Payee...")
@@ -177,6 +180,7 @@ namespace VoucherPROVER2.Clients.OWI
                 }
             };
 
+            // Real-time instant filtering event handler
             txt_SearchHistory.TextChanged += (s, e) =>
             {
                 string searchText = txt_SearchHistory.Text;
@@ -186,7 +190,7 @@ namespace VoucherPROVER2.Clients.OWI
 
             searchContainer.Controls.Add(txt_SearchHistory);
 
-            // --- FIXED: Explicitly define columns here so they exist immediately ---
+            // Explicitly define DataGridView properties upfront
             dgv_History = new DataGridView
             {
                 Dock = DockStyle.Fill,
@@ -200,7 +204,10 @@ namespace VoucherPROVER2.Clients.OWI
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
             };
 
-            // Add defined columns manually with DataPropertyName links to the Access fields
+            // --- CHANGED: Wire up the Double Click event handler instead ---
+            dgv_History.CellDoubleClick += dgv_History_CellDoubleClick;
+
+            // Add defined columns manually with DataPropertyName links to the Access database fields
             dgv_History.Columns.Add(new DataGridViewTextBoxColumn { Name = "CVRefNumber", DataPropertyName = "CVRefNumber", HeaderText = "SERIES NUMBER" });
             dgv_History.Columns.Add(new DataGridViewTextBoxColumn { Name = "CVSubCheckNumber", DataPropertyName = "CVSubCheckNumber", HeaderText = "REF NUMBER" });
             dgv_History.Columns.Add(new DataGridViewTextBoxColumn { Name = "CVPayee", DataPropertyName = "CVPayee", HeaderText = "PAYEE" });
@@ -213,7 +220,7 @@ namespace VoucherPROVER2.Clients.OWI
 
             dgv_History.Columns.Add(new DataGridViewTextBoxColumn { Name = "DatePrinted", DataPropertyName = "DatePrinted", HeaderText = "DATE PRINTED" });
 
-            // Assemble the container items
+            // Assemble the container items (added in reverse order of Docking directions)
             panel_History.Controls.Add(dgv_History);
             panel_History.Controls.Add(searchContainer);
             panel_History.Controls.Add(lblTitle);
@@ -382,6 +389,7 @@ namespace VoucherPROVER2.Clients.OWI
         }
         public Panel MainPanel_CR()
         {
+            // Main Container Background Panel
             Panel panel = new Panel
             {
                 BackColor = Color.LightGray,
@@ -389,20 +397,17 @@ namespace VoucherPROVER2.Clients.OWI
                 Padding = new Padding(sideBarWidth, 50, 0, 0),
             };
 
-            // 1. Initialize the History Side Panel
+            // 1. Initialize and Polish the History Side Panel
             historyPanel = Panel_History();
             historyPanel.Dock = DockStyle.Right;
             historyPanel.Width = 350;
-
-            // Default it to hidden until the layout manager is completely loaded
             historyPanel.Visible = false;
 
-            panel.Controls.Add(historyPanel);
+            historyPanel.BorderStyle = BorderStyle.FixedSingle;
 
             // 2. Initialize the Crystal Report Viewer
             reportViewer = new CrystalReportViewer
             {
-                Parent = panel,
                 Dock = DockStyle.Fill,
                 ShowCopyButton = false,
                 ShowPrintButton = true,
@@ -411,19 +416,19 @@ namespace VoucherPROVER2.Clients.OWI
                 ShowGroupTreeButton = false,
                 ShowTextSearchButton = false,
                 ShowParameterPanelButton = false,
-                ToolPanelView = ToolPanelViewType.None
+                ToolPanelView = ToolPanelViewType.None,
             };
 
-            // --- FIXED: Wait for the panel to load before touching comboBox_Forms ---
+            panel.Controls.Add(historyPanel);
+            panel.Controls.Add(reportViewer);
+
+            // 3. Wait for the panel to fully load on screen before configuring ComboBox relationships
             panel.HandleCreated += (s, e) =>
             {
-                // This runs later, when the UI is active and comboBox_Forms is guaranteed to exist!
                 if (comboBox_Forms != null)
                 {
-                    // Set the visibility state based on the current selection right now
                     historyPanel.Visible = (comboBox_Forms.SelectedIndex == 1);
 
-                    // Bind the change event handler so it updates dynamically moving forward
                     comboBox_Forms.SelectedIndexChanged += (sender, args) =>
                     {
                         if (historyPanel != null)
@@ -434,7 +439,7 @@ namespace VoucherPROVER2.Clients.OWI
                 }
             };
 
-            // 4. Intercept Crystal Reports ToolStrip for the Print Button click
+            // 4. Intercept Crystal Reports ToolStrip for the Print Button click actions
             foreach (Control control in reportViewer.Controls)
             {
                 if (control is System.Windows.Forms.ToolStrip toolStrip)
@@ -463,113 +468,133 @@ namespace VoucherPROVER2.Clients.OWI
                                 {
                                     if (formType == "CV")
                                     {
-                                        try
+                                        if (!isHistoricalPreview)
                                         {
-                                            if (reportViewer.ReportSource is CrystalDecisions.CrystalReports.Engine.ReportDocument loadedReport)
+                                            try
                                             {
-                                                string currentSeriesNo = "";
-                                                string currentPayee = "";
-                                                string currentDebit = "0.00";
-                                                string currentCredit = "0.00";
-                                                string checkDateFormatted = DateTime.Now.ToString("yyyy-MM-dd");
-                                                string subCheckNumber = "";
-
-                                                bool isBillReport = loadedReport.Name.Contains("CRCV_OWIBILL") ||
-                                                                   loadedReport.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] != null;
-
-                                                if (isBillReport)
+                                                if (reportViewer.ReportSource is CrystalDecisions.CrystalReports.Engine.ReportDocument loadedReport)
                                                 {
-                                                    var refObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                    var dateObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                    var payeeObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLPayee"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                    var debitObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                    var creditObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    string currentSeriesNo = "";
+                                                    string currentPayee = "";
+                                                    string currentDebit = "0.00";
+                                                    string currentCredit = "0.00";
+                                                    string checkDateFormatted = DateTime.Now.ToString("yyyy-MM-dd");
+                                                    string subCheckNumber = "";
 
-                                                    currentSeriesNo = refObj != null ? refObj.Text : textBox_SeriesNumber.Text;
-                                                    currentPayee = payeeObj != null ? payeeObj.Text : "";
-                                                    currentDebit = debitObj != null ? debitObj.Text : "0.00";
-                                                    currentCredit = creditObj != null ? creditObj.Text : "0.00";
-
-                                                    if (dateObj != null && DateTime.TryParse(dateObj.Text, out DateTime parsedBillDate))
+                                                    // --- SAFELY CHECK REPORT TYPE WITHOUT CRASHING ---
+                                                    bool hasBillSeriesField = false;
+                                                    foreach (CrystalDecisions.CrystalReports.Engine.ReportObject obj in loadedReport.ReportDefinition.ReportObjects)
                                                     {
-                                                        checkDateFormatted = parsedBillDate.ToString("yyyy-MM-dd");
-                                                    }
-
-                                                    try
-                                                    {
-                                                        var subreportObject = loadedReport.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as CrystalDecisions.CrystalReports.Engine.SubreportObject;
-                                                        if (subreportObject != null)
+                                                        if (obj.Name == "TextCVBILLSeriesnumber")
                                                         {
-                                                            var subReportDocument = loadedReport.OpenSubreport(subreportObject.SubreportName);
-                                                            var subCheckObj = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckNumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                            if (subCheckObj != null)
-                                                            {
-                                                                subCheckNumber = subCheckObj.Text;
-                                                            }
+                                                            hasBillSeriesField = true;
+                                                            break;
                                                         }
                                                     }
-                                                    catch (Exception subEx)
-                                                    {
-                                                        Console.WriteLine($"Failed to read from Bill subreport: {subEx.Message}");
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    var refObj = loadedReport.ReportDefinition.ReportObjects["TextCVRefNumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                    var dateObj = loadedReport.ReportDefinition.ReportObjects["TextCVCheckDate"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                    var payeeObj = loadedReport.ReportDefinition.ReportObjects["TextCVPayee"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                    var debitObj = loadedReport.ReportDefinition.ReportObjects["TextCVTotalDebitAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                    var creditObj = loadedReport.ReportDefinition.ReportObjects["TextCVTotalCreditAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
 
-                                                    currentSeriesNo = refObj != null ? refObj.Text : textBox_SeriesNumber.Text;
-                                                    currentPayee = payeeObj != null ? payeeObj.Text : "";
-                                                    currentDebit = debitObj != null ? debitObj.Text : "0.00";
-                                                    currentCredit = creditObj != null ? creditObj.Text : "0.00";
+                                                    bool isBillReport = loadedReport.Name.Contains("CRCV_OWIBILL") || hasBillSeriesField;
 
-                                                    if (dateObj != null && DateTime.TryParse(dateObj.Text, out DateTime parsedUIDate))
+                                                    if (isBillReport)
                                                     {
-                                                        checkDateFormatted = parsedUIDate.ToString("yyyy-MM-dd");
-                                                    }
+                                                        var refObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                        var dateObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                        var payeeObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLPayee"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                        var debitObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                        var creditObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
 
-                                                    try
-                                                    {
-                                                        var subreportObject = loadedReport.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as CrystalDecisions.CrystalReports.Engine.SubreportObject;
-                                                        if (subreportObject != null)
+                                                        currentSeriesNo = refObj != null ? refObj.Text : textBox_SeriesNumber.Text;
+                                                        currentPayee = payeeObj != null ? payeeObj.Text : "";
+                                                        currentDebit = debitObj != null ? debitObj.Text : "0.00";
+                                                        currentCredit = creditObj != null ? creditObj.Text : "0.00";
+
+                                                        if (dateObj != null && DateTime.TryParse(dateObj.Text, out DateTime parsedBillDate))
                                                         {
-                                                            var subReportDocument = loadedReport.OpenSubreport(subreportObject.SubreportName);
-                                                            var subCheckObj = subReportDocument.ReportDefinition.ReportObjects["TextCVSubCheckNumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
-                                                            if (subCheckObj != null)
+                                                            checkDateFormatted = parsedBillDate.ToString("yyyy-MM-dd");
+                                                        }
+
+                                                        try
+                                                        {
+                                                            var subreportObject = loadedReport.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as CrystalDecisions.CrystalReports.Engine.SubreportObject;
+                                                            if (subreportObject != null)
                                                             {
-                                                                subCheckNumber = subCheckObj.Text;
+                                                                var subReportDocument = loadedReport.OpenSubreport(subreportObject.SubreportName);
+                                                                var subCheckObj = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckNumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                                if (subCheckObj != null)
+                                                                {
+                                                                    subCheckNumber = subCheckObj.Text;
+                                                                }
                                                             }
                                                         }
+                                                        catch (Exception subEx)
+                                                        {
+                                                            Console.WriteLine($"Failed to read from Bill subreport: {subEx.Message}");
+                                                        }
                                                     }
-                                                    catch (Exception subEx)
+                                                    else
                                                     {
-                                                        Console.WriteLine($"Failed to read from standard subreport: {subEx.Message}");
-                                                    }
-                                                }
+                                                        var refObj = loadedReport.ReportDefinition.ReportObjects["TextCVRefNumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                        var dateObj = loadedReport.ReportDefinition.ReportObjects["TextCVCheckDate"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                        var payeeObj = loadedReport.ReportDefinition.ReportObjects["TextCVPayee"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                        var debitObj = loadedReport.ReportDefinition.ReportObjects["TextCVTotalDebitAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                        var creditObj = loadedReport.ReportDefinition.ReportObjects["TextCVTotalCreditAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
 
-                                                SaveVoucherHistory(
-                                                    currentSeriesNo,
-                                                    checkDateFormatted,
-                                                    currentPayee,
-                                                    currentDebit,
-                                                    currentCredit,
-                                                    selectedCompany,
-                                                    subCheckNumber
-                                                );
+                                                        currentSeriesNo = refObj != null ? refObj.Text : textBox_SeriesNumber.Text;
+                                                        currentPayee = payeeObj != null ? payeeObj.Text : "";
+                                                        currentDebit = debitObj != null ? debitObj.Text : "0.00";
+                                                        currentCredit = creditObj != null ? creditObj.Text : "0.00";
+
+                                                        if (dateObj != null && DateTime.TryParse(dateObj.Text, out DateTime parsedUIDate))
+                                                        {
+                                                            checkDateFormatted = parsedUIDate.ToString("yyyy-MM-dd");
+                                                        }
+
+                                                        try
+                                                        {
+                                                            var subreportObject = loadedReport.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as CrystalDecisions.CrystalReports.Engine.SubreportObject;
+                                                            if (subreportObject != null)
+                                                            {
+                                                                var subReportDocument = loadedReport.OpenSubreport(subreportObject.SubreportName);
+                                                                var subCheckObj = subReportDocument.ReportDefinition.ReportObjects["TextCVSubCheckNumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                                if (subCheckObj != null)
+                                                                {
+                                                                    subCheckNumber = subCheckObj.Text;
+                                                                }
+                                                            }
+                                                        }
+                                                        catch (Exception subEx)
+                                                        {
+                                                            Console.WriteLine($"Failed to read from standard subreport: {subEx.Message}");
+                                                        }
+                                                    }
+
+                                                    SaveVoucherHistory(
+                                                        currentSeriesNo,
+                                                        checkDateFormatted,
+                                                        currentPayee,
+                                                        currentDebit,
+                                                        currentCredit,
+                                                        selectedCompany,
+                                                        subCheckNumber
+                                                    );
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Console.WriteLine($"Print Logging Error Interception: {ex.Message}");
                                             }
                                         }
-                                        catch (Exception ex)
+                                        else
                                         {
-                                            Console.WriteLine($"Print Logging Error Interception: {ex.Message}");
+                                            Console.WriteLine("[Reprint Safeguard] Historical preview re-print detected. Skipping entry creation.");
                                         }
                                     }
 
-                                    seriesNumber++;
-                                    accessToDatabase.UpdateManualSeriesNumber(formType, seriesNumber, selectedCompany);
-                                    UpdateSeriesNumberOWI(formType);
+                                    if (!isHistoricalPreview)
+                                    {
+                                        seriesNumber++;
+                                        accessToDatabase.UpdateManualSeriesNumber(formType, seriesNumber, selectedCompany);
+                                        UpdateSeriesNumberOWI(formType);
+                                    }
                                 }
                             }
                         };
@@ -828,7 +853,14 @@ namespace VoucherPROVER2.Clients.OWI
                         // -------------------------------------------------------------
                         if (comboBox_Forms.SelectedIndex == 1)
                         {
+                            // 1. Force state flags to a completely fresh live search session immediately
+                            isHistoricalPreview = false;
+                            historicalSeriesOverride = "";
+                            historicalDateOverride = "";
+
                             bool cvDataExists = false;
+                            string refNumberCR = textBox_ReferenceNumber_CR.Text;
+
                             try
                             {
                                 CRCV_OWI cRCV_OWI = new CRCV_OWI();
@@ -836,8 +868,6 @@ namespace VoucherPROVER2.Clients.OWI
                                 SetDatabaseLocation(cRCV_OWI, databasePath);
 
                                 AccessQueries_OWI accessQueries = new AccessQueries_OWI();
-                                string refNumberCR = textBox_ReferenceNumber_CR.Text;
-
                                 cvData = accessQueries.GetCheckExpensesAndItemsData_OWI(refNumberCR);
 
                                 if (cvData != null && cvData.Count > 0)
@@ -845,10 +875,8 @@ namespace VoucherPROVER2.Clients.OWI
                                     cvDataExists = true;
 
                                     TextObject textObject_CVRefNumber = cRCV_OWI.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
-                                    //TextObject textObject_CVAmountInWords = cRCV_IVP.ReportDefinition.ReportObjects["TextCVAmountInWords"] as TextObject;
                                     TextObject textObject_CVCheckDate = cRCV_OWI.ReportDefinition.ReportObjects["TextCVCheckDate"] as TextObject;
                                     TextObject textObject_CVPayee = cRCV_OWI.ReportDefinition.ReportObjects["TextCVPayee"] as TextObject;
-                                    //TextObject textObject_CVTotalAmount = cRCV_IVP.ReportDefinition.ReportObjects["TextCVTotalAmount"] as TextObject;
                                     TextObject textObject_CVTotalDebitAmount = cRCV_OWI.ReportDefinition.ReportObjects["TextCVTotalDebitAmount"] as TextObject;
                                     TextObject textObject_CVTotalCreditAmount = cRCV_OWI.ReportDefinition.ReportObjects["TextCVTotalCreditAmount"] as TextObject;
 
@@ -862,7 +890,7 @@ namespace VoucherPROVER2.Clients.OWI
                                     TextObject textObject_PreparedByPos = cRCV_OWI.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
                                     TextObject textObject_CheckedBy = cRCV_OWI.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
                                     TextObject textObject_CheckedByPos = cRCV_OWI.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
-                                    TextObject textObject_ApprovedBy = cRCV_OWI .ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                                    TextObject textObject_ApprovedBy = cRCV_OWI.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
                                     TextObject textObject_ApprovedByPos = cRCV_OWI.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
                                     TextObject textObject_ReceivedBy = cRCV_OWI.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
                                     TextObject textObject_ReceivedByPos = cRCV_OWI.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
@@ -873,12 +901,30 @@ namespace VoucherPROVER2.Clients.OWI
                                     double amount = cvData[0].TotalAmount;
                                     string amountInWords = AccessToDatabase_OWI.AmountToWordsConverter.Convert(amount);
 
-                                    textObject_CVRefNumber.Text = textBox_SeriesNumber.Text;
-                                    //textObject_CVAmountInWords.Text = amountInWords;
-                                    textObject_CVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
-                                    textObject_CVPayee.Text = cvData[0].PayeeFullName;
-                                    //textObject_CVTotalAmount.Text = cvData[0].TotalAmount.ToString("N2");
+                                    // Since this is a new live search, we always fallback directly to live screen controls
+                                    if (textObject_CVRefNumber != null)
+                                    {
+                                        textObject_CVRefNumber.Text = !string.IsNullOrEmpty(historicalSeriesOverride)
+                                            ? historicalSeriesOverride
+                                            : textBox_SeriesNumber.Text;
+                                    }
 
+                                    if (textObject_CVCheckDate != null)
+                                    {
+                                        if (!string.IsNullOrEmpty(historicalDateOverride))
+                                        {
+                                            if (DateTime.TryParse(historicalDateOverride, out DateTime parsedHistDate))
+                                                textObject_CVCheckDate.Text = parsedHistDate.ToString("MMMM dd, yyyy");
+                                            else
+                                                textObject_CVCheckDate.Text = historicalDateOverride;
+                                        }
+                                        else
+                                        {
+                                            textObject_CVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                                        }
+                                    }
+
+                                    if (textObject_CVPayee != null) textObject_CVPayee.Text = cvData[0].PayeeFullName;
 
                                     textObject_PreparedBy.Text = signatories.PreparedByName;
                                     textObject_PreparedByPos.Text = signatories.PreparedByPosition;
@@ -911,7 +957,7 @@ namespace VoucherPROVER2.Clients.OWI
                                     }
 
                                     textObject_CVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                                    textObject_CVTotalCreditAmount.Text = creditTotalAmount.ToString("N2");
+                                    textObject_CVTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
 
                                     SubreportObject subreportObject = cRCV_OWI.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                                     if (subreportObject != null)
@@ -927,7 +973,6 @@ namespace VoucherPROVER2.Clients.OWI
                                         TextObject textObject_PaidSign = subReportDocument.ReportDefinition.ReportObjects["TextPaidSign"] as TextObject;
                                         if (textObject_PaidSign != null)
                                         {
-                                            // Index 0 is Peso, Index 1 is Dollar
                                             textObject_PaidSign.Text = comboBox_Currency.SelectedIndex == 1 ? "$" : "₱";
                                         }
 
@@ -940,7 +985,6 @@ namespace VoucherPROVER2.Clients.OWI
 
                                         InsertDataToCheckVoucherCompiledOWI(refNumberCR, cvData);
                                     }
-
 
                                     cRCV_OWI.SetParameterValue("ReferenceNumber", refNumberCR);
 
@@ -958,11 +1002,16 @@ namespace VoucherPROVER2.Clients.OWI
                                 MessageBox.Show($"IVP CV ERROR:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
 
+                            // --- FIXED: Pass explicit empty strings for live lookups ---
+                            // If standard check data doesn't exist, safely execute the Bill Payment layout loader track
                             if (!cvDataExists)
                             {
-                                string refNumberCR = textBox_ReferenceNumber_CR.Text;
-                                GenerateBillPaymentReport_OWI(refNumberCR);
+                                GenerateBillPaymentReport_OWI(refNumberCR, "", "");
                             }
+
+                            // Reset overrides to clean up global session memory states completely
+                            historicalSeriesOverride = "";
+                            historicalDateOverride = "";
                         }
 
                         else if (comboBox_Forms.SelectedIndex == 3)
@@ -1318,7 +1367,7 @@ namespace VoucherPROVER2.Clients.OWI
             }
         }
 
-        private bool GenerateBillPaymentReport_OWI(string refNumberCR)
+        private bool GenerateBillPaymentReport_OWI(string refNumberCR, string historySeriesOverride = "", string historyDateOverride = "")
         {
             try
             {
@@ -1333,10 +1382,8 @@ namespace VoucherPROVER2.Clients.OWI
                     return false;
 
                 TextObject textObject_CVBILLCheckNumber = null;
-                //TextObject textObject_CVBILLAmountInWords = null;
                 TextObject textObject_CVBILLCheckDate = null;
                 TextObject textObject_CVBILLPayee = null;
-                //TextObject textObject_CVBILLTotalAmount = null;
                 TextObject textObject_CVBILLTotalDebitAmount = null;
                 TextObject textObject_CVBILLTotalCreditAmount = null;
                 TextObject textObject_PreparedBy = null;
@@ -1351,10 +1398,8 @@ namespace VoucherPROVER2.Clients.OWI
                 try
                 {
                     textObject_CVBILLCheckNumber = cRCV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
-                    //textObject_CVBILLAmountInWords = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLAmountInWords"] as TextObject;
                     textObject_CVBILLCheckDate = cRCV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
                     textObject_CVBILLPayee = cRCV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
-                    //textObject_CVBILLTotalAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
                     textObject_CVBILLTotalDebitAmount = cRCV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
                     textObject_CVBILLTotalCreditAmount = cRCV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
 
@@ -1363,7 +1408,6 @@ namespace VoucherPROVER2.Clients.OWI
                     {
                         textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                     }
-
 
                     textObject_PreparedBy = cRCV_OWIBILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
                     textObject_PreparedByPos = cRCV_OWIBILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
@@ -1377,11 +1421,10 @@ namespace VoucherPROVER2.Clients.OWI
                     AccessToDatabase_OWI accessToDatabase = new AccessToDatabase_OWI();
 
                     var (PreparedByName, PreparedByPosition,
-                       ReviewedByName, ReviewedByPosition,
-                       RecommendingApprovalName, RecommendingApprovalPosition,
-                       ApprovedByName, ApprovedByPosition,
-                       ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
-
+                         ReviewedByName, ReviewedByPosition,
+                         RecommendingApprovalName, RecommendingApprovalPosition,
+                         ApprovedByName, ApprovedByPosition,
+                         ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
 
                     double debitTotalAmount = 0;
                     double creditTotalAmount = 0;
@@ -1395,7 +1438,7 @@ namespace VoucherPROVER2.Clients.OWI
                     textObject_ReceivedBy.Text = ReceivedByName;
                     textObject_ReceivedByPos.Text = ReceivedByPosition;
 
-                    foreach (var bill in bills) // 'bills' is List<BillTable>
+                    foreach (var bill in bills)
                     {
                         foreach (var item in bill.ItemDetails)
                         {
@@ -1428,22 +1471,44 @@ namespace VoucherPROVER2.Clients.OWI
 
                     textObject_CVBILLTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
                     textObject_CVBILLTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
-
                 }
                 catch
                 {
                     throw;
                 }
 
-
                 double amount = bills[0].AmountDue;
                 string amountInWords = AccessToDatabase_OWI.AmountToWordsConverter.Convert(amount);
 
-                if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
-                //if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
-                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                // --- FIXED: Apply historical series number override if available ---
+                if (textObject_CVBILLCheckNumber != null)
+                {
+                    textObject_CVBILLCheckNumber.Text = !string.IsNullOrEmpty(historySeriesOverride)
+                        ? historySeriesOverride
+                        : textBox_SeriesNumber.Text;
+                }
+
+                // --- FIXED: Apply historical date override if available ---
+                if (textObject_CVBILLCheckDate != null)
+                {
+                    if (!string.IsNullOrEmpty(historyDateOverride))
+                    {
+                        if (DateTime.TryParse(historyDateOverride, out DateTime parsedHistDate))
+                        {
+                            textObject_CVBILLCheckDate.Text = parsedHistDate.ToString("MMMM dd, yyyy");
+                        }
+                        else
+                        {
+                            textObject_CVBILLCheckDate.Text = historyDateOverride;
+                        }
+                    }
+                    else
+                    {
+                        textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                    }
+                }
+
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
-                //if (textObject_CVBILLTotalAmount != null) textObject_CVBILLTotalAmount.Text = bills[0].AmountDue.ToString("N2");
 
                 SubreportObject subreportObject = null;
                 try
@@ -1477,6 +1542,7 @@ namespace VoucherPROVER2.Clients.OWI
                         TextObject textObject_BILLSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountPayable"] as TextObject;
                         TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
                         TextObject textObject_PaidSign = subReportDocument.ReportDefinition.ReportObjects["TextPaidSign"] as TextObject;
+
                         if (textObject_PaidSign != null)
                         {
                             textObject_PaidSign.Text = comboBox_Currency.SelectedIndex == 1 ? "$" : "₱";
@@ -1490,7 +1556,6 @@ namespace VoucherPROVER2.Clients.OWI
                         if (textObject_BILLCVSubCheckNumber != null) textObject_BILLSubAccountPayable.Text = bills[0].BankAccount ?? "";
                         if (textObject_BILLSubAmountPayable != null)
                         {
-                            // Sums the AmountDue of all items in the bills list
                             double totalAmountDue = bills.Sum(b => b.AmountDue);
                             textObject_BILLSubAmountPayable.Text = totalAmountDue.ToString("N2");
                         }
@@ -2815,6 +2880,169 @@ namespace VoucherPROVER2.Clients.OWI
             catch (Exception ex)
             {
                 MessageBox.Show("Load History Error:\n" + ex.Message);
+            }
+        }
+
+        private void dgv_History_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                try
+                {
+                    DataGridViewRow selectedRow = dgv_History.Rows[e.RowIndex];
+
+                    if (selectedRow.Cells["CVSubCheckNumber"]?.Value != null)
+                    {
+                        // --- FLAG HISTORICAL ENVIRONMENT ---
+                        isHistoricalPreview = true;
+
+                        // Capture original record parameters
+                        string seriesOverride = selectedRow.Cells["CVRefNumber"]?.Value?.ToString() ?? "";
+                        string dateOverride = selectedRow.Cells["DatePrinted"]?.Value?.ToString() ?? "";
+                        string targetRefNumber = selectedRow.Cells["CVSubCheckNumber"].Value.ToString();
+
+                        Console.WriteLine($"[History Double-Click Navigation] Loading Ref: {targetRefNumber} with Series Override: {seriesOverride}");
+
+                        bool cvDataExists = false;
+                        try
+                        {
+                            CRCV_OWI cRCV_OWI = new CRCV_OWI();
+                            string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
+                            SetDatabaseLocation(cRCV_OWI, databasePath);
+
+                            AccessQueries_OWI accessQueries = new AccessQueries_OWI();
+                            cvData = accessQueries.GetCheckExpensesAndItemsData_OWI(targetRefNumber);
+
+                            if (cvData != null && cvData.Count > 0)
+                            {
+                                cvDataExists = true;
+
+                                TextObject textObject_CVRefNumber = cRCV_OWI.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
+                                TextObject textObject_CVCheckDate = cRCV_OWI.ReportDefinition.ReportObjects["TextCVCheckDate"] as TextObject;
+                                TextObject textObject_CVPayee = cRCV_OWI.ReportDefinition.ReportObjects["TextCVPayee"] as TextObject;
+                                TextObject textObject_CVTotalDebitAmount = cRCV_OWI.ReportDefinition.ReportObjects["TextCVTotalDebitAmount"] as TextObject;
+                                TextObject textObject_CVTotalCreditAmount = cRCV_OWI.ReportDefinition.ReportObjects["TextCVTotalCreditAmount"] as TextObject;
+
+                                TextObject textObject_CompanyName = cRCV_OWI.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+                                if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                                {
+                                    textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
+                                }
+
+                                TextObject textObject_PreparedBy = cRCV_OWI.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
+                                TextObject textObject_PreparedByPos = cRCV_OWI.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                                TextObject textObject_CheckedBy = cRCV_OWI.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
+                                TextObject textObject_CheckedByPos = cRCV_OWI.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                                TextObject textObject_ApprovedBy = cRCV_OWI.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                                TextObject textObject_ApprovedByPos = cRCV_OWI.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                                TextObject textObject_ReceivedBy = cRCV_OWI.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+                                TextObject textObject_ReceivedByPos = cRCV_OWI.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
+
+                                AccessToDatabase_OWI accessToDatabase = new AccessToDatabase_OWI();
+                                var signatories = accessToDatabase.RetrieveAllSignatoryData();
+
+                                if (textObject_CVRefNumber != null) textObject_CVRefNumber.Text = seriesOverride;
+
+                                if (textObject_CVCheckDate != null)
+                                {
+                                    if (DateTime.TryParse(dateOverride, out DateTime parsedHistDate))
+                                        textObject_CVCheckDate.Text = parsedHistDate.ToString("MMMM dd, yyyy");
+                                    else
+                                        textObject_CVCheckDate.Text = dateOverride;
+                                }
+
+                                if (textObject_CVPayee != null) textObject_CVPayee.Text = cvData[0].PayeeFullName;
+
+                                textObject_PreparedBy.Text = signatories.PreparedByName;
+                                textObject_PreparedByPos.Text = signatories.PreparedByPosition;
+                                textObject_CheckedBy.Text = signatories.ReviewedByName;
+                                textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
+                                textObject_ApprovedBy.Text = signatories.ApprovedByName;
+                                textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
+                                textObject_ReceivedBy.Text = signatories.ReceivedByName;
+                                textObject_ReceivedByPos.Text = signatories.ReceivedByPosition;
+
+                                double debitTotalAmount = 0;
+                                double creditTotalAmount = 0;
+
+                                foreach (var data in cvData)
+                                {
+                                    try
+                                    {
+                                        double itemAmount = data.ItemAmount;
+                                        if (itemAmount > 0) debitTotalAmount += itemAmount;
+                                        else if (itemAmount < 0) creditTotalAmount += Math.Abs(itemAmount);
+
+                                        if (!string.IsNullOrEmpty(data.Account))
+                                        {
+                                            double expenseAmount = data.ExpensesAmount;
+                                            if (expenseAmount > 0) debitTotalAmount += expenseAmount;
+                                            else if (expenseAmount < 0) creditTotalAmount += Math.Abs(expenseAmount);
+                                        }
+                                    }
+                                    catch (Exception ex) { Console.WriteLine($"Error computing totals: {ex.Message}"); }
+                                }
+
+                                textObject_CVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
+                                textObject_CVTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
+
+                                SubreportObject subreportObject = cRCV_OWI.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
+                                if (subreportObject != null)
+                                {
+                                    ReportDocument subReportDocument = cRCV_OWI.OpenSubreport(subreportObject.SubreportName);
+                                    TextObject textObject_Remarks = subReportDocument.ReportDefinition.ReportObjects["TextRemarks"] as TextObject;
+                                    TextObject textObject_CVSubTotal = subReportDocument.ReportDefinition.ReportObjects["TextCVSubTotalAmount"] as TextObject;
+                                    TextObject textObject_CVSubCheckNumber = subReportDocument.ReportDefinition.ReportObjects["TextCVSubCheckNumber"] as TextObject;
+                                    TextObject textObject_CVSubCheckDate = subReportDocument.ReportDefinition.ReportObjects["TextCVSubCheckDate"] as TextObject;
+                                    TextObject textObject_SubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextSubAccountPayable"] as TextObject;
+                                    TextObject textObject_SubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextSubAmountPayable"] as TextObject;
+
+                                    // --- ADD THIS LINE TO FIX THE CS0103 ERROR ---
+                                    TextObject textObject_PaidSign = subReportDocument.ReportDefinition.ReportObjects["TextPaidSign"] as TextObject;
+
+                                    if (textObject_PaidSign != null)
+                                    {
+                                        // Index 1 is Dollar ($), otherwise default to Peso (₱)
+                                        textObject_PaidSign.Text = comboBox_Currency.SelectedIndex == 1 ? "$" : "₱";
+                                    }
+
+                                    if (textObject_Remarks != null) textObject_Remarks.Text = cvData[0].Memo;
+                                    if (textObject_CVSubTotal != null) textObject_CVSubTotal.Text = cvData[0].TotalAmount.ToString("N2");
+                                    if (textObject_CVSubCheckNumber != null) textObject_CVSubCheckNumber.Text = cvData[0].RefNumber;
+                                    if (textObject_CVSubCheckDate != null) textObject_CVSubCheckDate.Text = cvData[0].DueDate.ToString("MMMM dd, yyyy");
+                                    if (textObject_SubAccountPayable != null) textObject_SubAccountPayable.Text = cvData[0].BankAccount;
+                                    if (textObject_SubAmountPayable != null) textObject_SubAmountPayable.Text = debitTotalAmount.ToString("N2");
+
+                                    InsertDataToCheckVoucherCompiledOWI(targetRefNumber, cvData);
+                                }
+
+                                cRCV_OWI.SetParameterValue("ReferenceNumber", targetRefNumber);
+
+                                panel_Printing.Visible = false;
+                                panel_Signatory.Visible = true;
+                                panel_Main.Visible = false;
+                                panel_Main_CR.Visible = true;
+
+                                reportViewer.ReportSource = cRCV_OWI;
+                                reportViewer.RefreshReport();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"IVP CV ERROR:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+
+                        // If standard data isn't present, shift rendering paths down to the Bill Document layout
+                        if (!cvDataExists)
+                        {
+                            GenerateBillPaymentReport_OWI(targetRefNumber, seriesOverride, dateOverride);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error processing history item routing:\n{ex.Message}", "Navigation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
     }
