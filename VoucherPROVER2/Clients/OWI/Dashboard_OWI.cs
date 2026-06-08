@@ -62,6 +62,7 @@ namespace VoucherPROVER2.Clients.OWI
 
         Panel panel_Main;
         Panel panel_Main_CR;
+        private Panel historyPanel;
 
         Panel panel_History;
         DataGridView dgv_History;
@@ -131,7 +132,7 @@ namespace VoucherPROVER2.Clients.OWI
                 Dock = DockStyle.Right,
                 Width = 350,
                 BackColor = Color.White,
-                Padding = new Padding(8) // Slightly increased padding for a cleaner UI layout
+                Padding = new Padding(8)
             };
 
             Label lblTitle = new Label
@@ -143,7 +144,6 @@ namespace VoucherPROVER2.Clients.OWI
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
-            // --- NEW: Search Container Panel (for smooth spacing) ---
             Panel searchContainer = new Panel
             {
                 Dock = DockStyle.Top,
@@ -159,7 +159,6 @@ namespace VoucherPROVER2.Clients.OWI
                 Text = "Search by Series or Payee..."
             };
 
-            // Placeholder behavior logic
             txt_SearchHistory.Enter += (s, e) =>
             {
                 if (txt_SearchHistory.Text == "Search by Series or Payee...")
@@ -178,17 +177,16 @@ namespace VoucherPROVER2.Clients.OWI
                 }
             };
 
-            // Real-time instant filtering event handler
             txt_SearchHistory.TextChanged += (s, e) =>
             {
                 string searchText = txt_SearchHistory.Text;
                 if (searchText == "Search by Series or Payee...") searchText = "";
-
                 LoadVoucherHistory(searchText.Trim());
             };
 
             searchContainer.Controls.Add(txt_SearchHistory);
 
+            // --- FIXED: Explicitly define columns here so they exist immediately ---
             dgv_History = new DataGridView
             {
                 Dock = DockStyle.Fill,
@@ -196,10 +194,26 @@ namespace VoucherPROVER2.Clients.OWI
                 AllowUserToAddRows = false,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.None,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                AutoGenerateColumns = false, // Stop WinForms from changing headers dynamically
+                RowHeadersVisible = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
             };
 
-            // Add UI items in reverse order of Docking directions (Top items first, Fill item last)
+            // Add defined columns manually with DataPropertyName links to the Access fields
+            dgv_History.Columns.Add(new DataGridViewTextBoxColumn { Name = "CVRefNumber", DataPropertyName = "CVRefNumber", HeaderText = "SERIES NUMBER" });
+            dgv_History.Columns.Add(new DataGridViewTextBoxColumn { Name = "CVSubCheckNumber", DataPropertyName = "CVSubCheckNumber", HeaderText = "REF NUMBER" });
+            dgv_History.Columns.Add(new DataGridViewTextBoxColumn { Name = "CVPayee", DataPropertyName = "CVPayee", HeaderText = "PAYEE" });
+
+            // Numeric layout column configurations
+            var totalCol = new DataGridViewTextBoxColumn { Name = "CVTotalDebitAmount", DataPropertyName = "CVTotalDebitAmount", HeaderText = "TOTAL" };
+            totalCol.DefaultCellStyle.Format = "N2";
+            totalCol.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            dgv_History.Columns.Add(totalCol);
+
+            dgv_History.Columns.Add(new DataGridViewTextBoxColumn { Name = "DatePrinted", DataPropertyName = "DatePrinted", HeaderText = "DATE PRINTED" });
+
+            // Assemble the container items
             panel_History.Controls.Add(dgv_History);
             panel_History.Controls.Add(searchContainer);
             panel_History.Controls.Add(lblTitle);
@@ -366,25 +380,29 @@ namespace VoucherPROVER2.Clients.OWI
 
             return panel_Main;
         }
-
         public Panel MainPanel_CR()
         {
-            Panel panel_Main_CR = new Panel
+            Panel panel = new Panel
             {
                 BackColor = Color.LightGray,
                 Dock = DockStyle.Fill,
                 Padding = new Padding(sideBarWidth, 50, 0, 0),
             };
 
-            Panel historyPanel = Panel_History();
+            // 1. Initialize the History Side Panel
+            historyPanel = Panel_History();
             historyPanel.Dock = DockStyle.Right;
             historyPanel.Width = 350;
 
-            panel_Main_CR.Controls.Add(historyPanel);
+            // Default it to hidden until the layout manager is completely loaded
+            historyPanel.Visible = false;
 
+            panel.Controls.Add(historyPanel);
+
+            // 2. Initialize the Crystal Report Viewer
             reportViewer = new CrystalReportViewer
             {
-                Parent = panel_Main_CR,
+                Parent = panel,
                 Dock = DockStyle.Fill,
                 ShowCopyButton = false,
                 ShowPrintButton = true,
@@ -396,6 +414,27 @@ namespace VoucherPROVER2.Clients.OWI
                 ToolPanelView = ToolPanelViewType.None
             };
 
+            // --- FIXED: Wait for the panel to load before touching comboBox_Forms ---
+            panel.HandleCreated += (s, e) =>
+            {
+                // This runs later, when the UI is active and comboBox_Forms is guaranteed to exist!
+                if (comboBox_Forms != null)
+                {
+                    // Set the visibility state based on the current selection right now
+                    historyPanel.Visible = (comboBox_Forms.SelectedIndex == 1);
+
+                    // Bind the change event handler so it updates dynamically moving forward
+                    comboBox_Forms.SelectedIndexChanged += (sender, args) =>
+                    {
+                        if (historyPanel != null)
+                        {
+                            historyPanel.Visible = (comboBox_Forms.SelectedIndex == 1);
+                        }
+                    };
+                }
+            };
+
+            // 4. Intercept Crystal Reports ToolStrip for the Print Button click
             foreach (Control control in reportViewer.Controls)
             {
                 if (control is System.Windows.Forms.ToolStrip toolStrip)
@@ -407,18 +446,18 @@ namespace VoucherPROVER2.Clients.OWI
                             continue;
                         }
 
-                        // If we get here, we found the Print button
-                        // If we get here, we found the Print button
                         item.Click += (s, e) =>
                         {
                             if (GlobalVariables.client == "OWI")
                             {
+                                if (comboBox_Forms == null) return;
+
                                 string formType = "";
                                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                                 else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
                                 else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
 
-                                string selectedCompany = comboBox_Company.SelectedItem?.ToString();
+                                string selectedCompany = comboBox_Company?.SelectedItem?.ToString();
 
                                 if (!string.IsNullOrEmpty(formType) && !string.IsNullOrEmpty(selectedCompany))
                                 {
@@ -428,7 +467,6 @@ namespace VoucherPROVER2.Clients.OWI
                                         {
                                             if (reportViewer.ReportSource is CrystalDecisions.CrystalReports.Engine.ReportDocument loadedReport)
                                             {
-                                                // Declare extraction variables
                                                 string currentSeriesNo = "";
                                                 string currentPayee = "";
                                                 string currentDebit = "0.00";
@@ -436,14 +474,11 @@ namespace VoucherPROVER2.Clients.OWI
                                                 string checkDateFormatted = DateTime.Now.ToString("yyyy-MM-dd");
                                                 string subCheckNumber = "";
 
-                                                // --- ADAPTIVE TEXT EXTRACTION BASED ON REPORT TYPE ---
-                                                // Check if the current report layout is the BILL variant or the Standard variant
                                                 bool isBillReport = loadedReport.Name.Contains("CRCV_OWIBILL") ||
                                                                    loadedReport.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] != null;
 
                                                 if (isBillReport)
                                                 {
-                                                    // 1. Extract values from Bill Report layout structures
                                                     var refObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
                                                     var dateObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as CrystalDecisions.CrystalReports.Engine.TextObject;
                                                     var payeeObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLPayee"] as CrystalDecisions.CrystalReports.Engine.TextObject;
@@ -460,7 +495,6 @@ namespace VoucherPROVER2.Clients.OWI
                                                         checkDateFormatted = parsedBillDate.ToString("yyyy-MM-dd");
                                                     }
 
-                                                    // 2. Extract Subreport details using Bill subreport object keys
                                                     try
                                                     {
                                                         var subreportObject = loadedReport.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as CrystalDecisions.CrystalReports.Engine.SubreportObject;
@@ -481,7 +515,6 @@ namespace VoucherPROVER2.Clients.OWI
                                                 }
                                                 else
                                                 {
-                                                    // Fallback to Standard Layout Object Names if it's not a Bill variant
                                                     var refObj = loadedReport.ReportDefinition.ReportObjects["TextCVRefNumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
                                                     var dateObj = loadedReport.ReportDefinition.ReportObjects["TextCVCheckDate"] as CrystalDecisions.CrystalReports.Engine.TextObject;
                                                     var payeeObj = loadedReport.ReportDefinition.ReportObjects["TextCVPayee"] as CrystalDecisions.CrystalReports.Engine.TextObject;
@@ -517,7 +550,6 @@ namespace VoucherPROVER2.Clients.OWI
                                                     }
                                                 }
 
-                                                // Execute standard persistence operations
                                                 SaveVoucherHistory(
                                                     currentSeriesNo,
                                                     checkDateFormatted,
@@ -545,7 +577,7 @@ namespace VoucherPROVER2.Clients.OWI
                 }
             }
 
-            return panel_Main_CR;
+            return panel;
         }
 
         private Panel SideBarPanel()
@@ -2750,7 +2782,6 @@ namespace VoucherPROVER2.Clients.OWI
                 {
                     connection.Open();
 
-                    // --- FIXED: Explicitly added CVSubCheckNumber to the query ---
                     string query = @"
                 SELECT TOP 20
                     CVRefNumber,
@@ -2776,32 +2807,8 @@ namespace VoucherPROVER2.Clients.OWI
                                 "CVRefNumber LIKE '%{0}%' OR CVSubCheckNumber LIKE '%{0}%' OR CVPayee LIKE '%{0}%'", safeFilter);
                         }
 
-                        // Bind the data to the grid
+                        // Bind the data to the grid (It cleanly fills your pre-defined headers)
                         dgv_History.DataSource = dt;
-
-                        // --- MAP HEADERS ---
-                        if (dgv_History.Columns["CVRefNumber"] != null)
-                            dgv_History.Columns["CVRefNumber"].HeaderText = "SERIES NUMBER";
-
-                        // --- NEW: Map the Ref Number column ---
-                        if (dgv_History.Columns["CVSubCheckNumber"] != null)
-                            dgv_History.Columns["CVSubCheckNumber"].HeaderText = "REFNUMBER";
-
-                        if (dgv_History.Columns["CVPayee"] != null)
-                            dgv_History.Columns["CVPayee"].HeaderText = "PAYEE";
-
-                        if (dgv_History.Columns["CVTotalDebitAmount"] != null)
-                        {
-                            dgv_History.Columns["CVTotalDebitAmount"].HeaderText = "TOTAL";
-                            dgv_History.Columns["CVTotalDebitAmount"].DefaultCellStyle.Format = "N2";
-                            dgv_History.Columns["CVTotalDebitAmount"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-                        }
-
-                        if (dgv_History.Columns["DatePrinted"] != null)
-                            dgv_History.Columns["DatePrinted"].HeaderText = "DATE PRINTED";
-
-                        dgv_History.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-                        dgv_History.RowHeadersVisible = false;
                     }
                 }
             }
