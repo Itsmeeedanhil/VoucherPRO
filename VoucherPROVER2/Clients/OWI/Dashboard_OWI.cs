@@ -35,7 +35,7 @@ namespace VoucherPROVER2.Clients.OWI
 
 
         FlowLayoutPanel panel_Company;
-
+        private Panel panel_RightSideBar;
         ComboBox comboBox_Forms;
         ComboBox comboBox_Company;
 
@@ -330,15 +330,57 @@ namespace VoucherPROVER2.Clients.OWI
                 Dock = DockStyle.Fill,
             };
 
+            // 1. Initialize top bar and left side menus
             Panel panel_Title = TitlePanel();
-            panel_Main = MainPanel();
-            panel_Main_CR = MainPanel_CR();
             Panel panel_SideBar = SideBarPanel();
 
-            panel_SideBar.Parent = panel_Container;
+            // 2. Initialize your brand new right history sidebar container
+            panel_RightSideBar = SideBarPanel_History();
+            panel_RightSideBar.Visible = false;
+
+            // 3. Create a clean middle workspace box that sits automatically below the title bar
+            Panel panel_Workspace = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.LightGray
+            };
+
+            // Map parent controls to the master container tree
             panel_Title.Parent = panel_Container;
-            panel_Main.Parent = panel_Container;
-            panel_Main_CR.Parent = panel_Container;
+            panel_SideBar.Parent = panel_Container;
+            panel_RightSideBar.Parent = panel_Container;
+            panel_Workspace.Parent = panel_Container;
+
+            // 4. Initialize inner content report views and nest them safely inside the workspace
+            panel_Main = MainPanel();
+            panel_Main_CR = MainPanel_CR();
+
+            panel_Main.Parent = panel_Workspace;
+            panel_Main_CR.Parent = panel_Workspace;
+
+            // --- CRITICAL LAYER MANAGEMENT ---
+            // Forces outer boundary strips to claim their real estate slices first, 
+            // leaving the workspace completely isolated to match your red box frame!
+            panel_Title.BringToFront();
+            panel_SideBar.BringToFront();
+            panel_RightSideBar.BringToFront();
+
+            // 5. Root ComboBox dynamic visibility tracking hook
+            panel_Container.HandleCreated += (s, e) =>
+            {
+                if (comboBox_Forms != null)
+                {
+                    panel_RightSideBar.Visible = (comboBox_Forms.SelectedIndex == 1);
+
+                    comboBox_Forms.SelectedIndexChanged += (sender, args) =>
+                    {
+                        if (panel_RightSideBar != null)
+                        {
+                            panel_RightSideBar.Visible = (comboBox_Forms.SelectedIndex == 1);
+                        }
+                    };
+                }
+            };
 
             return panel_Container;
         }
@@ -394,21 +436,15 @@ namespace VoucherPROVER2.Clients.OWI
             {
                 BackColor = Color.LightGray,
                 Dock = DockStyle.Fill,
-                Padding = new Padding(sideBarWidth, 50, 0, 0),
+                Padding = new Padding(sideBarWidth, 50, 350, 0),
             };
 
-            // 1. Initialize and Polish the History Side Panel
-            historyPanel = Panel_History();
-            historyPanel.Dock = DockStyle.Right;
-            historyPanel.Width = 350;
-            historyPanel.Visible = false;
-
-            historyPanel.BorderStyle = BorderStyle.FixedSingle;
+            // --- REMOVED: historyPanel code block completely gone from here ---
 
             // 2. Initialize the Crystal Report Viewer
             reportViewer = new CrystalReportViewer
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.Fill, // Beautifully centers inside the isolated gray space
                 ShowCopyButton = false,
                 ShowPrintButton = true,
                 ShowExportButton = false,
@@ -419,25 +455,9 @@ namespace VoucherPROVER2.Clients.OWI
                 ToolPanelView = ToolPanelViewType.None,
             };
 
-            panel.Controls.Add(historyPanel);
             panel.Controls.Add(reportViewer);
 
-            // 3. Wait for the panel to fully load on screen before configuring ComboBox relationships
-            panel.HandleCreated += (s, e) =>
-            {
-                if (comboBox_Forms != null)
-                {
-                    historyPanel.Visible = (comboBox_Forms.SelectedIndex == 1);
-
-                    comboBox_Forms.SelectedIndexChanged += (sender, args) =>
-                    {
-                        if (historyPanel != null)
-                        {
-                            historyPanel.Visible = (comboBox_Forms.SelectedIndex == 1);
-                        }
-                    };
-                }
-            };
+            // --- REMOVED: Old handle created ComboBox visibility loop block ---
 
             // 4. Intercept Crystal Reports ToolStrip for the Print Button click actions
             foreach (Control control in reportViewer.Controls)
@@ -481,7 +501,6 @@ namespace VoucherPROVER2.Clients.OWI
                                                     string checkDateFormatted = DateTime.Now.ToString("yyyy-MM-dd");
                                                     string subCheckNumber = "";
 
-                                                    // --- SAFELY CHECK REPORT TYPE WITHOUT CRASHING ---
                                                     bool hasBillSeriesField = false;
                                                     foreach (CrystalDecisions.CrystalReports.Engine.ReportObject obj in loadedReport.ReportDefinition.ReportObjects)
                                                     {
@@ -583,10 +602,6 @@ namespace VoucherPROVER2.Clients.OWI
                                                 Console.WriteLine($"Print Logging Error Interception: {ex.Message}");
                                             }
                                         }
-                                        else
-                                        {
-                                            Console.WriteLine("[Reprint Safeguard] Historical preview re-print detected. Skipping entry creation.");
-                                        }
                                     }
 
                                     if (!isHistoricalPreview)
@@ -603,6 +618,27 @@ namespace VoucherPROVER2.Clients.OWI
             }
 
             return panel;
+        }
+
+        private Panel SideBarPanel_History()
+        {
+            // Right Sidebar Container Panel
+            Panel panel_RightSideBar = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 350,
+                Padding = new Padding(2),
+                BackColor = Color.White
+            };
+
+            // Instantiate your customized history list layout controls
+            historyPanel = Panel_History();
+            historyPanel.Dock = DockStyle.Fill;
+            historyPanel.BorderStyle = BorderStyle.None; // Remove redundant double borders
+
+            historyPanel.Parent = panel_RightSideBar;
+
+            return panel_RightSideBar;
         }
 
         private Panel SideBarPanel()
