@@ -63,10 +63,10 @@ namespace VoucherPROVER2
                 Dashboard_ENA dashboard_ENA = new Dashboard_ENA();
 
                 // 2. Call the method that returns the panel
-                Panel mpmContent = dashboard_ENA.ContainerPanel();
+                Panel enaContent = dashboard_ENA.ContainerPanel();
 
                 // 3. Add that panel into the current panel's controls
-                panel.Controls.Add(mpmContent);
+                panel.Controls.Add(enaContent);
 
                 return panel;
             }
