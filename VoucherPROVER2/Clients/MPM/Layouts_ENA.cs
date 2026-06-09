@@ -5,19 +5,19 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static VoucherPROVER2.Clients.MPM.AccessToDatabase_MPM;
-using static VoucherPROVER2.Clients.MPM.Dataclass_MPM;
+using static VoucherPROVER2.Clients.ENA.AccessToDatabase_ENA;
+using static VoucherPROVER2.Clients.ENA.Dataclass_ENA;
 
-namespace VoucherPROVER2.Clients.MPM
+namespace VoucherPROVER2.Clients.ENA
 {
-    public class Layouts_MPM
+    public class Layouts_ENA
     {
         Font font_Ten = new Font("Microsoft Sans Serif", 10, FontStyle.Regular);
         Font font_Nine = new Font("Microsoft Sans Serif", 9, FontStyle.Regular);
         Font font_Eleven = new Font("Microsoft Sans Serif", 11, FontStyle.Regular);
         Font font_Eight = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
 
-        public void PrintPage_MPM(object sender, PrintPageEventArgs e, int layoutIndex, string seriesNumber, object data, string payeeOverride = "")
+        public void PrintPage_ENA(object sender, PrintPageEventArgs e, int layoutIndex, string seriesNumber, object data, string payeeOverride = "")
         {
             StringFormat sfAlignRight = new StringFormat { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Far };
             StringFormat sfAlignCenterRight = new StringFormat { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center };

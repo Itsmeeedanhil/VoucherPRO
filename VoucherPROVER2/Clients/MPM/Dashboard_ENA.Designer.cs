@@ -1,6 +1,6 @@
-﻿namespace VoucherPROVER2.Clients.MPM
+﻿namespace VoucherPROVER2.Clients.ENA
 {
-    partial class Dashboard_MPM
+    partial class Dashboard_ENA
     {
         /// <summary>
         /// Required designer variable.
@@ -30,13 +30,13 @@
         {
             this.SuspendLayout();
             // 
-            // Dashboard_MPM
+            // Dashboard_ENA
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Name = "Dashboard_MPM";
-            this.Text = "Dashboard_MPM";
+            this.Name = "Dashboard_ENA";
+            this.Text = "Dashboard_ENA";
             this.ResumeLayout(false);
 
         }

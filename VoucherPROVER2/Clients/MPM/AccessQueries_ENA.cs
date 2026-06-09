@@ -6,16 +6,16 @@ using System.Data.OleDb;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static VoucherPROVER2.Clients.MPM.Dataclass_MPM;
-using static VoucherPROVER2.Clients.MPM.AccessToDatabase_MPM;
+using static VoucherPROVER2.Clients.ENA.Dataclass_ENA;
+using static VoucherPROVER2.Clients.ENA.AccessToDatabase_ENA;
 using System.Windows.Forms;
 
-namespace VoucherPROVER2.Clients.MPM
+namespace VoucherPROVER2.Clients.ENA
 {
-    public class AccessQueries_MPM
+    public class AccessQueries_ENA
     {
 
-        public List<CheckTableGrid> GetCheckDataMPM(string refNumber)
+        public List<CheckTableGrid> GetCheckDataENA(string refNumber)
         {
             List<CheckTableGrid> checkList = new List<CheckTableGrid>();
             QBSessionManager sessionManager = new QBSessionManager();
@@ -117,7 +117,7 @@ namespace VoucherPROVER2.Clients.MPM
             return checkList;
         }
 
-        public List<BillTable> GetBillData_MPM_DirectBill(string billRefNumber)
+        public List<BillTable> GetBillData_ENA_DirectBill(string billRefNumber)
         {
             QBSessionManager sessionManager = new QBSessionManager();
             List<BillTable> bills = new List<BillTable>();
@@ -291,7 +291,7 @@ namespace VoucherPROVER2.Clients.MPM
             return bills;
         }
 
-        public List<BillTable> GetBillData_MPM(string refNumber)
+        public List<BillTable> GetBillData_ENA(string refNumber)
         {
             QBSessionManager sessionManager = new QBSessionManager();
             List<BillTable> bills = new List<BillTable>();
@@ -496,7 +496,7 @@ namespace VoucherPROVER2.Clients.MPM
         }
 
 
-        public List<CheckTableExpensesAndItems> GetCheckExpensesAndItemsData_MPM(string refNumber)
+        public List<CheckTableExpensesAndItems> GetCheckExpensesAndItemsData_ENA(string refNumber)
         {
             QBSessionManager sessionManager = new QBSessionManager();
             List<CheckTableExpensesAndItems> checks = new List<CheckTableExpensesAndItems>();

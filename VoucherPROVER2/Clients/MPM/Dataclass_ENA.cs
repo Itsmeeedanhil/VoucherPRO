@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VoucherPROVER2.Clients.MPM
+namespace VoucherPROVER2.Clients.ENA
 {
-    public class Dataclass_MPM
+    public class Dataclass_ENA
     {
         public class BillTable // For APV / Bill
         {

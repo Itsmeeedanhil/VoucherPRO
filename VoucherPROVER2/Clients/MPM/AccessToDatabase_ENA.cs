@@ -8,9 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace VoucherPROVER2.Clients.MPM
+namespace VoucherPROVER2.Clients.ENA
 {
-    public class AccessToDatabase_MPM
+    public class AccessToDatabase_ENA
     {
         readonly string client = GlobalVariables.client;
         public static string GetAccessConnectionString()
@@ -278,7 +278,7 @@ namespace VoucherPROVER2.Clients.MPM
                                     break;
                             }
                         }
-                        else if (client == "MPM")
+                        else if (client == "ENA")
                         {
                             switch (choice)
                             {
@@ -463,7 +463,7 @@ namespace VoucherPROVER2.Clients.MPM
                                     break;
                             }
                         }
-                        else if (client == "MPM")
+                        else if (client == "ENA")
                         {
                             switch (choice)
                             {
@@ -621,7 +621,7 @@ namespace VoucherPROVER2.Clients.MPM
                                 break;
                         }
                     }
-                    else if (client == "MPM")
+                    else if (client == "ENA")
                     {
                         switch (choice)
                         {
@@ -750,7 +750,7 @@ namespace VoucherPROVER2.Clients.MPM
                                             break;
                                     }
                                 }
-                                else if (client == "MPM")
+                                else if (client == "ENA")
                                 {
                                     switch (choice)
                                     {
@@ -883,7 +883,7 @@ namespace VoucherPROVER2.Clients.MPM
                         "ReceivedByName, ReceivedByPosition " +
                         "FROM Signatory";
                     }
-                    else if (GlobalVariables.client == "MPM")
+                    else if (GlobalVariables.client == "ENA")
                     {
                         query = "SELECT TOP 1 " +
                         "PreparedByName, PreparedByPosition, " +
@@ -961,7 +961,7 @@ namespace VoucherPROVER2.Clients.MPM
                                     receivedByName = reader["ReceivedByName"].ToString();
                                     receivedByPosition = reader["ReceivedByPosition"].ToString();
                                 }
-                                if (client == "MPM")
+                                if (client == "ENA")
                                 {
                                     preparedByName = reader["PreparedByName"].ToString();
                                     preparedByPosition = reader["PreparedByPosition"].ToString();
@@ -1021,7 +1021,7 @@ namespace VoucherPROVER2.Clients.MPM
                 recommendingApprovalName = "";
                 recommendingApprovalPosition = "";
             }
-            else if (GlobalVariables.client == "MPM")
+            else if (GlobalVariables.client == "ENA")
             {
                 recommendingApprovalName = "";
                 recommendingApprovalPosition = "";

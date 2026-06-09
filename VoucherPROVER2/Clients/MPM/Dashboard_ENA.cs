@@ -12,20 +12,21 @@ using CrystalDecisions.Shared;
 using CrystalDecisions.CrystalReports.Engine;
 using CrystalDecisions.Windows.Forms;
 using CrystalDecisions.ReportAppServer;
-using static VoucherPROVER2.Clients.MPM.Dataclass_MPM;
+using static VoucherPROVER2.Clients.ENA.Dataclass_ENA;
 using System.IO;
 using System.Data.OleDb;
+using VoucherPROVER2.Clients.MPM;
 
 
-namespace VoucherPROVER2.Clients.MPM
+namespace VoucherPROVER2.Clients.ENA
 {
-    public partial class Dashboard_MPM : Form
+    public partial class Dashboard_ENA : Form
     {
-        public Dashboard_MPM()
+        public Dashboard_ENA()
         {
             InitializeComponent();
 
-            accessToDatabase = new AccessToDatabase_MPM();
+            accessToDatabase = new AccessToDatabase_ENA();
 
             this.CreateHandle();
         }
@@ -33,7 +34,7 @@ namespace VoucherPROVER2.Clients.MPM
         private PrintDocument printDocument;
         private PrintPreviewControl printPreviewControl;
         private CrystalReportViewer reportViewer;
-        private AccessToDatabase_MPM accessToDatabase;
+        private AccessToDatabase_ENA accessToDatabase;
 
 
         FlowLayoutPanel panel_Company;
@@ -125,7 +126,7 @@ namespace VoucherPROVER2.Clients.MPM
                 Padding = new Padding(5, 2, 5, 5),
                 BorderStyle = BorderStyle.FixedSingle,
                 // Only visible if client is IVP
-                Visible = (GlobalVariables.client == "MPM")
+                Visible = (GlobalVariables.client == "ENA")
             };
 
             Label label_CompanyText = new Label
@@ -150,7 +151,7 @@ namespace VoucherPROVER2.Clients.MPM
             {
 
                 // ---------------- IVP COMPANIES ----------------
-                "M.P.M Safety Industries Co.",
+                "ENASIA IMPORT EXPORT CORPORATION",
 
             });
 
@@ -175,7 +176,7 @@ namespace VoucherPROVER2.Clients.MPM
                     seriesNumber = accessToDatabase.GetSeriesNumberFromDatabase(formType, selectedCompany);
 
                     // Update the textbox text
-                    UpdateSeriesNumberMPM(formType);
+                    UpdateSeriesNumberENA(formType);
                 }
             };
 
@@ -341,7 +342,7 @@ namespace VoucherPROVER2.Clients.MPM
                                 }
                             }*/ // FOR MANUAL ENTRY
 
-                            if (GlobalVariables.client == "MPM")
+                            if (GlobalVariables.client == "ENA")
                             {
                                 string formType = "";
                                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
@@ -361,7 +362,7 @@ namespace VoucherPROVER2.Clients.MPM
                                     // 3. Update the TextBox display to show the NEXT number (CV-00002)
                                     this.BeginInvoke((MethodInvoker)delegate
                                     {
-                                        UpdateSeriesNumberMPM(formType);
+                                        UpdateSeriesNumberENA(formType);
                                     });
                                 }
                             }
@@ -394,7 +395,7 @@ namespace VoucherPROVER2.Clients.MPM
             panel_SeriesNumber.Parent = panel_SideBar;
             panel_SeriesNumber.Visible = false;
 
-            if (GlobalVariables.client == "MPM")
+            if (GlobalVariables.client == "ENA")
             {
                 FlowLayoutPanel panel_Company = Panel_SBCompany();
                 panel_Company.Parent = panel_SideBar;
@@ -464,13 +465,14 @@ namespace VoucherPROVER2.Clients.MPM
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Font = font_Label,
             };
-            if (GlobalVariables.client == "MPM")
+            if (GlobalVariables.client == "ENA")
             {
                 comboBox_Forms.Items.AddRange(new string[]
             {
                 "",
                 "Check Voucher",
                 "Check",
+                "Journal Voucher",
                 "Accounts Payable Voucher",
 
             });
@@ -525,7 +527,7 @@ namespace VoucherPROVER2.Clients.MPM
             };
             button_Decrement.Click += (sender, e) =>
             {
-                if (GlobalVariables.client == "MPM")
+                if (GlobalVariables.client == "ENA")
                 {
                     seriesNumber--;
                     string prefix = "";
@@ -533,7 +535,7 @@ namespace VoucherPROVER2.Clients.MPM
                     else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
                     else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
 
-                    UpdateSeriesNumberMPM(prefix); // Use the new 5-digit formatter
+                    UpdateSeriesNumberENA(prefix); // Use the new 5-digit formatter
                 }
 
 
@@ -553,14 +555,14 @@ namespace VoucherPROVER2.Clients.MPM
             };
             button_Increment.Click += (sender, e) =>
             {
-                if (GlobalVariables.client == "MPM")
+                if (GlobalVariables.client == "ENA")
                 {
                     seriesNumber++;
                     string prefix = "";
                     if (comboBox_Forms.SelectedIndex == 1) prefix = "CV";
                     else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
                     else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
-                    UpdateSeriesNumberMPM(prefix); // Use the new 5-digit formatter
+                    UpdateSeriesNumberENA(prefix); // Use the new 5-digit formatter
                 }
             };
 
@@ -614,7 +616,7 @@ namespace VoucherPROVER2.Clients.MPM
                 }
                 else if (comboBox_Forms.SelectedIndex != 0 && textBox_ReferenceNumber_CR.Text != "")
                 {
-                    if (GlobalVariables.client == "MPM")
+                    if (GlobalVariables.client == "ENA")
                     {
                         // -------------------------------------------------------------
                         // OPTION 1: CHECK VOUCHER
@@ -624,49 +626,49 @@ namespace VoucherPROVER2.Clients.MPM
                             bool cvDataExists = false;
                             try
                             {
-                                CRCV_MPM cRCV_MPM = new CRCV_MPM();
+                                CRCV_ENA cRCV_ENA = new CRCV_ENA();
                                 string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
-                                SetDatabaseLocation(cRCV_MPM, databasePath);
+                                SetDatabaseLocation(cRCV_ENA, databasePath);
 
-                                AccessQueries_MPM accessQueries = new AccessQueries_MPM();
+                                AccessQueries_ENA accessQueries = new AccessQueries_ENA();
                                 string refNumberCR = textBox_ReferenceNumber_CR.Text;
 
-                                cvData = accessQueries.GetCheckExpensesAndItemsData_MPM(refNumberCR);
+                                cvData = accessQueries.GetCheckExpensesAndItemsData_ENA(refNumberCR);
 
                                 if (cvData != null && cvData.Count > 0)
                                 {
                                     cvDataExists = true;
 
-                                    TextObject textObject_CVRefNumber = cRCV_MPM.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
-                                    TextObject textObject_CVCheckDate = cRCV_MPM.ReportDefinition.ReportObjects["TextCVCheckDate"] as TextObject;
-                                    TextObject textObject_CVCheckDate2 = cRCV_MPM.ReportDefinition.ReportObjects["TextCVCheckDate2"] as TextObject;
-                                    TextObject textObject_CVPayee = cRCV_MPM.ReportDefinition.ReportObjects["TextCVPayee"] as TextObject;
-                                    TextObject textObject_CVPayee2 = cRCV_MPM.ReportDefinition.ReportObjects["TextCVPayee2"] as TextObject;
-                                    TextObject textObject_CVTotalDebitAmount = cRCV_MPM.ReportDefinition.ReportObjects["TextCVTotalDebitAmount"] as TextObject;
-                                    TextObject textObject_CVTotalAmount = cRCV_MPM.ReportDefinition.ReportObjects["TextCVTotalAmount"] as TextObject;
-                                    TextObject textObject_CVAmountinWords = cRCV_MPM.ReportDefinition.ReportObjects["TextCVAmountinWords"] as TextObject;
-                                    TextObject textObject_CVTotalCreditAmount = cRCV_MPM.ReportDefinition.ReportObjects["TextCVTotalCreditAmount"] as TextObject;
+                                    TextObject textObject_CVRefNumber = cRCV_ENA.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
+                                    TextObject textObject_CVCheckDate = cRCV_ENA.ReportDefinition.ReportObjects["TextCVCheckDate"] as TextObject;
+                                    TextObject textObject_CVCheckDate2 = cRCV_ENA.ReportDefinition.ReportObjects["TextCVCheckDate2"] as TextObject;
+                                    TextObject textObject_CVPayee = cRCV_ENA.ReportDefinition.ReportObjects["TextCVPayee"] as TextObject;
+                                    TextObject textObject_CVPayee2 = cRCV_ENA.ReportDefinition.ReportObjects["TextCVPayee2"] as TextObject;
+                                    TextObject textObject_CVTotalDebitAmount = cRCV_ENA.ReportDefinition.ReportObjects["TextCVTotalDebitAmount"] as TextObject;
+                                    TextObject textObject_CVTotalAmount = cRCV_ENA.ReportDefinition.ReportObjects["TextCVTotalAmount"] as TextObject;
+                                    TextObject textObject_CVAmountinWords = cRCV_ENA.ReportDefinition.ReportObjects["TextCVAmountinWords"] as TextObject;
+                                    TextObject textObject_CVTotalCreditAmount = cRCV_ENA.ReportDefinition.ReportObjects["TextCVTotalCreditAmount"] as TextObject;
 
-                                    TextObject textObject_CompanyName = cRCV_MPM.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+                                    TextObject textObject_CompanyName = cRCV_ENA.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
                                     if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
                                     {
                                         textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                                     }
 
-                                    TextObject textObject_PreparedBy = cRCV_MPM.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                                    TextObject textObject_PreparedByPos = cRCV_MPM.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
-                                    TextObject textObject_CheckedBy = cRCV_MPM.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                                    TextObject textObject_CheckedByPos = cRCV_MPM.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
-                                    TextObject textObject_ApprovedBy = cRCV_MPM.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                                    TextObject textObject_ApprovedByPos = cRCV_MPM.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
-                                    TextObject textObject_ReceivedBy = cRCV_MPM.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
-                                    TextObject textObject_ReceivedByPos = cRCV_MPM.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
+                                    TextObject textObject_PreparedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
+                                    TextObject textObject_PreparedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                                    TextObject textObject_CheckedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
+                                    TextObject textObject_CheckedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                                    TextObject textObject_ApprovedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                                    TextObject textObject_ApprovedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                                    TextObject textObject_ReceivedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+                                    TextObject textObject_ReceivedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
 
-                                    AccessToDatabase_MPM accessToDatabase = new AccessToDatabase_MPM();
+                                    AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
                                     var signatories = accessToDatabase.RetrieveAllSignatoryData();
 
                                     double amount = cvData[0].TotalAmount;
-                                    string amountInWords = AccessToDatabase_MPM.AmountToWordsConverter.Convert(amount);
+                                    string amountInWords = AccessToDatabase_ENA.AmountToWordsConverter.Convert(amount);
 
                                     textObject_CVRefNumber.Text = textBox_SeriesNumber.Text;
                                     textObject_CVAmountinWords.Text = amountInWords;
@@ -709,10 +711,10 @@ namespace VoucherPROVER2.Clients.MPM
                                     textObject_CVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
                                     textObject_CVTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
 
-                                    SubreportObject subreportObject = cRCV_MPM.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
+                                    SubreportObject subreportObject = cRCV_ENA.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                                     if (subreportObject != null)
                                     {
-                                        ReportDocument subReportDocument = cRCV_MPM.OpenSubreport(subreportObject.SubreportName);
+                                        ReportDocument subReportDocument = cRCV_ENA.OpenSubreport(subreportObject.SubreportName);
                                         TextObject textObject_Remarks = subReportDocument.ReportDefinition.ReportObjects["TextRemarks"] as TextObject;
                                         TextObject textObject_CVSubTotal = subReportDocument.ReportDefinition.ReportObjects["TextCVSubTotalAmount"] as TextObject;
                                         TextObject textObject_CVSubCheckNumber = subReportDocument.ReportDefinition.ReportObjects["TextCVSubCheckNumber"] as TextObject;
@@ -734,17 +736,17 @@ namespace VoucherPROVER2.Clients.MPM
                                         textObject_SubAccountPayable.Text = cvData[0].BankAccount;
                                         textObject_SubAmountPayable.Text = debitTotalAmount.ToString("N2");
 
-                                        InsertDataToCheckVoucherCompiledMPM(refNumberCR, cvData);
+                                        InsertDataToCheckVoucherCompiledENA(refNumberCR, cvData);
                                     }
 
-                                    cRCV_MPM.SetParameterValue("ReferenceNumber", refNumberCR);
+                                    cRCV_ENA.SetParameterValue("ReferenceNumber", refNumberCR);
 
                                     panel_Printing.Visible = false;
                                     panel_Signatory.Visible = true;
                                     panel_Main.Visible = false;
                                     panel_Main_CR.Visible = true;
 
-                                    reportViewer.ReportSource = cRCV_MPM;
+                                    reportViewer.ReportSource = cRCV_ENA;
                                     reportViewer.RefreshReport();
                                 }
                             }
@@ -756,17 +758,17 @@ namespace VoucherPROVER2.Clients.MPM
                             if (!cvDataExists)
                             {
                                 string refNumberCR = textBox_ReferenceNumber_CR.Text;
-                                GenerateBillPaymentReport_MPM(refNumberCR);
+                                GenerateBillPaymentReport_ENA(refNumberCR);
                             }
                         }
 
                         else if (comboBox_Forms.SelectedIndex == 4)
                         {
-                            CRJV_MPM cRJV_MPM = new CRJV_MPM();
+                            CRJV_ENA cRJV_ENA = new CRJV_ENA();
                             string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
-                            SetDatabaseLocation(cRJV_MPM, databasePath);
+                            SetDatabaseLocation(cRJV_ENA, databasePath);
 
-                            AccessQueries_MPM accessQueries = new AccessQueries_MPM();
+                            AccessQueries_ENA accessQueries = new AccessQueries_ENA();
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
 
                             // 1. Get the correct data
@@ -775,25 +777,25 @@ namespace VoucherPROVER2.Clients.MPM
                             if (journal != null && journal.Count > 0)
                             {
                                 // 2. Set Header Text Objects
-                                TextObject textObject_JVRefNumber = cRJV_MPM.ReportDefinition.ReportObjects["TextJVRefNumber"] as TextObject;
-                                TextObject textObject_JVCheckDate = cRJV_MPM.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
-                                TextObject textObject_JVTransactDate = cRJV_MPM.ReportDefinition.ReportObjects["TextJVTransactDate"] as TextObject;
-                                TextObject textObject_JVTotalDebitAmount = cRJV_MPM.ReportDefinition.ReportObjects["TextJVTotalDebitAmount"] as TextObject;
-                                TextObject textObject_JVTotalCreditAmount = cRJV_MPM.ReportDefinition.ReportObjects["TextJVTotalCreditAmount"] as TextObject;
+                                TextObject textObject_JVRefNumber = cRJV_ENA.ReportDefinition.ReportObjects["TextJVRefNumber"] as TextObject;
+                                TextObject textObject_JVCheckDate = cRJV_ENA.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
+                                TextObject textObject_JVTransactDate = cRJV_ENA.ReportDefinition.ReportObjects["TextJVTransactDate"] as TextObject;
+                                TextObject textObject_JVTotalDebitAmount = cRJV_ENA.ReportDefinition.ReportObjects["TextJVTotalDebitAmount"] as TextObject;
+                                TextObject textObject_JVTotalCreditAmount = cRJV_ENA.ReportDefinition.ReportObjects["TextJVTotalCreditAmount"] as TextObject;
 
-                                TextObject textObject_CompanyName = cRJV_MPM.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+                                TextObject textObject_CompanyName = cRJV_ENA.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
                                 if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
                                 {
                                     textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                                 }
 
 
-                                TextObject textObject_PreparedBy = cRJV_MPM.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                                TextObject textObject_PreparedByPos = cRJV_MPM.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
-                                TextObject textObject_CheckedBy = cRJV_MPM.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                                TextObject textObject_CheckedByPos = cRJV_MPM.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
-                                TextObject textObject_ApprovedBy = cRJV_MPM.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                                TextObject textObject_ApprovedByPos = cRJV_MPM.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                                TextObject textObject_PreparedBy = cRJV_ENA.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
+                                TextObject textObject_PreparedByPos = cRJV_ENA.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                                TextObject textObject_CheckedBy = cRJV_ENA.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
+                                TextObject textObject_CheckedByPos = cRJV_ENA.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                                TextObject textObject_ApprovedBy = cRJV_ENA.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                                TextObject textObject_ApprovedByPos = cRJV_ENA.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
 
                                 if (textObject_JVRefNumber != null) textObject_JVRefNumber.Text = textBox_SeriesNumber.Text;
                                 if (textObject_JVCheckDate != null) textObject_JVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
@@ -811,7 +813,7 @@ namespace VoucherPROVER2.Clients.MPM
                                 if (textObject_JVTotalCreditAmount != null) textObject_JVTotalCreditAmount.Text = creditTotalAmount.ToString("N2");
 
 
-                                AccessToDatabase_MPM accessToDatabase = new AccessToDatabase_MPM();
+                                AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
                                 var signatories = accessToDatabase.RetrieveAllSignatoryData();
 
 
@@ -823,10 +825,10 @@ namespace VoucherPROVER2.Clients.MPM
                                 textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
 
                                 // 4. Handle Subreport
-                                SubreportObject subreportObject = cRJV_MPM.ReportDefinition.ReportObjects["SubreportJVDetailsIVP"] as SubreportObject;
+                                SubreportObject subreportObject = cRJV_ENA.ReportDefinition.ReportObjects["SubreportJVDetailsIVP"] as SubreportObject;
                                 if (subreportObject != null)
                                 {
-                                    ReportDocument subReportDocument = cRJV_MPM.OpenSubreport(subreportObject.SubreportName);
+                                    ReportDocument subReportDocument = cRJV_ENA.OpenSubreport(subreportObject.SubreportName);
 
                                     TextObject textObject_SubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextJVSUBAccountsPayable"] as TextObject;
                                     TextObject textObject_SubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextJVSUBAmountPayable"] as TextObject;
@@ -840,14 +842,14 @@ namespace VoucherPROVER2.Clients.MPM
                                 InsertDataToJournalCompiled(refNumberCR, journal);
 
                                 // 6. Final Report Settings
-                                cRJV_MPM.SetParameterValue("ReferenceNumber", refNumberCR);
+                                cRJV_ENA.SetParameterValue("ReferenceNumber", refNumberCR);
 
                                 panel_Printing.Visible = false;
                                 panel_Signatory.Visible = true;
                                 panel_Main.Visible = false;
                                 panel_Main_CR.Visible = true;
 
-                                reportViewer.ReportSource = cRJV_MPM;
+                                reportViewer.ReportSource = cRJV_ENA;
                                 reportViewer.RefreshReport();
                             }
                             else
@@ -859,7 +861,7 @@ namespace VoucherPROVER2.Clients.MPM
                         {
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
                             // You can reuse GenerateBillPaymentReport_IVP or create a specific APV one:
-                            GenerateAPVReport_MPM(refNumberCR);
+                            GenerateAPVReport_ENA(refNumberCR);
                         }
                     }
 
@@ -873,16 +875,16 @@ namespace VoucherPROVER2.Clients.MPM
             return panel_RefNumber_CR;
         }
 
-        private bool GenerateAPVReport_MPM(string refNumberCR)
+        private bool GenerateAPVReport_ENA(string refNumberCR)
         {
             try
             {
-                CRAPV_MPMBILL cRAPV_MPMBILL = new CRAPV_MPMBILL();
+                CRAPV_ENABILL cRAPV_ENABILL = new CRAPV_ENABILL();
                 string databasePathBILL = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
-                SetDatabaseLocation(cRAPV_MPMBILL, databasePathBILL);
+                SetDatabaseLocation(cRAPV_ENABILL, databasePathBILL);
 
-                AccessQueries_MPM accessQueries = new AccessQueries_MPM();
-                List<BillTable> bills = accessQueries.GetBillData_MPM_DirectBill(refNumberCR);
+                AccessQueries_ENA accessQueries = new AccessQueries_ENA();
+                List<BillTable> bills = accessQueries.GetBillData_ENA_DirectBill(refNumberCR);
 
                 if (bills == null || bills.Count == 0)
                     return false;
@@ -909,19 +911,19 @@ namespace VoucherPROVER2.Clients.MPM
 
                 try
                 {
-                    textObject_CVBILLCheckNumber = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
-                    textObject_CVBILLAddress = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
-                    textObject_CVBILLTIN = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCVBILLTIN"] as TextObject;
-                    textObject_CVBILLCurrency = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCVBILLCurrency"] as TextObject;
-                    textObject_CVBILLCurrate = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCVBILLCurrate"] as TextObject;
-                    //textObject_CVBILLAmountInWords = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLAmountInWords"] as TextObject;
-                    textObject_CVBILLCheckDate = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
-                    textObject_CVBILLPayee = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
-                    //textObject_CVBILLTotalAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
-                    textObject_CVBILLTotalDebitAmount = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
-                    textObject_CVBILLTotalCreditAmount = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
+                    textObject_CVBILLCheckNumber = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
+                    textObject_CVBILLAddress = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
+                    textObject_CVBILLTIN = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTIN"] as TextObject;
+                    textObject_CVBILLCurrency = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLCurrency"] as TextObject;
+                    textObject_CVBILLCurrate = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLCurrate"] as TextObject;
+                    //textObject_CVBILLAmountInWords = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLAmountInWords"] as TextObject;
+                    textObject_CVBILLCheckDate = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
+                    textObject_CVBILLPayee = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
+                    //textObject_CVBILLTotalAmount = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
+                    textObject_CVBILLTotalDebitAmount = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
+                    textObject_CVBILLTotalCreditAmount = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
 
-                    TextObject textObject_CompanyName = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+                    TextObject textObject_CompanyName = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
                     if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
                     {
                         textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
@@ -930,16 +932,16 @@ namespace VoucherPROVER2.Clients.MPM
 
 
 
-                    textObject_PreparedBy = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                    textObject_PreparedByPos = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
-                    textObject_CheckedBy = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                    textObject_CheckedByPos = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
-                    textObject_ApprovedBy = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                    textObject_ApprovedByPos = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
-                    textObject_ReceivedBy = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
-                    textObject_ReceivedByPos = cRAPV_MPMBILL.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
+                    textObject_PreparedBy = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
+                    textObject_PreparedByPos = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                    textObject_CheckedBy = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
+                    textObject_CheckedByPos = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                    textObject_ApprovedBy = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                    textObject_ApprovedByPos = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                    textObject_ReceivedBy = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+                    textObject_ReceivedByPos = cRAPV_ENABILL.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
 
-                    AccessToDatabase_MPM accessToDatabase = new AccessToDatabase_MPM();
+                    AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
 
                     var (PreparedByName, PreparedByPosition,
                        ReviewedByName, ReviewedByPosition,
@@ -1002,7 +1004,7 @@ namespace VoucherPROVER2.Clients.MPM
 
 
                 double amount = bills[0].AmountDue;
-                string amountInWords = AccessToDatabase_MPM.AmountToWordsConverter.Convert(amount);
+                string amountInWords = AccessToDatabase_ENA.AmountToWordsConverter.Convert(amount);
                 var b = bills[0];
 
                 // Line 1: Combine Addr1, Addr2, Addr3, Addr4 into one string separated by commas
@@ -1035,7 +1037,7 @@ namespace VoucherPROVER2.Clients.MPM
                 SubreportObject subreportObject = null;
                 try
                 {
-                    subreportObject = cRAPV_MPMBILL.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as SubreportObject;
+                    subreportObject = cRAPV_ENABILL.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as SubreportObject;
                 }
                 catch
                 {
@@ -1047,7 +1049,7 @@ namespace VoucherPROVER2.Clients.MPM
                     ReportDocument subReportDocument = null;
                     try
                     {
-                        subReportDocument = cRAPV_MPMBILL.OpenSubreport(subreportObject.SubreportName);
+                        subReportDocument = cRAPV_ENABILL.OpenSubreport(subreportObject.SubreportName);
                     }
                     catch
                     {
@@ -1090,14 +1092,14 @@ namespace VoucherPROVER2.Clients.MPM
                     }
                 }
 
-                cRAPV_MPMBILL.SetParameterValue("ReferenceNumber", refNumberCR);
+                cRAPV_ENABILL.SetParameterValue("ReferenceNumber", refNumberCR);
 
                 panel_Printing.Visible = false;
                 panel_Signatory.Visible = true;
                 panel_Main.Visible = false;
                 panel_Main_CR.Visible = true;
 
-                reportViewer.ReportSource = cRAPV_MPMBILL;
+                reportViewer.ReportSource = cRAPV_ENABILL;
                 reportViewer.RefreshReport();
 
                 return true;
@@ -1109,16 +1111,16 @@ namespace VoucherPROVER2.Clients.MPM
             }
         }
 
-        private bool GenerateBillPaymentReport_MPM(string refNumberCR)
+        private bool GenerateBillPaymentReport_ENA(string refNumberCR)
         {
             try
             {
-                CRCV_MPMBILL cRCV_IVPBILL = new CRCV_MPMBILL();
+                CRCV_ENABILL cRCV_ENABILL = new CRCV_ENABILL();
                 string databasePathBILL = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
-                SetDatabaseLocation(cRCV_IVPBILL, databasePathBILL);
+                SetDatabaseLocation(cRCV_ENABILL, databasePathBILL);
 
-                AccessQueries_MPM accessQueries = new AccessQueries_MPM();
-                List<BillTable> bills = accessQueries.GetBillData_MPM(refNumberCR);
+                AccessQueries_ENA accessQueries = new AccessQueries_ENA();
+                List<BillTable> bills = accessQueries.GetBillData_ENA(refNumberCR);
 
                 if (bills == null || bills.Count == 0)
                     return false;
@@ -1143,33 +1145,33 @@ namespace VoucherPROVER2.Clients.MPM
 
                 try
                 {
-                    textObject_CVBILLCheckNumber = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
-                    textObject_CVBILLAmountInWords = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLAmountinWords"] as TextObject;
-                    textObject_CVBILLCheckDate = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
-                    textObject_CVBILLCheckDate2 = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate2"] as TextObject;
-                    textObject_CVBILLPayee = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
-                    textObject_CVBILLPayee2 = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLPayee2"] as TextObject;
-                    textObject_CVBILLTotalAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
-                    textObject_CVBILLTotalDebitAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
-                    textObject_CVBILLTotalCreditAmount = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
+                    textObject_CVBILLCheckNumber = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
+                    textObject_CVBILLAmountInWords = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLAmountinWords"] as TextObject;
+                    textObject_CVBILLCheckDate = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
+                    textObject_CVBILLCheckDate2 = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate2"] as TextObject;
+                    textObject_CVBILLPayee = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
+                    textObject_CVBILLPayee2 = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLPayee2"] as TextObject;
+                    textObject_CVBILLTotalAmount = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
+                    textObject_CVBILLTotalDebitAmount = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
+                    textObject_CVBILLTotalCreditAmount = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
 
-                    TextObject textObject_CompanyName = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+                    TextObject textObject_CompanyName = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
                     if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
                     {
                         textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                     }
 
 
-                    textObject_PreparedBy = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                    textObject_PreparedByPos = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
-                    textObject_CheckedBy = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                    textObject_CheckedByPos = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
-                    textObject_ApprovedBy = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                    textObject_ApprovedByPos = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
-                    textObject_ReceivedBy = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
-                    textObject_ReceivedByPos = cRCV_IVPBILL.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
+                    textObject_PreparedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
+                    textObject_PreparedByPos = cRCV_ENABILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                    textObject_CheckedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
+                    textObject_CheckedByPos = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                    textObject_ApprovedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                    textObject_ApprovedByPos = cRCV_ENABILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                    textObject_ReceivedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+                    textObject_ReceivedByPos = cRCV_ENABILL.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
 
-                    AccessToDatabase_MPM accessToDatabase = new AccessToDatabase_MPM();
+                    AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
 
                     var (PreparedByName, PreparedByPosition,
                        ReviewedByName, ReviewedByPosition,
@@ -1232,7 +1234,7 @@ namespace VoucherPROVER2.Clients.MPM
 
 
                 double amount = bills[0].AmountDue;
-                string amountInWords = AccessToDatabase_MPM.AmountToWordsConverter.Convert(amount);
+                string amountInWords = AccessToDatabase_ENA.AmountToWordsConverter.Convert(amount);
 
                 if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
@@ -1245,7 +1247,7 @@ namespace VoucherPROVER2.Clients.MPM
                 SubreportObject subreportObject = null;
                 try
                 {
-                    subreportObject = cRCV_IVPBILL.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as SubreportObject;
+                    subreportObject = cRCV_ENABILL.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as SubreportObject;
                 }
                 catch
                 {
@@ -1257,7 +1259,7 @@ namespace VoucherPROVER2.Clients.MPM
                     ReportDocument subReportDocument = null;
                     try
                     {
-                        subReportDocument = cRCV_IVPBILL.OpenSubreport(subreportObject.SubreportName);
+                        subReportDocument = cRCV_ENABILL.OpenSubreport(subreportObject.SubreportName);
                     }
                     catch
                     {
@@ -1298,14 +1300,14 @@ namespace VoucherPROVER2.Clients.MPM
                     }
                 }
 
-                cRCV_IVPBILL.SetParameterValue("ReferenceNumber", refNumberCR);
+                cRCV_ENABILL.SetParameterValue("ReferenceNumber", refNumberCR);
 
                 panel_Printing.Visible = false;
                 panel_Signatory.Visible = true;
                 panel_Main.Visible = false;
                 panel_Main_CR.Visible = true;
 
-                reportViewer.ReportSource = cRCV_IVPBILL;
+                reportViewer.ReportSource = cRCV_ENABILL;
                 reportViewer.RefreshReport();
 
                 return true;
@@ -1317,9 +1319,9 @@ namespace VoucherPROVER2.Clients.MPM
             }
         }
 
-        public static void InsertDataToCheckVoucherCompiledMPM(string refNumber, List<CheckTableExpensesAndItems> checkData)
+        public static void InsertDataToCheckVoucherCompiledENA(string refNumber, List<CheckTableExpensesAndItems> checkData)
         {
-            string connectionString = AccessToDatabase_MPM.GetAccessConnectionString();
+            string connectionString = AccessToDatabase_ENA.GetAccessConnectionString();
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
 
@@ -1455,7 +1457,7 @@ namespace VoucherPROVER2.Clients.MPM
 
         public static void InsertDataToJournalCompiled(string refNumber, List<JournalGridItem> journalData)
         {
-            string connectionString = AccessToDatabase_MPM.GetAccessConnectionString();
+            string connectionString = AccessToDatabase_ENA.GetAccessConnectionString();
 
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
@@ -1552,7 +1554,7 @@ namespace VoucherPROVER2.Clients.MPM
 
         public static void InsertDataToBillCompiled(string refNumber, List<BillTable> bills)
         {
-            string connectionString = AccessToDatabase_MPM.GetAccessConnectionString();
+            string connectionString = AccessToDatabase_ENA.GetAccessConnectionString();
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
 
@@ -1688,7 +1690,7 @@ namespace VoucherPROVER2.Clients.MPM
                 else if (comboBox_Forms.SelectedIndex != 0 && textBox_ReferenceNumber.Text != "")
                 {
                     string refNumber = textBox_ReferenceNumber.Text;
-                    AccessQueries_MPM queries = new AccessQueries_MPM();
+                    AccessQueries_ENA queries = new AccessQueries_ENA();
 
                     cheque = new List<CheckTable>();
                     bills = new List<BillTable>();
@@ -1699,11 +1701,11 @@ namespace VoucherPROVER2.Clients.MPM
 
                     object data = null;
                     
-                    if (GlobalVariables.client == "MPM")
+                    if (GlobalVariables.client == "ENA")
                     {
                         if (comboBox_Forms.SelectedIndex == 2) // Check
                         {
-                            checkivp = queries.GetCheckDataMPM(refNumber);
+                            checkivp = queries.GetCheckDataENA(refNumber);
                             data = checkivp;
                         }
                     }
@@ -1711,9 +1713,9 @@ namespace VoucherPROVER2.Clients.MPM
                     //if (checks.Count > 0 || bills.Count > 0 || receipts.Count > 0)
                     if (data is System.Collections.ICollection colletion && colletion.Count > 0)
                     {
-                        if (GlobalVariables.client == "MPM")
+                        if (GlobalVariables.client == "ENA")
                         {
-                            Layouts_MPM layouts_IVP = new Layouts_MPM();
+                            Layouts_ENA layouts_ENA = new Layouts_ENA();
                             System.Drawing.Printing.PaperSize paperSize = new System.Drawing.Printing.PaperSize("Custom", 850, 1100);
                             printDocument = new PrintDocument();
                             printDocument.DefaultPageSettings.PaperSize = paperSize;
@@ -1732,7 +1734,7 @@ namespace VoucherPROVER2.Clients.MPM
                             printDocument.PrintPage += (s, ev) =>
                             {
                                 // Pass payeeOverride to the layout function
-                                layouts_IVP.PrintPage_MPM(s, ev, selectedIndex, seriesNumber, data, payeeOverride);
+                                layouts_ENA.PrintPage_ENA(s, ev, selectedIndex, seriesNumber, data, payeeOverride);
                             };
                         }
 
@@ -1787,7 +1789,7 @@ namespace VoucherPROVER2.Clients.MPM
                 Font = font_Label,
             };
 
-            if (GlobalVariables.client == "MPM")
+            if (GlobalVariables.client == "ENA")
             {
                 comboBox_Signatory.Items.AddRange(new string[]
                 {
@@ -2149,7 +2151,7 @@ namespace VoucherPROVER2.Clients.MPM
                             UpdateSeriesNumber(comboBox_Forms.SelectedIndex == 1 ? "CV" : "APV");
                         }
 
-                        else if (GlobalVariables.client == "MPM")
+                        else if (GlobalVariables.client == "ENA")
                         {
                             // 1. Determine Form Type
                             string formType = "";
@@ -2172,7 +2174,7 @@ namespace VoucherPROVER2.Clients.MPM
                                     accessToDatabase.UpdateManualSeriesNumber(formType, seriesNumber, selectedCompany);
 
                                     // 5. Update the UI with the new format (e.g., CV00002)
-                                    UpdateSeriesNumberMPM(formType);
+                                    UpdateSeriesNumberENA(formType);
                                 }
                             }
                         }
@@ -2200,7 +2202,7 @@ namespace VoucherPROVER2.Clients.MPM
             seriesNumber = 0;
             textBox_SeriesNumber.Text = "";
 
-            if (GlobalVariables.client == "MPM")
+            if (GlobalVariables.client == "ENA")
             {
                 // Logic for visibility of company panel
                 /*if (GlobalVariables.client == "IVP" && comboBox_Forms.SelectedItem?.ToString() == "Check")
@@ -2236,7 +2238,7 @@ namespace VoucherPROVER2.Clients.MPM
                     if (!string.IsNullOrEmpty(selectedCompany))
                     {
                         seriesNumber = accessToDatabase.GetSeriesNumberFromDatabase(prefix, selectedCompany);
-                        UpdateSeriesNumberMPM(prefix);
+                        UpdateSeriesNumberENA(prefix);
                     }
                     else
                     {
@@ -2391,7 +2393,7 @@ namespace VoucherPROVER2.Clients.MPM
         }
         private void TextBox_SeriesNumber_Leave(object sender, EventArgs e)
         {
-            if (GlobalVariables.client == "MPM")
+            if (GlobalVariables.client == "ENA")
             {
                 string formType = "";
                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
@@ -2449,10 +2451,10 @@ namespace VoucherPROVER2.Clients.MPM
              }
          }*/ //FOR MANUAL SERIES NUMBER ENTRY
 
-        private void UpdateSeriesNumberMPM(string formPrefix)
+        private void UpdateSeriesNumberENA(string formPrefix)
         {
             // Ensure accessToDatabase is initialized
-            if (accessToDatabase == null) accessToDatabase = new AccessToDatabase_MPM();
+            if (accessToDatabase == null) accessToDatabase = new AccessToDatabase_ENA();
 
             // Format with a hyphen and 5 digits (e.g., CV-00001)
             textBox_SeriesNumber.Text = $"{formPrefix}-{seriesNumber:00000}";
