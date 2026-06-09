@@ -473,7 +473,6 @@ namespace VoucherPROVER2.Clients.ENA
                 "Check Voucher",
                 "Check",
                 "Journal Voucher",
-                "Accounts Payable Voucher",
 
             });
                 comboBox_Forms.SelectedIndex = 0;
@@ -762,7 +761,7 @@ namespace VoucherPROVER2.Clients.ENA
                             }
                         }
 
-                        else if (comboBox_Forms.SelectedIndex == 4)
+                        else if (comboBox_Forms.SelectedIndex == 3)
                         {
                             CRJV_ENA cRJV_ENA = new CRJV_ENA();
                             string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
@@ -777,11 +776,10 @@ namespace VoucherPROVER2.Clients.ENA
                             if (journal != null && journal.Count > 0)
                             {
                                 // 2. Set Header Text Objects
-                                TextObject textObject_JVRefNumber = cRJV_ENA.ReportDefinition.ReportObjects["TextJVRefNumber"] as TextObject;
                                 TextObject textObject_JVCheckDate = cRJV_ENA.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
-                                TextObject textObject_JVTransactDate = cRJV_ENA.ReportDefinition.ReportObjects["TextJVTransactDate"] as TextObject;
                                 TextObject textObject_JVTotalDebitAmount = cRJV_ENA.ReportDefinition.ReportObjects["TextJVTotalDebitAmount"] as TextObject;
                                 TextObject textObject_JVTotalCreditAmount = cRJV_ENA.ReportDefinition.ReportObjects["TextJVTotalCreditAmount"] as TextObject;
+                                TextObject textObject_JVMemo = cRJV_ENA.ReportDefinition.ReportObjects["TextJVMemo"] as TextObject;
 
                                 TextObject textObject_CompanyName = cRJV_ENA.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
                                 if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
@@ -797,10 +795,9 @@ namespace VoucherPROVER2.Clients.ENA
                                 TextObject textObject_ApprovedBy = cRJV_ENA.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
                                 TextObject textObject_ApprovedByPos = cRJV_ENA.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
 
-                                if (textObject_JVRefNumber != null) textObject_JVRefNumber.Text = textBox_SeriesNumber.Text;
                                 if (textObject_JVCheckDate != null) textObject_JVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
-                                if (textObject_JVTransactDate != null) textObject_JVTransactDate.Text = journal[0].Date.ToString("MMMM dd, yyyy");
 
+                                string Memo = "                   " +journal[0].Memo;
                                 double debitTotalAmount = 0;
                                 double creditTotalAmount = 0;
 
@@ -811,6 +808,7 @@ namespace VoucherPROVER2.Clients.ENA
                                 }
                                 if (textObject_JVTotalDebitAmount != null) textObject_JVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
                                 if (textObject_JVTotalCreditAmount != null) textObject_JVTotalCreditAmount.Text = creditTotalAmount.ToString("N2");
+                                if (textObject_JVMemo != null) textObject_JVMemo.Text = Memo.ToString();
 
 
                                 AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
@@ -829,14 +827,6 @@ namespace VoucherPROVER2.Clients.ENA
                                 if (subreportObject != null)
                                 {
                                     ReportDocument subReportDocument = cRJV_ENA.OpenSubreport(subreportObject.SubreportName);
-
-                                    TextObject textObject_SubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextJVSUBAccountsPayable"] as TextObject;
-                                    TextObject textObject_SubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextJVSUBAmountPayable"] as TextObject;
-
-
-                                    if (textObject_SubAccountPayable != null) textObject_SubAccountPayable.Text = journal[0].AccountName;
-
-                                    if (textObject_SubAmountPayable != null) textObject_SubAmountPayable.Text = debitTotalAmount.ToString("N2");
                                 }
 
                                 InsertDataToJournalCompiled(refNumberCR, journal);
@@ -857,7 +847,7 @@ namespace VoucherPROVER2.Clients.ENA
                                 MessageBox.Show("No Journal Entry found for this Reference Number.");
                             }
                         }
-                        else if (comboBox_Forms.SelectedIndex == 3) // APV
+                        else if (comboBox_Forms.SelectedIndex == 4) // APV
                         {
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
                             // You can reuse GenerateBillPaymentReport_IVP or create a specific APV one:
@@ -2276,7 +2266,7 @@ namespace VoucherPROVER2.Clients.ENA
                         panel_Main_CR.Visible = false;
                         break;
                     
-                    case 3: // Accounts Payable Voucher
+                    /*case 3: // Accounts Payable Voucher
                         prefix = "APV";
                         panel_SeriesNumber.Visible = true;
                         panel_RefNumber.Visible = false;
@@ -2288,14 +2278,14 @@ namespace VoucherPROVER2.Clients.ENA
                         // Layout settings
                         panel_Main.Visible = false;
                         panel_Main_CR.Visible = true;
-                        break;
+                        break;*/
 
-                    case 4: // Journal Voucher
+                    case 3: // Journal Voucher
                         prefix = "JV";
                         panel_RefNumber.Visible = false;
                         panel_RefNumberCrystalReport.Visible = true;
                         panel_Signatory.Visible = true;
-                        panel_SeriesNumber.Visible = true;
+                        panel_SeriesNumber.Visible = false;
 
                         panel_Main.Visible = false;
                         panel_Main_CR.Visible = true;
