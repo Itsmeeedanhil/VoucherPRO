@@ -639,20 +639,10 @@ namespace VoucherPROVER2.Clients.ENA
                                     cvDataExists = true;
 
                                     TextObject textObject_CVRefNumber = cRCV_ENA.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
+                                    TextObject textObject_CVRefNumber2 = cRCV_ENA.ReportDefinition.ReportObjects["TextCVRefNumber2"] as TextObject;
                                     TextObject textObject_CVCheckDate = cRCV_ENA.ReportDefinition.ReportObjects["TextCVCheckDate"] as TextObject;
-                                    TextObject textObject_CVCheckDate2 = cRCV_ENA.ReportDefinition.ReportObjects["TextCVCheckDate2"] as TextObject;
                                     TextObject textObject_CVPayee = cRCV_ENA.ReportDefinition.ReportObjects["TextCVPayee"] as TextObject;
-                                    TextObject textObject_CVPayee2 = cRCV_ENA.ReportDefinition.ReportObjects["TextCVPayee2"] as TextObject;
-                                    TextObject textObject_CVTotalDebitAmount = cRCV_ENA.ReportDefinition.ReportObjects["TextCVTotalDebitAmount"] as TextObject;
-                                    TextObject textObject_CVTotalAmount = cRCV_ENA.ReportDefinition.ReportObjects["TextCVTotalAmount"] as TextObject;
-                                    TextObject textObject_CVAmountinWords = cRCV_ENA.ReportDefinition.ReportObjects["TextCVAmountinWords"] as TextObject;
-                                    TextObject textObject_CVTotalCreditAmount = cRCV_ENA.ReportDefinition.ReportObjects["TextCVTotalCreditAmount"] as TextObject;
 
-                                    TextObject textObject_CompanyName = cRCV_ENA.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
-                                    if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
-                                    {
-                                        textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
-                                    }
 
                                     TextObject textObject_PreparedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
                                     TextObject textObject_PreparedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
@@ -661,21 +651,23 @@ namespace VoucherPROVER2.Clients.ENA
                                     TextObject textObject_ApprovedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
                                     TextObject textObject_ApprovedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
                                     TextObject textObject_ReceivedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
-                                    TextObject textObject_ReceivedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
+                                    //TextObject textObject_ReceivedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
+
+                                    TextObject textObject_CVAmountinWords = cRCV_ENA.ReportDefinition.ReportObjects["TextCVAmountInWords"] as TextObject;
+                                    TextObject textObject_CVBankAccount = cRCV_ENA.ReportDefinition.ReportObjects["TextCVBankAccount"] as TextObject;
 
                                     AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
                                     var signatories = accessToDatabase.RetrieveAllSignatoryData();
 
                                     double amount = cvData[0].TotalAmount;
                                     string amountInWords = AccessToDatabase_ENA.AmountToWordsConverter.Convert(amount);
+                                    string bank = cvData[0].BankAccount;
 
                                     textObject_CVRefNumber.Text = textBox_SeriesNumber.Text;
-                                    textObject_CVAmountinWords.Text = amountInWords;
+                                    textObject_CVRefNumber2.Text = refNumberCR;
+                                    
                                     textObject_CVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
-                                    textObject_CVCheckDate2.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                                     textObject_CVPayee.Text = cvData[0].PayeeFullName;
-                                    textObject_CVPayee2.Text = cvData[0].PayeeFullName;
-                                    textObject_CVTotalAmount.Text = cvData[0].TotalAmount.ToString("N2");
 
                                     textObject_PreparedBy.Text = signatories.PreparedByName;
                                     textObject_PreparedByPos.Text = signatories.PreparedByPosition;
@@ -684,31 +676,10 @@ namespace VoucherPROVER2.Clients.ENA
                                     textObject_ApprovedBy.Text = signatories.ApprovedByName;
                                     textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
                                     textObject_ReceivedBy.Text = signatories.ReceivedByName;
-                                    textObject_ReceivedByPos.Text = signatories.ReceivedByPosition;
+                                    //textObject_ReceivedByPos.Text = signatories.ReceivedByPosition;
 
-                                    double debitTotalAmount = 0;
-                                    double creditTotalAmount = 0;
-
-                                    foreach (var data in cvData)
-                                    {
-                                        try
-                                        {
-                                            double itemAmount = data.ItemAmount;
-                                            if (itemAmount > 0) debitTotalAmount += itemAmount;
-                                            else if (itemAmount < 0) creditTotalAmount += Math.Abs(itemAmount);
-
-                                            if (!string.IsNullOrEmpty(data.Account))
-                                            {
-                                                double expenseAmount = data.ExpensesAmount;
-                                                if (expenseAmount > 0) debitTotalAmount += expenseAmount;
-                                                else if (expenseAmount < 0) creditTotalAmount += Math.Abs(expenseAmount);
-                                            }
-                                        }
-                                        catch (Exception ex) { MessageBox.Show($"Error computing totals: {ex.Message}"); }
-                                    }
-
-                                    textObject_CVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                                    textObject_CVTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
+                                    textObject_CVAmountinWords.Text = "          " + amountInWords;
+                                    textObject_CVBankAccount.Text = bank;
 
                                     SubreportObject subreportObject = cRCV_ENA.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                                     if (subreportObject != null)
@@ -716,24 +687,11 @@ namespace VoucherPROVER2.Clients.ENA
                                         ReportDocument subReportDocument = cRCV_ENA.OpenSubreport(subreportObject.SubreportName);
                                         TextObject textObject_Remarks = subReportDocument.ReportDefinition.ReportObjects["TextRemarks"] as TextObject;
                                         TextObject textObject_CVSubTotal = subReportDocument.ReportDefinition.ReportObjects["TextCVSubTotalAmount"] as TextObject;
-                                        TextObject textObject_CVSubCheckNumber = subReportDocument.ReportDefinition.ReportObjects["TextCVSubCheckNumber"] as TextObject;
-                                        TextObject textObject_CVSubCheckDate = subReportDocument.ReportDefinition.ReportObjects["TextCVSubCheckDate"] as TextObject;
-                                        TextObject textObject_SubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextSubAccountPayable"] as TextObject;
-                                        TextObject textObject_SubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextSubAmountPayable"] as TextObject;
+                                        
 
-                                        TextObject textObject_PaidSign = subReportDocument.ReportDefinition.ReportObjects["TextPaidSign"] as TextObject;
-                                        if (textObject_PaidSign != null)
-                                        {
-                                            // Index 0 is Peso, Index 1 is Dollar
-                                            textObject_PaidSign.Text = comboBox_Currency.SelectedIndex == 1 ? "$" : "₱";
-                                        }
-
+                                        
                                         textObject_Remarks.Text = cvData[0].Memo;
                                         textObject_CVSubTotal.Text = cvData[0].TotalAmount.ToString("N2");
-                                        textObject_CVSubCheckNumber.Text = cvData[0].RefNumber;
-                                        textObject_CVSubCheckDate.Text = cvData[0].DueDate.ToString("MMMM dd, yyyy");
-                                        textObject_SubAccountPayable.Text = cvData[0].BankAccount;
-                                        textObject_SubAmountPayable.Text = debitTotalAmount.ToString("N2");
 
                                         InsertDataToCheckVoucherCompiledENA(refNumberCR, cvData);
                                     }
@@ -1788,9 +1746,9 @@ namespace VoucherPROVER2.Clients.ENA
                 {
                     "Select Signatory Option",
                     "Prepared By:",
-                    "Checked By:",
-                    "Audited By:",
+                    "Certified Corrected By:",
                     "Approved By:",
+                    "Received Payment By:",
                 });
             }
 
