@@ -2328,71 +2328,9 @@ namespace VoucherPROVER2.Clients.ENA
             }
         }
 
-        private void TextBox_SeriesNumber_TextChanged(object sender, EventArgs e)
-        {
-            if (GlobalVariables.client == "MPM")
-            {
-                if (!string.IsNullOrEmpty(textBox_SeriesNumber.Text))
-                {
-                    string formPrefix = "";
-                    if (comboBox_Forms.SelectedIndex == 1) formPrefix = "CV";
-                    else if (comboBox_Forms.SelectedIndex == 3) formPrefix = "JV";
-
-                    if (!string.IsNullOrEmpty(formPrefix))
-                    {
-                        // Clean the input: Just remove "CV" or "JV"
-                        // The user sees "CV00001", stripping "CV" leaves "00001"
-                        string cleanInput = textBox_SeriesNumber.Text
-                            .Replace(formPrefix, "")
-                            .Trim();
-
-                        if (int.TryParse(cleanInput, out int adjustedSeries))
-                        {
-                            seriesNumber = adjustedSeries;
-                        }
-                    }
-                }
-            }
-
-        }
-        private void TextBox_SeriesNumber_Leave(object sender, EventArgs e)
-        {
-            if (GlobalVariables.client == "ENA")
-            {
-                string formType = "";
-                if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
-                else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
-                else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
-
-                if (!string.IsNullOrEmpty(formType) && comboBox_Company.SelectedItem != null)
-                {
-                    // Pass the Company Name so Database knows which column (e.g. NL_CV) to update
-                    accessToDatabase.UpdateManualSeriesNumber(formType, seriesNumber, comboBox_Company.SelectedItem.ToString());
-                }
-            }
-        }
-
         private void UpdateSeriesNumber(string prefix)
         {
             textBox_SeriesNumber.Text = $"{prefix}{seriesNumber:000}"; // Formats seriesNumber as a 3-digit number
-        }
-        private void RefreshSeriesNumber(string columnName)
-        {
-            seriesNumber = accessToDatabase.GetSeriesNumberFromDatabase(columnName);
-            string prefix = comboBox_Forms.SelectedIndex == 2 ? "CV" : "APV";
-            textBox_SeriesNumber.Text = $"{prefix}{seriesNumber:000}";
-        }
-
-        // 1. HELPER: Maps the full company name to the short code (e.g., "North Luzon" -> "NL")
-        private string GetCompanyCode(string fullCompanyName)
-        {
-            if (string.IsNullOrEmpty(fullCompanyName)) return "";
-
-            switch (fullCompanyName)
-            {
-                case "ENASIA IMPORT EXPORT CORPORATION": return "ENA";
-                default: return "";
-            }
         }
 
         private void UpdateSeriesNumberENA(string formPrefix)
