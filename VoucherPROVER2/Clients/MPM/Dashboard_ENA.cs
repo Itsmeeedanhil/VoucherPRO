@@ -777,6 +777,7 @@ namespace VoucherPROVER2.Clients.ENA
                             {
                                 // 2. Set Header Text Objects
                                 TextObject textObject_JVCheckDate = cRJV_ENA.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
+                                TextObject textObject_JVRefnumber = cRJV_ENA.ReportDefinition.ReportObjects["TextJVRefnumber"] as TextObject;
                                 TextObject textObject_JVTotalDebitAmount = cRJV_ENA.ReportDefinition.ReportObjects["TextJVTotalDebitAmount"] as TextObject;
                                 TextObject textObject_JVTotalCreditAmount = cRJV_ENA.ReportDefinition.ReportObjects["TextJVTotalCreditAmount"] as TextObject;
                                 TextObject textObject_JVMemo = cRJV_ENA.ReportDefinition.ReportObjects["TextJVMemo"] as TextObject;
@@ -797,7 +798,8 @@ namespace VoucherPROVER2.Clients.ENA
 
                                 if (textObject_JVCheckDate != null) textObject_JVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
 
-                                string Memo = "                   " +journal[0].Memo;
+                                string Memo = "                   " + journal[journal.Count - 1].Memo;
+                                string Refnumber = refNumberCR;
                                 double debitTotalAmount = 0;
                                 double creditTotalAmount = 0;
 
@@ -809,6 +811,7 @@ namespace VoucherPROVER2.Clients.ENA
                                 if (textObject_JVTotalDebitAmount != null) textObject_JVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
                                 if (textObject_JVTotalCreditAmount != null) textObject_JVTotalCreditAmount.Text = creditTotalAmount.ToString("N2");
                                 if (textObject_JVMemo != null) textObject_JVMemo.Text = Memo.ToString();
+                                if (textObject_JVRefnumber != null) textObject_JVRefnumber.Text = refNumberCR.ToString();
 
 
                                 AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
