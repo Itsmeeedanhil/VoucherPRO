@@ -1329,23 +1329,42 @@ namespace VoucherPROVER2.Clients.ENA
             }
         }
 
-
         // Helper to map Company Name -> Column Name (e.g. "North Luzon" -> "NL_CV")
-        private string GetMPMColumnName(string formType, string companyName)
+        private string GetENAColumnName(string formType, string companyName)
         {
             string prefix = "";
             switch (companyName)
             {
-                case "MPMSICO": prefix = "MPM"; break;
+                // ---------------- IVP COMPANIES ----------------
+                case "ENASIA IMPORT EXPORT CORPORATION": prefix = "ENA"; break;
+                case "ENASIA AGRO VENTURES INC.": prefix = "EAV"; break;
+
+                // Freshcatch Branches
+                case "FRESHCATCH INC. - MANILA": prefix = "FCM"; break;
+                case "FRESHCATCH INC. - CEBU": prefix = "FCC"; break;
+                case "FRESHCATCH INC. - DAVAO": prefix = "FCD"; break;
+                case "FRESHCATCH INC. - CDO": prefix = "CDO"; break; // or FCCDO
+
+                // Other Entities
+                case "TCHEF FOOD CORPORATION": prefix = "TFC"; break;
+                case "ANTARTICA COLD STORAGE INC.": prefix = "ACS"; break;
+                case "FINANCIAL SERVICES GROUP": prefix = "FSG"; break;
+                case "FAR EASTERN LOGISTICS AND CUSTOM BROKERAGE": prefix = "FEL"; break;
+                case "ENASIA - NAVOTAS COLD STORAGE": prefix = "ENCS"; break;
+                case "ENASIA - SKINKING FUND": prefix = "ESF"; break;
+                case "PURA VIDA RESORT CORPORATION": prefix = "PVR"; break;
+
                 default: return "";
             }
+
+            // Returns formats like "ENA_CV", "FCM_JV", "TFC_APV"
             return $"{prefix}_{formType}";
         }
 
         public int GetSeriesNumberFromDatabase(string formType, string companyName)
         {
             int seriesNumber = 1;
-            string targetColumn = GetMPMColumnName(formType, companyName);
+            string targetColumn = GetENAColumnName(formType, companyName);
 
             if (string.IsNullOrEmpty(targetColumn)) return 1;
 
@@ -1376,7 +1395,7 @@ namespace VoucherPROVER2.Clients.ENA
 
         public void UpdateManualSeriesNumber(string formType, int seriesNumber, string companyName)
         {
-            string targetColumn = GetMPMColumnName(formType, companyName);
+            string targetColumn = GetENAColumnName(formType, companyName);
 
             if (string.IsNullOrEmpty(targetColumn)) return;
 

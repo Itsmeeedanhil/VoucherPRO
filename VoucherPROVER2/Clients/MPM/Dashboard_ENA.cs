@@ -152,6 +152,19 @@ namespace VoucherPROVER2.Clients.ENA
 
                 // ---------------- IVP COMPANIES ----------------
                 "ENASIA IMPORT EXPORT CORPORATION",
+                "ENASIA AGRO VENTURES INC.",
+                "FRESHCATCH INC. - MANILA",
+                "FRESHCATCH INC. - CEBU",
+                "FRESHCATCH INC. - DAVAO",
+                "FRESHCATCH INC. - CDO",
+                "TCHEF FOOD CORPORATION",
+                "ANTARTICA COLD STORAGE INC.",
+                "FINANCIAL SERVICES GROUP",
+                "FAR EASTERN LOGISTICS AND CUSTOM BROKERAGE",
+                "ENASIA - NAVOTAS COLD STORAGE",
+                "ENASIA - SKINKING FUND",
+                "PURA VIDA RESORT CORPORATION",
+
 
             });
 
@@ -2377,30 +2390,10 @@ namespace VoucherPROVER2.Clients.ENA
 
             switch (fullCompanyName)
             {
-                case "MPMSICO": return "MPM";
+                case "ENASIA IMPORT EXPORT CORPORATION": return "ENA";
                 default: return "";
             }
         }
-
-        // 2. HELPER: Specific update logic for IVP (Format: CODE-CV00001)
-
-        /* private void UpdateSeriesNumberIVP(string formPrefix)
-         {
-             // Get the company code
-             string selectedCompany = comboBox_Company.SelectedItem?.ToString();
-             string companyCode = GetCompanyCode(selectedCompany);
-
-             // Format with 5 digits (00000)
-             if (!string.IsNullOrEmpty(companyCode))
-             {
-                 textBox_SeriesNumber.Text = $"{formPrefix}{seriesNumber:00000}";
-             }
-             else
-             {
-                 // Fallback if no company is selected
-                 textBox_SeriesNumber.Text = $"{formPrefix}{seriesNumber:00000}";
-             }
-         }*/ //FOR MANUAL SERIES NUMBER ENTRY
 
         private void UpdateSeriesNumberENA(string formPrefix)
         {
