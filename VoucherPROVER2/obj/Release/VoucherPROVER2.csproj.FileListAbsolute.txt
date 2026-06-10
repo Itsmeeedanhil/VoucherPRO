@@ -22,7 +22,6 @@ C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\Interop.PROMPTINGLib.dll
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\Interop.QBFC16Lib.dll
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.csproj.ResolveComReference.cache
-C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.Clients.MPM.Dashboard_MPM.resources
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.Form1.resources
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.Properties.Resources.resources
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.csproj.GenerateResource.cache
@@ -30,3 +29,4 @@ C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.csproj.CopyComplete
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.exe
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.pdb
+C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.Clients.ENA.Dashboard_ENA.resources
