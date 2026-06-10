@@ -33,7 +33,8 @@ namespace VoucherPROVER2.Clients.OWI
         private CrystalReportViewer reportViewer;
         private AccessToDatabase_OWI accessToDatabase;
 
-
+        private string activeJVReferenceNumber = ""; 
+        private string activeAPVReferenceNumber = "";
         FlowLayoutPanel panel_Company;
         private Panel panel_RightSideBar;
         ComboBox comboBox_Forms;
@@ -370,13 +371,24 @@ namespace VoucherPROVER2.Clients.OWI
             {
                 if (comboBox_Forms != null)
                 {
-                    panel_RightSideBar.Visible = (comboBox_Forms.SelectedIndex == 1);
+                    // CHANGED: Show history sidebar for CV (1), JV (3), AND APV (4)
+                    bool shouldShowHistory = (comboBox_Forms.SelectedIndex == 1 ||
+                                              comboBox_Forms.SelectedIndex == 3 ||
+                                              comboBox_Forms.SelectedIndex == 4);
+                    panel_RightSideBar.Visible = shouldShowHistory;
 
                     comboBox_Forms.SelectedIndexChanged += (sender, args) =>
                     {
                         if (panel_RightSideBar != null)
                         {
-                            panel_RightSideBar.Visible = (comboBox_Forms.SelectedIndex == 1);
+                            // CHANGED: Dynamic switch evaluation including APV (4)
+                            bool showHistoryOnChanged = (comboBox_Forms.SelectedIndex == 1 ||
+                                                         comboBox_Forms.SelectedIndex == 3 ||
+                                                         comboBox_Forms.SelectedIndex == 4);
+                            panel_RightSideBar.Visible = showHistoryOnChanged;
+
+                            // Refresh history instantly when swapping form tabs
+                            LoadVoucherHistory();
                         }
                     };
                 }
@@ -601,6 +613,149 @@ namespace VoucherPROVER2.Clients.OWI
                                             {
                                                 Console.WriteLine($"Print Logging Error Interception: {ex.Message}");
                                             }
+                                        }
+                                    }
+                                    else if (formType == "JV")
+                                    {
+                                        if (!isHistoricalPreview)
+                                        {
+                                            try
+                                            {
+                                                if (reportViewer.ReportSource is CrystalDecisions.CrystalReports.Engine.ReportDocument loadedReport)
+                                                {
+                                                    // --- DIAGNOSTIC START ---
+                                                    Console.WriteLine(">>> [JV PRINT INTERCEPTION TRIGGERED] <<<");
+
+                                                    string currentSeriesNo = "";
+                                                    string currentPayee = "Journal Entry";
+                                                    string currentDebit = "0.00";
+                                                    string currentCredit = "0.00";
+                                                    string transactDateFormatted = DateTime.Now.ToString("yyyy-MM-dd");
+
+                                                    // Safely grab from the control field
+                                                    string referenceNumber = !string.IsNullOrWhiteSpace(activeJVReferenceNumber) ? activeJVReferenceNumber : "N/A";
+
+                                                    // Read matching Header objects from the active JV Crystal Report layout
+                                                    var refObj = loadedReport.ReportDefinition.ReportObjects["TextJVRefNumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    var dateObj = loadedReport.ReportDefinition.ReportObjects["TextJVCheckDate"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    var debitObj = loadedReport.ReportDefinition.ReportObjects["TextJVTotalDebitAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    var creditObj = loadedReport.ReportDefinition.ReportObjects["TextJVTotalCreditAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+
+                                                    // --- NEW DIAGNOSTIC: Checking if Report UI Layout Objects actually exist ---
+                                                    Console.WriteLine($"[Layout Verification] refObj found: {refObj != null}, dateObj found: {dateObj != null}, debitObj found: {debitObj != null}, creditObj found: {creditObj != null}");
+
+                                                    currentSeriesNo = refObj != null ? refObj.Text : (textBox_SeriesNumber != null ? textBox_SeriesNumber.Text : "N/A");
+                                                    currentDebit = debitObj != null ? debitObj.Text : "0.00";
+                                                    currentCredit = creditObj != null ? creditObj.Text : "0.00";
+
+                                                    if (dateObj != null && DateTime.TryParse(dateObj.Text, out DateTime parsedJVDate))
+                                                    {
+                                                        transactDateFormatted = parsedJVDate.ToString("yyyy-MM-dd");
+                                                    }
+
+                                                    // Safely pull Company Name from report template to avoid Null Reference crash
+                                                    var compObj = loadedReport.ReportDefinition.ReportObjects["TextCompanyName"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    string reportCompany = compObj != null ? compObj.Text : (!string.IsNullOrEmpty(selectedCompany) ? selectedCompany : "Unknown Company");
+
+                                                    // --- DATA EXTRUCTION VERIFICATION LOG ---
+                                                    Console.WriteLine("=====================================");
+                                                    Console.WriteLine("       JV PRINT DATA EXTRACTED       ");
+                                                    Console.WriteLine("=====================================");
+                                                    Console.WriteLine($"Series Number (currentSeriesNo): {currentSeriesNo}");
+                                                    Console.WriteLine($"Date Formatted (transactDate):   {transactDateFormatted}");
+                                                    Console.WriteLine($"Payee/Particulars (currentPayee):{currentPayee}");
+                                                    Console.WriteLine($"Total Debit (currentDebit):      {currentDebit}");
+                                                    Console.WriteLine($"Total Credit (currentCredit):    {currentCredit}");
+                                                    Console.WriteLine($"Company Name (reportCompany):    {reportCompany}");
+                                                    Console.WriteLine($"Reference Number (extracted):    {referenceNumber}");
+                                                    Console.WriteLine("=====================================");
+
+                                                    // Call your DB insertion layer for JV history logs
+                                                    Console.WriteLine("Executing SaveVoucherHistory wrapper call...");
+                                                    SaveVoucherHistory(
+                                                        currentSeriesNo,
+                                                        transactDateFormatted,
+                                                        currentPayee,
+                                                        currentDebit,
+                                                        currentCredit,
+                                                        reportCompany,
+                                                        referenceNumber
+                                                    );
+
+                                                    // Instantly refresh UI historical list after printing completes successfully
+                                                    Console.WriteLine("Refreshing layout grid via LoadVoucherHistory...");
+                                                    LoadVoucherHistory();
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("⚠️ WARNING: reportViewer.ReportSource is not a valid ReportDocument instance.");
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Console.WriteLine($"❌ CRITICAL JV PRINT LOGGING FAILURE: {ex.Message}");
+                                                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                                            }
+                                        }
+                                    }
+                                    else if (formType == "APV")
+                                    {
+                                        if (!isHistoricalPreview)
+                                        {
+                                            try
+                                            {
+                                                if (reportViewer.ReportSource is CrystalDecisions.CrystalReports.Engine.ReportDocument loadedReport)
+                                                {
+                                                    Console.WriteLine(">>> [APV PRINT INTERCEPTION TRIGGERED] <<<");
+
+                                                    string currentSeriesNo = "";
+                                                    string currentPayee = "APV Entry";
+                                                    string currentDebit = "0.00";
+                                                    string currentCredit = "0.00";
+                                                    string checkDateFormatted = DateTime.Now.ToString("yyyy-MM-dd");
+                                                    string subCheckNumber = "";
+
+                                                    // --- FIXED: Self-contained direct data parameter lookup safely ---
+                                                    string referenceNumber = !string.IsNullOrWhiteSpace(activeAPVReferenceNumber) ? activeAPVReferenceNumber : "N/A";
+
+                                                    var refObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    var dateObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    var payeeObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLPayee"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    var debitObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    var creditObj = loadedReport.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                    var compObj = loadedReport.ReportDefinition.ReportObjects["TextCompanyName"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+
+                                                    currentSeriesNo = refObj != null ? refObj.Text : (textBox_SeriesNumber != null ? textBox_SeriesNumber.Text : "N/A");
+                                                    currentPayee = payeeObj != null ? payeeObj.Text : "APV Entry";
+                                                    currentDebit = debitObj != null ? debitObj.Text : "0.00";
+                                                    currentCredit = creditObj != null ? creditObj.Text : "0.00";
+                                                    string reportCompany = compObj != null ? compObj.Text : (!string.IsNullOrEmpty(selectedCompany) ? selectedCompany : "Unknown Company");
+
+                                                    if (dateObj != null && DateTime.TryParse(dateObj.Text, out DateTime parsedBillDate))
+                                                    {
+                                                        checkDateFormatted = parsedBillDate.ToString("yyyy-MM-dd");
+                                                    }
+
+                                                    try
+                                                    {
+                                                        var subreportObject = loadedReport.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as CrystalDecisions.CrystalReports.Engine.SubreportObject;
+                                                        if (subreportObject != null)
+                                                        {
+                                                            var subReportDocument = loadedReport.OpenSubreport(subreportObject.SubreportName);
+                                                            var subCheckObj = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckNumber"] as CrystalDecisions.CrystalReports.Engine.TextObject;
+                                                            if (subCheckObj != null) subCheckNumber = subCheckObj.Text;
+                                                        }
+                                                    }
+                                                    catch (Exception subEx) { Console.WriteLine($"Subreport Error: {subEx.Message}"); }
+
+                                                    if (string.IsNullOrWhiteSpace(subCheckNumber)) subCheckNumber = referenceNumber;
+
+                                                    // Saves completely inside the isolated APV database layer table map!
+                                                    SaveVoucherHistory(currentSeriesNo, checkDateFormatted, currentPayee, currentDebit, currentCredit, reportCompany, subCheckNumber);
+                                                    LoadVoucherHistory();
+                                                }
+                                            }
+                                            catch (Exception ex) { Console.WriteLine($"Print Error: {ex.Message}"); }
                                         }
                                     }
 
@@ -1059,6 +1214,8 @@ namespace VoucherPROVER2.Clients.OWI
                             AccessQueries_OWI accessQueries = new AccessQueries_OWI();
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
 
+                            activeJVReferenceNumber = refNumberCR;
+
                             // 1. Get the correct data
                             journal = accessQueries.GetJournalEntryForGrid(refNumberCR);
 
@@ -1177,6 +1334,8 @@ namespace VoucherPROVER2.Clients.OWI
 
                 AccessQueries_OWI accessQueries = new AccessQueries_OWI();
                 List<BillTable> bills = accessQueries.GetBillData_OWI_DirectBill(refNumberCR);
+
+                activeAPVReferenceNumber = refNumberCR;
 
                 if (bills == null || bills.Count == 0)
                     return false;
@@ -2764,106 +2923,131 @@ namespace VoucherPROVER2.Clients.OWI
         }
 
         private void SaveVoucherHistory(
-                string cvRefNumber,
-                string cvCheckDate,
-                string cvPayee,
-                string cvTotalDebitAmount,
-                string cvTotalCreditAmount,
-                string companyName,
-                string cvnumber)
+            string cvRefNumber,
+            string cvCheckDate,
+            string cvPayee,
+            string cvTotalDebitAmount,
+            string cvTotalCreditAmount,
+            string companyName,
+            string cvnumber)
+        {
+            try
+            {
+                // --- CONSOLE LOGGING DIAGNOSTICS ---
+                Console.WriteLine("=== SaveVoucherHistory Debug Info ===");
+                Console.WriteLine($"cvRefNumber:         {cvRefNumber}");
+                Console.WriteLine($"cvCheckDate (Raw):   {cvCheckDate}");
+                Console.WriteLine($"cvPayee:             {cvPayee}");
+                Console.WriteLine($"cvTotalDebit (Raw):  {cvTotalDebitAmount}");
+                Console.WriteLine($"cvTotalCredit (Raw): {cvTotalCreditAmount}");
+                Console.WriteLine($"companyName:         {companyName}");
+                Console.WriteLine($"cvnumber:            {cvnumber}");
+                Console.WriteLine("=====================================");
+
+                // --- BULLETPROOF DATA PARSING ---
+                if (!DateTime.TryParse(cvCheckDate, out DateTime parsedCheckDate))
+                {
+                    parsedCheckDate = DateTime.Now;
+                }
+
+                string cleanDebitStr = (cvTotalDebitAmount ?? "0").Replace(",", "");
+                string cleanCreditStr = (cvTotalCreditAmount ?? "0").Replace(",", "");
+
+                if (!double.TryParse(cleanDebitStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedDebit))
+                {
+                    double.TryParse(cleanDebitStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out parsedDebit);
+                }
+
+                if (!double.TryParse(cleanCreditStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedCredit))
+                {
+                    double.TryParse(cleanCreditStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out parsedCredit);
+                }
+
+                string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
+                string connectionString = $@"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={databasePath};Persist Security Info=False;";
+
+                using (OleDbConnection connection = new OleDbConnection(connectionString))
+                {
+                    connection.Open();
+
+                    string query = "";
+                    bool isJV = (comboBox_Forms != null && comboBox_Forms.SelectedIndex == 3);
+                    bool isAPV = (comboBox_Forms != null && comboBox_Forms.SelectedIndex == 4);
+
+                    if (isJV)
                     {
-                        try
-                        {
-                            // --- CONSOLE LOGGING DIAGNOSTICS ---
-                            Console.WriteLine("=== SaveVoucherHistory Debug Info ===");
-                            Console.WriteLine($"cvRefNumber:         {cvRefNumber}");
-                            Console.WriteLine($"cvCheckDate (Raw):   {cvCheckDate}");
-                            Console.WriteLine($"cvPayee:             {cvPayee}");
-                            Console.WriteLine($"cvTotalDebit (Raw):  {cvTotalDebitAmount}");
-                            Console.WriteLine($"cvTotalCredit (Raw): {cvTotalCreditAmount}");
-                            Console.WriteLine($"companyName:         {companyName}");
-                            Console.WriteLine($"cvnumber:            {cvnumber}");
-                            Console.WriteLine("=====================================");
-
-                            // --- BULLETPROOF DATA PARSING ---
-                            if (!DateTime.TryParse(cvCheckDate, out DateTime parsedCheckDate))
-                            {
-                                parsedCheckDate = DateTime.Now;
-                            }
-
-                            // Clean up strings by removing any stray commas before parsing
-                            string cleanDebitStr = (cvTotalDebitAmount ?? "0").Replace(",", "");
-                            string cleanCreditStr = (cvTotalCreditAmount ?? "0").Replace(",", "");
-
-                            if (!double.TryParse(cleanDebitStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedDebit))
-                            {
-                                // Secondary fallback to current machine settings if invariant fails
-                                double.TryParse(cleanDebitStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out parsedDebit);
-                            }
-
-                            if (!double.TryParse(cleanCreditStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedCredit))
-                            {
-                                // Secondary fallback to current machine settings if invariant fails
-                                double.TryParse(cleanCreditStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out parsedCredit);
-                            }
-
-                            Console.WriteLine($"=== DB Write Verification ===");
-                            Console.WriteLine($"Cleaned String: {cleanDebitStr} -> Parsed Double: {parsedDebit}");
-
-                            string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
-                            string connectionString = $@"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={databasePath};Persist Security Info=False;";
-
-                            using (OleDbConnection connection = new OleDbConnection(connectionString))
-                            {
-                                connection.Open();
-
-                                string query = @"
-                            INSERT INTO PrintedVoucherHistory
-                            (
-                                CVRefNumber,
-                                CVCheckDate,
-                                CVPayee,
-                                CVTotalDebitAmount,
-                                CVTotalCreditAmount,
-                                CompanyName,
-                                CVSubCheckNumber,
-                                DatePrinted
-                            )
-                            VALUES
-                            (
-                                @CVRefNumber,
-                                @CVCheckDate,
-                                @CVPayee,
-                                @CVTotalDebitAmount,
-                                @CVTotalCreditAmount,
-                                @CompanyName,
-                                @CVSubCheckNumber,
-                                @DatePrinted
-                            )";
+                        // Query for Journal Voucher History Table
+                        query = @"
+                INSERT INTO PrintedJVHistory
+                (
+                    JVRefNumber, JVTransactDate, JVParticulars,
+                    JVTotalDebitAmount, JVTotalCreditAmount,
+                    CompanyName, JVReferenceNumber, DatePrinted
+                )
+                VALUES
+                (
+                    @JVRefNumber, @JVTransactDate, @JVParticulars,
+                    @JVTotalDebitAmount, @JVTotalCreditAmount,
+                    @CompanyName, @JVReferenceNumber, @DatePrinted
+                )";
+                    }
+                    else if (isAPV)
+                    {
+                        // === NEW: Isolated Query targeting Dedicated APV Table ===
+                        query = @"
+                INSERT INTO PrintedAPVHistory
+                (
+                    APVRefNumber, APVCheckDate, APVPayee,
+                    APVTotalDebitAmount, APVTotalCreditAmount,
+                    CompanyName, APVSubCheckNumber, DatePrinted
+                )
+                VALUES
+                (
+                    @APVRefNumber, @APVCheckDate, @APVPayee,
+                    @APVTotalDebitAmount, @APVTotalCreditAmount,
+                    @CompanyName, @APVSubCheckNumber, @DatePrinted
+                )";
+                    }
+                    else
+                    {
+                        // Query for Cash Voucher History Table
+                        query = @"
+                INSERT INTO PrintedVoucherHistory
+                (
+                    CVRefNumber, CVCheckDate, CVPayee,
+                    CVTotalDebitAmount, CVTotalCreditAmount,
+                    CompanyName, CVSubCheckNumber, DatePrinted
+                )
+                VALUES
+                (
+                    @CVRefNumber, @CVCheckDate, @CVPayee,
+                    @CVTotalDebitAmount, @CVTotalCreditAmount,
+                    @CompanyName, @CVSubCheckNumber, @DatePrinted
+                )";
+                    }
 
                     using (OleDbCommand cmd = new OleDbCommand(query, connection))
                     {
-                        // CRITICAL FOR OLEDB: Parameters MUST be added in the exact order they appear in the SQL text above.
-                        cmd.Parameters.AddWithValue("@CVRefNumber", cvRefNumber ?? (object)DBNull.Value);
-
-                        // --- FIXED: Formats CVCheckDate to YYYY-MM-DD string ---
-                        cmd.Parameters.AddWithValue("@CVCheckDate", parsedCheckDate.ToString("yyyy-MM-dd"));
-
-                        cmd.Parameters.AddWithValue("@CVPayee", cvPayee ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@CVTotalDebitAmount", parsedDebit);
-                        cmd.Parameters.AddWithValue("@CVTotalCreditAmount", parsedCredit);
+                        // Parameters map seamlessly to positional configurations across all 3 tables
+                        cmd.Parameters.AddWithValue("@RefNumber", cvRefNumber ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@Date", parsedCheckDate.ToString("yyyy-MM-dd"));
+                        cmd.Parameters.AddWithValue("@PayeeOrParticulars", cvPayee ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@TotalDebitAmount", parsedDebit);
+                        cmd.Parameters.AddWithValue("@TotalCreditAmount", parsedCredit);
                         cmd.Parameters.AddWithValue("@CompanyName", companyName ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@CVSubCheckNumber", cvnumber ?? (object)DBNull.Value);
-
-                        // --- FIXED: Formats DatePrinted to YYYY-MM-DD string before saving to Short Text field ---
+                        cmd.Parameters.AddWithValue("@SubNoOrRefNo", cvnumber ?? (object)DBNull.Value);
                         cmd.Parameters.AddWithValue("@DatePrinted", DateTime.Now.ToString("yyyy-MM-dd"));
 
                         cmd.ExecuteNonQuery();
-                        Console.WriteLine("SUCCESS: History saved successfully to Access DB.");
+                        Console.WriteLine($"SUCCESS: {(isJV ? "JV" : (isAPV ? "APV" : "CV"))} History saved successfully to Access DB.");
                     }
                 }
+
+                // Pull text currently inside search filters to maintain user UI state on reload
                 string currentSearch = txt_SearchHistory != null ? txt_SearchHistory.Text.Trim() : "";
-                LoadVoucherHistory();
+                if (currentSearch == "Search by Series or Payee...") currentSearch = "";
+
+                LoadVoucherHistory(currentSearch);
             }
             catch (Exception ex)
             {
@@ -2876,14 +3060,46 @@ namespace VoucherPROVER2.Clients.OWI
         {
             try
             {
+                if (comboBox_Forms == null || dgv_History == null) return;
+
                 string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
                 string connectionString = $@"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={databasePath};Persist Security Info=False;";
 
                 using (OleDbConnection connection = new OleDbConnection(connectionString))
                 {
                     connection.Open();
+                    string query = "";
 
-                    string query = @"
+                    if (comboBox_Forms.SelectedIndex == 3)
+                    {
+                        // --- JV TARGET HISTORY SOURCE ---
+                        query = @"
+                SELECT TOP 20
+                    JVRefNumber AS CVRefNumber,
+                    JVReferenceNumber AS CVSubCheckNumber,
+                    JVParticulars AS CVPayee,
+                    JVTotalDebitAmount AS CVTotalDebitAmount,
+                    DatePrinted
+                FROM PrintedJVHistory
+                ORDER BY ID DESC";
+                    }
+                    else if (comboBox_Forms.SelectedIndex == 4)
+                    {
+                        // --- NEW: APV TARGET HISTORY SOURCE (Aliased to match CV Mappings) ---
+                        query = @"
+                SELECT TOP 20
+                    APVRefNumber AS CVRefNumber,
+                    APVSubCheckNumber AS CVSubCheckNumber,
+                    APVPayee AS CVPayee,
+                    APVTotalDebitAmount AS CVTotalDebitAmount,
+                    DatePrinted
+                FROM PrintedAPVHistory
+                ORDER BY ID DESC";
+                    }
+                    else
+                    {
+                        // --- STANDARD CV TARGET HISTORY SOURCE ---
+                        query = @"
                 SELECT TOP 20
                     CVRefNumber,
                     CVSubCheckNumber,
@@ -2892,6 +3108,7 @@ namespace VoucherPROVER2.Clients.OWI
                     DatePrinted
                 FROM PrintedVoucherHistory
                 ORDER BY ID DESC";
+                    }
 
                     using (OleDbDataAdapter adapter = new OleDbDataAdapter(query, connection))
                     {
@@ -2903,12 +3120,12 @@ namespace VoucherPROVER2.Clients.OWI
                         {
                             string safeFilter = filterText.Replace("'", "''");
 
-                            // Expanded search filter to check CVRefNumber, CVSubCheckNumber, or CVPayee
+                            // Thanks to the 'AS' SQL Aliasing step above, the column keys match 100%
                             dt.DefaultView.RowFilter = string.Format(
                                 "CVRefNumber LIKE '%{0}%' OR CVSubCheckNumber LIKE '%{0}%' OR CVPayee LIKE '%{0}%'", safeFilter);
                         }
 
-                        // Bind the data to the grid (It cleanly fills your pre-defined headers)
+                        // Bind the dataset cleanly into the existing grid columns
                         dgv_History.DataSource = dt;
                     }
                 }
@@ -2927,18 +3144,269 @@ namespace VoucherPROVER2.Clients.OWI
                 {
                     DataGridViewRow selectedRow = dgv_History.Rows[e.RowIndex];
 
-                    if (selectedRow.Cells["CVSubCheckNumber"]?.Value != null)
+                    // --- FLAG HISTORICAL ENVIRONMENT ---
+                    isHistoricalPreview = true;
+
+                    // Extract values across the aliased data columns cleanly
+                    string seriesOverride = selectedRow.Cells["CVRefNumber"]?.Value?.ToString() ?? "";
+                    string dateOverride = selectedRow.Cells["DatePrinted"]?.Value?.ToString() ?? "";
+                    string targetRefNumber = selectedRow.Cells["CVSubCheckNumber"]?.Value?.ToString() ?? "";
+
+                    Console.WriteLine($"[History Double-Click Navigation] Extracted Series: {seriesOverride} | Target Ref: {targetRefNumber}");
+
+                    if (string.IsNullOrEmpty(targetRefNumber)) return;
+
+                    // =======================================================================
+                    // 💡 AUTOMATIC ROUTING BY PREFIX (Bypasses comboBox_Forms dependencies)
+                    // =======================================================================
+                    bool isJournalVoucher = seriesOverride.StartsWith("JV-", StringComparison.OrdinalIgnoreCase);
+
+                    // --- ADDED: Explicit prefix verification logic for APVs ---
+                    bool isAccountsPayableVoucher = seriesOverride.StartsWith("APV-", StringComparison.OrdinalIgnoreCase);
+
+                    if (isJournalVoucher)
                     {
-                        // --- FLAG HISTORICAL ENVIRONMENT ---
-                        isHistoricalPreview = true;
+                        // ==========================================
+                        // PATH B: JOURNAL VOUCHER (JV) PREVIEW
+                        // ==========================================
+                        try
+                        {
+                            CRJV_OWI cRJV_OWI = new CRJV_OWI();
+                            string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
+                            SetDatabaseLocation(cRJV_OWI, databasePath);
 
-                        // Capture original record parameters
-                        string seriesOverride = selectedRow.Cells["CVRefNumber"]?.Value?.ToString() ?? "";
-                        string dateOverride = selectedRow.Cells["DatePrinted"]?.Value?.ToString() ?? "";
-                        string targetRefNumber = selectedRow.Cells["CVSubCheckNumber"].Value.ToString();
+                            AccessQueries_OWI accessQueries = new AccessQueries_OWI();
+                            journal = accessQueries.GetJournalEntryForGrid(targetRefNumber);
 
-                        Console.WriteLine($"[History Double-Click Navigation] Loading Ref: {targetRefNumber} with Series Override: {seriesOverride}");
+                            if (journal != null && journal.Count > 0)
+                            {
+                                TextObject textObject_JVRefNumber = cRJV_OWI.ReportDefinition.ReportObjects["TextJVRefNumber"] as TextObject;
+                                TextObject textObject_JVCheckDate = cRJV_OWI.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
+                                TextObject textObject_JVTransactDate = cRJV_OWI.ReportDefinition.ReportObjects["TextJVTransactDate"] as TextObject;
+                                TextObject textObject_JVTotalDebitAmount = cRJV_OWI.ReportDefinition.ReportObjects["TextJVTotalDebitAmount"] as TextObject;
+                                TextObject textObject_JVTotalCreditAmount = cRJV_OWI.ReportDefinition.ReportObjects["TextJVTotalCreditAmount"] as TextObject;
 
+                                TextObject textObject_CompanyName = cRJV_OWI.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+                                if (textObject_CompanyName != null && comboBox_Company?.SelectedItem != null)
+                                {
+                                    textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
+                                }
+
+                                TextObject textObject_PreparedBy = cRJV_OWI.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
+                                TextObject textObject_PreparedByPos = cRJV_OWI.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                                TextObject textObject_CheckedBy = cRJV_OWI.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
+                                TextObject textObject_CheckedByPos = cRJV_OWI.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                                TextObject textObject_ApprovedBy = cRJV_OWI.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                                TextObject textObject_ApprovedByPos = cRJV_OWI.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                                TextObject textObject_ReceivedBy = cRJV_OWI.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+                                TextObject textObject_ReceivedByPos = cRJV_OWI.ReportDefinition.ReportObjects["TextReceivedByPos"] as TextObject;
+
+                                if (textObject_JVRefNumber != null) textObject_JVRefNumber.Text = seriesOverride;
+
+                                if (textObject_JVCheckDate != null)
+                                {
+                                    if (DateTime.TryParse(dateOverride, out DateTime parsedHistDate))
+                                        textObject_JVCheckDate.Text = parsedHistDate.ToString("MMMM dd, yyyy");
+                                    else
+                                        textObject_JVCheckDate.Text = dateOverride;
+                                }
+
+                                if (textObject_JVTransactDate != null) textObject_JVTransactDate.Text = journal[0].Date.ToString("MMMM dd, yyyy");
+
+                                double debitTotalAmount = 0;
+                                double creditTotalAmount = 0;
+
+                                foreach (var line in journal)
+                                {
+                                    debitTotalAmount += line.Debit;
+                                    creditTotalAmount += line.Credit;
+                                }
+                                if (textObject_JVTotalDebitAmount != null) textObject_JVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
+                                if (textObject_JVTotalCreditAmount != null) textObject_JVTotalCreditAmount.Text = creditTotalAmount.ToString("N2");
+
+                                AccessToDatabase_OWI accessToDatabase = new AccessToDatabase_OWI();
+                                var signatories = accessToDatabase.RetrieveAllSignatoryData();
+
+                                textObject_PreparedBy.Text = signatories.PreparedByName;
+                                textObject_PreparedByPos.Text = signatories.PreparedByPosition;
+                                textObject_CheckedBy.Text = signatories.ReviewedByName;
+                                textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
+                                textObject_ApprovedBy.Text = signatories.ApprovedByName;
+                                textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
+                                textObject_ReceivedBy.Text = signatories.ReceivedByName;
+                                textObject_ReceivedByPos.Text = signatories.ReceivedByPosition;
+
+                                SubreportObject subreportObject = cRJV_OWI.ReportDefinition.ReportObjects["SubreportJVDetailsIVP"] as SubreportObject;
+                                if (subreportObject != null)
+                                {
+                                    ReportDocument subReportDocument = cRJV_OWI.OpenSubreport(subreportObject.SubreportName);
+                                    TextObject textObject_SubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextJVSUBAccountsPayable"] as TextObject;
+                                    TextObject textObject_SubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextJVSUBAmountPayable"] as TextObject;
+
+                                    if (textObject_SubAccountPayable != null) textObject_SubAccountPayable.Text = journal[0].AccountName;
+                                    if (textObject_SubAmountPayable != null) textObject_SubAmountPayable.Text = debitTotalAmount.ToString("N2");
+                                }
+
+                                InsertDataToJournalCompiled(targetRefNumber, journal);
+
+                                cRJV_OWI.SetParameterValue("ReferenceNumber", targetRefNumber);
+
+                                panel_Printing.Visible = false;
+                                panel_Signatory.Visible = true;
+                                panel_Main.Visible = false;
+                                panel_Main_CR.Visible = true;
+
+                                reportViewer.ReportSource = cRJV_OWI;
+                                reportViewer.RefreshReport();
+                            }
+                            else
+                            {
+                                MessageBox.Show("No historical Journal Entry found for this Reference Number.", "Data Missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"IVP JV HISTORY LOAD ERROR:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                    else if (isAccountsPayableVoucher)
+                    {
+                        // =======================================================================
+                        // 📑 PATH C: ACCOUNTS PAYABLE VOUCHER (APV) PREVIEW ROUTE
+                        // =======================================================================
+                        try
+                        {
+                            CRAPV_OWIBILL cRAPV_OWIBILL = new CRAPV_OWIBILL();
+                            string databasePathBILL = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
+                            SetDatabaseLocation(cRAPV_OWIBILL, databasePathBILL);
+
+                            AccessQueries_OWI accessQueries = new AccessQueries_OWI();
+                            List<BillTable> bills = accessQueries.GetBillData_OWI_DirectBill(targetRefNumber);
+
+                            if (bills != null && bills.Count > 0)
+                            {
+                                var textObject_CVBILLCheckNumber = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
+                                var textObject_CVBILLAddress = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
+                                var textObject_CVBILLTIN = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLTIN"] as TextObject;
+                                var textObject_CVBILLCurrency = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLCurrency"] as TextObject;
+                                var textObject_CVBILLCurrate = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLCurrate"] as TextObject;
+                                var textObject_CVBILLCheckDate = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
+                                var textObject_CVBILLPayee = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
+                                var textObject_CVBILLTotalDebitAmount = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
+                                var textObject_CVBILLTotalCreditAmount = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
+                                var textObject_CompanyName = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+
+                                if (textObject_CompanyName != null && comboBox_Company?.SelectedItem != null)
+                                {
+                                    textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
+                                }
+
+                                var textObject_PreparedBy = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
+                                var textObject_PreparedByPos = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                                var textObject_CheckedBy = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
+                                var textObject_CheckedByPos = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                                var textObject_ApprovedBy = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                                var textObject_ApprovedByPos = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                                var textObject_ReceivedBy = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+                                var textObject_ReceivedByPos = cRAPV_OWIBILL.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
+
+                                AccessToDatabase_OWI accessToDatabase = new AccessToDatabase_OWI();
+                                var signatories = accessToDatabase.RetrieveAllSignatoryData();
+
+                                textObject_PreparedBy.Text = signatories.PreparedByName;
+                                textObject_PreparedByPos.Text = signatories.PreparedByPosition;
+                                textObject_CheckedBy.Text = signatories.ReviewedByName;
+                                textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
+                                textObject_ApprovedBy.Text = signatories.ApprovedByName;
+                                textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
+                                textObject_ReceivedBy.Text = signatories.ReceivedByName;
+                                textObject_ReceivedByPos.Text = signatories.ReceivedByPosition;
+
+                                double debitTotalAmount = 0;
+                                double creditTotalAmount = 0;
+
+                                foreach (var bill in bills)
+                                {
+                                    foreach (var item in bill.ItemDetails)
+                                    {
+                                        if (item.ItemLineAmount > 0) debitTotalAmount += item.ItemLineAmount;
+                                        else if (item.ItemLineAmount < 0) creditTotalAmount += Math.Abs(item.ItemLineAmount);
+
+                                        if (item.ExpenseLineAmount > 0) debitTotalAmount += item.ExpenseLineAmount;
+                                        else if (item.ExpenseLineAmount < 0) creditTotalAmount += Math.Abs(item.ExpenseLineAmount);
+                                    }
+                                }
+
+                                if (textObject_CVBILLTotalDebitAmount != null) textObject_CVBILLTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
+                                if (textObject_CVBILLTotalCreditAmount != null) textObject_CVBILLTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
+
+                                var b = bills[0];
+                                string streetLine = string.Join(", ", new[] { b.VendorAddressAddr1, b.VendorAddressAddr2, b.VendorAddressAddr3, b.VendorAddressAddr4 }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                                string cityLine = b.VendorAddressCity ?? "";
+                                string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                                if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = seriesOverride;
+                                if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
+                                if (textObject_CVBILLCheckDate != null)
+                                {
+                                    if (DateTime.TryParse(dateOverride, out DateTime parsedHistDate))
+                                        textObject_CVBILLCheckDate.Text = parsedHistDate.ToString("MMMM dd, yyyy");
+                                    else
+                                        textObject_CVBILLCheckDate.Text = dateOverride;
+                                }
+                                if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
+                                if (textObject_CVBILLTIN != null) textObject_CVBILLTIN.Text = bills[0].Tin ?? "";
+                                if (textObject_CVBILLCurrency != null) textObject_CVBILLCurrency.Text = bills[0].Currency ?? "";
+                                if (textObject_CVBILLCurrate != null) textObject_CVBILLCurrate.Text = bills[0].Exchangerate.ToString("N2");
+
+                                SubreportObject subreportObject = cRAPV_OWIBILL.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as SubreportObject;
+                                if (subreportObject != null)
+                                {
+                                    ReportDocument subReportDocument = cRAPV_OWIBILL.OpenSubreport(subreportObject.SubreportName);
+                                    TextObject textObject_BILLSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
+                                    TextObject textObject_BILLCVSubCheckDate = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckDate"] as TextObject;
+                                    TextObject textObject_BILLCVSubTotal = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSUBTotalAmount"] as TextObject;
+                                    TextObject textObject_BILLCVSubCheckNumber = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckNumber"] as TextObject;
+                                    TextObject textObject_BILLCVTERMS = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubTerms"] as TextObject;
+                                    TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
+                                    TextObject textObject_PaidSign = subReportDocument.ReportDefinition.ReportObjects["TextPaidSign"] as TextObject;
+
+                                    if (textObject_PaidSign != null) textObject_PaidSign.Text = comboBox_Currency?.SelectedIndex == 1 ? "$" : "₱";
+                                    if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].Memo ?? "";
+                                    if (textObject_BILLCVTERMS != null) textObject_BILLCVTERMS.Text = bills[0].TermsRefFullName ?? "";
+                                    if (textObject_BILLCVSubCheckDate != null) textObject_BILLCVSubCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
+                                    if (textObject_BILLCVSubTotal != null) textObject_BILLCVSubTotal.Text = bills[0].AmountDue.ToString("N2");
+                                    if (textObject_BILLCVSubCheckNumber != null) textObject_BILLCVSubCheckNumber.Text = bills[0].RefNumber ?? "";
+                                    if (textObject_BILLSubAmountPayable != null) textObject_BILLSubAmountPayable.Text = bills.Sum(a => a.AmountDue).ToString("N2");
+
+                                    InsertDataToBillCompiled(targetRefNumber, bills);
+                                }
+
+                                cRAPV_OWIBILL.SetParameterValue("ReferenceNumber", targetRefNumber);
+
+                                panel_Printing.Visible = false;
+                                panel_Signatory.Visible = true;
+                                panel_Main.Visible = false;
+                                panel_Main_CR.Visible = true;
+
+                                reportViewer.ReportSource = cRAPV_OWIBILL;
+                                reportViewer.RefreshReport();
+                            }
+                            else
+                            {
+                                MessageBox.Show("No historical Accounts Payable Voucher data found.", "Data Missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"IVP APV HISTORY LOAD ERROR:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                    else
+                    {
+                        // ==========================================
+                        // PATH A: STANDARD CASH VOUCHER / PAYMENT VOUCHER
+                        // ==========================================
                         bool cvDataExists = false;
                         try
                         {
@@ -2960,7 +3428,7 @@ namespace VoucherPROVER2.Clients.OWI
                                 TextObject textObject_CVTotalCreditAmount = cRCV_OWI.ReportDefinition.ReportObjects["TextCVTotalCreditAmount"] as TextObject;
 
                                 TextObject textObject_CompanyName = cRCV_OWI.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
-                                if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                                if (textObject_CompanyName != null && comboBox_Company?.SelectedItem != null)
                                 {
                                     textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                                 }
@@ -3019,8 +3487,8 @@ namespace VoucherPROVER2.Clients.OWI
                                     catch (Exception ex) { Console.WriteLine($"Error computing totals: {ex.Message}"); }
                                 }
 
-                                textObject_CVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                                textObject_CVTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
+                                if (textObject_CVTotalDebitAmount != null) textObject_CVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
+                                if (textObject_CVTotalCreditAmount != null) textObject_CVTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
 
                                 SubreportObject subreportObject = cRCV_OWI.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                                 if (subreportObject != null)
@@ -3032,14 +3500,11 @@ namespace VoucherPROVER2.Clients.OWI
                                     TextObject textObject_CVSubCheckDate = subReportDocument.ReportDefinition.ReportObjects["TextCVSubCheckDate"] as TextObject;
                                     TextObject textObject_SubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextSubAccountPayable"] as TextObject;
                                     TextObject textObject_SubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextSubAmountPayable"] as TextObject;
-
-                                    // --- ADD THIS LINE TO FIX THE CS0103 ERROR ---
                                     TextObject textObject_PaidSign = subReportDocument.ReportDefinition.ReportObjects["TextPaidSign"] as TextObject;
 
                                     if (textObject_PaidSign != null)
                                     {
-                                        // Index 1 is Dollar ($), otherwise default to Peso (₱)
-                                        textObject_PaidSign.Text = comboBox_Currency.SelectedIndex == 1 ? "$" : "₱";
+                                        textObject_PaidSign.Text = comboBox_Currency?.SelectedIndex == 1 ? "$" : "₱";
                                     }
 
                                     if (textObject_Remarks != null) textObject_Remarks.Text = cvData[0].Memo;
@@ -3068,7 +3533,6 @@ namespace VoucherPROVER2.Clients.OWI
                             MessageBox.Show($"IVP CV ERROR:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
 
-                        // If standard data isn't present, shift rendering paths down to the Bill Document layout
                         if (!cvDataExists)
                         {
                             GenerateBillPaymentReport_OWI(targetRefNumber, seriesOverride, dateOverride);
