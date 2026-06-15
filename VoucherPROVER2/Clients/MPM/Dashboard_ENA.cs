@@ -1092,12 +1092,9 @@ namespace VoucherPROVER2.Clients.ENA
                 TextObject textObject_CVBILLCheckNumber = null;
                 TextObject textObject_CVBILLAmountInWords = null;
                 TextObject textObject_CVBILLCheckDate = null;
-                TextObject textObject_CVBILLCheckDate2 = null;
+                TextObject textObject_CVBILLBankAccount = null;
                 TextObject textObject_CVBILLPayee = null;
-                TextObject textObject_CVBILLPayee2 = null;
-                TextObject textObject_CVBILLTotalAmount = null;
-                TextObject textObject_CVBILLTotalDebitAmount = null;
-                TextObject textObject_CVBILLTotalCreditAmount = null;
+                TextObject textObject_CVBILLRefnumber = null;
                 TextObject textObject_PreparedBy = null;
                 TextObject textObject_PreparedByPos = null;
                 TextObject textObject_CheckedBy = null;
@@ -1105,25 +1102,16 @@ namespace VoucherPROVER2.Clients.ENA
                 TextObject textObject_ApprovedBy = null;
                 TextObject textObject_ApprovedByPos = null;
                 TextObject textObject_ReceivedBy = null;
-                TextObject textObject_ReceivedByPos = null;
 
                 try
                 {
                     textObject_CVBILLCheckNumber = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
                     textObject_CVBILLAmountInWords = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLAmountinWords"] as TextObject;
                     textObject_CVBILLCheckDate = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
-                    textObject_CVBILLCheckDate2 = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate2"] as TextObject;
                     textObject_CVBILLPayee = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
-                    textObject_CVBILLPayee2 = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLPayee2"] as TextObject;
-                    textObject_CVBILLTotalAmount = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
-                    textObject_CVBILLTotalDebitAmount = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
-                    textObject_CVBILLTotalCreditAmount = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
+                    textObject_CVBILLRefnumber = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
+                    textObject_CVBILLBankAccount = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCVBILLBankAccount"] as TextObject;
 
-                    TextObject textObject_CompanyName = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
-                    if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
-                    {
-                        textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
-                    }
 
 
                     textObject_PreparedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
@@ -1133,7 +1121,6 @@ namespace VoucherPROVER2.Clients.ENA
                     textObject_ApprovedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
                     textObject_ApprovedByPos = cRCV_ENABILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
                     textObject_ReceivedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
-                    textObject_ReceivedByPos = cRCV_ENABILL.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
 
                     AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
 
@@ -1144,9 +1131,6 @@ namespace VoucherPROVER2.Clients.ENA
                        ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
 
 
-                    double debitTotalAmount = 0;
-                    double creditTotalAmount = 0;
-
                     textObject_PreparedBy.Text = PreparedByName;
                     textObject_PreparedByPos.Text = PreparedByPosition;
                     textObject_CheckedBy.Text = ReviewedByName;
@@ -1154,41 +1138,7 @@ namespace VoucherPROVER2.Clients.ENA
                     textObject_ApprovedBy.Text = ApprovedByName;
                     textObject_ApprovedByPos.Text = ApprovedByPosition;
                     textObject_ReceivedBy.Text = ReceivedByName;
-                    textObject_ReceivedByPos.Text = ReceivedByPosition;
 
-                    foreach (var bill in bills) // 'bills' is List<BillTable>
-                    {
-                        foreach (var item in bill.ItemDetails)
-                        {
-                            try
-                            {
-                                // Handle ItemLineAmount
-                                if (item.ItemLineAmount != 0)
-                                {
-                                    if (item.ItemLineAmount > 0)
-                                        debitTotalAmount += item.ItemLineAmount;
-                                    else
-                                        creditTotalAmount += Math.Abs(item.ItemLineAmount);
-                                }
-
-                                // Handle ExpenseLineAmount
-                                if (item.ExpenseLineAmount != 0)
-                                {
-                                    if (item.ExpenseLineAmount > 0)
-                                        debitTotalAmount += item.ExpenseLineAmount;
-                                    else
-                                        creditTotalAmount += Math.Abs(item.ExpenseLineAmount);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show($"Error processing item detail: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            }
-                        }
-                    }
-
-                    textObject_CVBILLTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                    textObject_CVBILLTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
 
                 }
                 catch
@@ -1200,13 +1150,16 @@ namespace VoucherPROVER2.Clients.ENA
                 double amount = bills[0].AmountDue;
                 string amountInWords = AccessToDatabase_ENA.AmountToWordsConverter.Convert(amount);
 
+                amountInWords = "          " + amountInWords;
+                string refumber = refNumberCR;
+                string bankaccount = bills[0].BankAccount ?? "";
+
                 if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
+                if (textObject_CVBILLRefnumber != null) textObject_CVBILLRefnumber.Text = refumber;
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
-                if (textObject_CVBILLCheckDate2 != null) textObject_CVBILLCheckDate2.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
-                if (textObject_CVBILLPayee2 != null) textObject_CVBILLPayee2.Text = bills[0].PayeeFullName ?? "";
-                if (textObject_CVBILLTotalAmount != null) textObject_CVBILLTotalAmount.Text = bills[0].AmountDue.ToString("N2");
+                if (textObject_CVBILLBankAccount != null) textObject_CVBILLBankAccount.Text = bankaccount;
 
                 SubreportObject subreportObject = null;
                 try
@@ -1233,28 +1186,10 @@ namespace VoucherPROVER2.Clients.ENA
                     try
                     {
                         TextObject textObject_BILLSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
-                        TextObject textObject_BILLCVSubCheckDate = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckDate"] as TextObject;
                         TextObject textObject_BILLCVSubTotal = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSUBTotalAmount"] as TextObject;
-                        TextObject textObject_BILLCVSubCheckNumber = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckNumber"] as TextObject;
-                        TextObject textObject_BILLSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountPayable"] as TextObject;
-                        TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
-                        TextObject textObject_PaidSign = subReportDocument.ReportDefinition.ReportObjects["TextPaidSign"] as TextObject;
-                        if (textObject_PaidSign != null)
-                        {
-                            textObject_PaidSign.Text = comboBox_Currency.SelectedIndex == 1 ? "$" : "₱";
-                        }
 
                         if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].BillMemo ?? "";
-                        if (textObject_BILLCVSubCheckDate != null) textObject_BILLCVSubCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                         if (textObject_BILLCVSubTotal != null) textObject_BILLCVSubTotal.Text = bills[0].Amount.ToString("N2");
-                        if (textObject_BILLCVSubCheckNumber != null) textObject_BILLCVSubCheckNumber.Text = bills[0].RefNumber ?? "";
-                        if (textObject_BILLCVSubCheckNumber != null) textObject_BILLSubAccountPayable.Text = bills[0].BankAccount ?? "";
-                        if (textObject_BILLSubAmountPayable != null)
-                        {
-                            // Sums the AmountDue of all items in the bills list
-                            double totalAmountDue = bills.Sum(b => b.AmountDue);
-                            textObject_BILLSubAmountPayable.Text = totalAmountDue.ToString("N2");
-                        }
 
                         InsertDataToBillCompiled(refNumberCR, bills);
                     }
