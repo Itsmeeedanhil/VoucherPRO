@@ -813,6 +813,8 @@ namespace VoucherPROVER2.Clients.ENA
                                 panel_Main.Visible = false;
                                 panel_Main_CR.Visible = true;
 
+                             
+
                                 reportViewer.ReportSource = cRJV_ENA;
                                 reportViewer.RefreshReport();
                             }
