@@ -95,10 +95,10 @@ namespace VoucherPROVER2.Clients.ENA
                 e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(135 - minusX, 110 - minusY));
 
                 // Date
-                e.Graphics.DrawString(formattedDate, payeeFont, Brushes.Black, new PointF(605 - minusX, 79 - minusY));
+                e.Graphics.DrawString(formattedDate, payeeFont, Brushes.Black, new PointF(600 - minusX, 79 - minusY)); //605 x coordinate is for the date on the check
 
                 // Amount (Number)
-                e.Graphics.DrawString(amount.ToString("N2"), payeeFont, Brushes.Black, new PointF(635 - minusX, 114 - minusY));
+                e.Graphics.DrawString(amount.ToString("N2"), payeeFont, Brushes.Black, new PointF(635 - minusX, 107 - minusY));
 
                 // Amount (Words)
                 e.Graphics.DrawString(amountInWords, payeeFont2, Brushes.Black, new PointF(95 - minusX, 145 - minusY));
