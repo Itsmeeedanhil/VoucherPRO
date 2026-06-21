@@ -677,8 +677,10 @@ namespace VoucherPROVER2.Clients.ENA
                                     string bank = cvData[0].BankAccount;
 
                                     textObject_CVRefNumber.Text = textBox_SeriesNumber.Text;
-                                    textObject_CVRefNumber2.Text = refNumberCR;
-                                    
+                                    textObject_CVRefNumber2.Text = refNumberCR.Contains("/")
+                                        ? refNumberCR.Split('/').Last()
+                                        : refNumberCR;
+
                                     textObject_CVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                                     textObject_CVPayee.Text = cvData[0].PayeeFullName;
 
@@ -1153,7 +1155,7 @@ namespace VoucherPROVER2.Clients.ENA
                 string amountInWords = AccessToDatabase_ENA.AmountToWordsConverter.Convert(amount);
 
                 amountInWords = "          " + amountInWords;
-                string refumber = refNumberCR;
+                string refumber = refNumberCR.Contains("/") ? refNumberCR.Split('/').Last() : refNumberCR;
                 string bankaccount = bills[0].BankAccount ?? "";
 
                 if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
@@ -2276,7 +2278,7 @@ namespace VoucherPROVER2.Clients.ENA
             if (accessToDatabase == null) accessToDatabase = new AccessToDatabase_ENA();
 
             // Format with a hyphen and 5 digits (e.g., CV-00001)
-            textBox_SeriesNumber.Text = $"{formPrefix}-{seriesNumber:00000}";
+            textBox_SeriesNumber.Text = $"#{seriesNumber:00000}";
         }
     }
 }
