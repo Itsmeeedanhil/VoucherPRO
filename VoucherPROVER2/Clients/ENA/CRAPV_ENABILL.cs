@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace VoucherPROVER2.Clients.MPM {
+namespace VoucherPROVER2.Clients.ENA {
     using System;
     using System.ComponentModel;
     using CrystalDecisions.Shared;
@@ -16,14 +16,14 @@ namespace VoucherPROVER2.Clients.MPM {
     using CrystalDecisions.CrystalReports.Engine;
     
     
-    public class CRCV_ENA : ReportClass {
+    public class CRAPV_ENABILL : ReportClass {
         
-        public CRCV_ENA() {
+        public CRAPV_ENABILL() {
         }
         
         public override string ResourceName {
             get {
-                return "CRCV_ENA.rpt";
+                return "CRAPV_ENABILL.rpt";
             }
             set {
                 // Do nothing
@@ -41,7 +41,7 @@ namespace VoucherPROVER2.Clients.MPM {
         
         public override string FullResourceName {
             get {
-                return "VoucherPROVER2.Clients.MPM.CRCV_ENA.rpt";
+                return "VoucherPROVER2.Clients.ENA.CRAPV_ENABILL.rpt";
             }
             set {
                 // Do nothing
@@ -114,9 +114,9 @@ namespace VoucherPROVER2.Clients.MPM {
     }
     
     [System.Drawing.ToolboxBitmapAttribute(typeof(CrystalDecisions.Shared.ExportOptions), "report.bmp")]
-    public class CachedCRCV_ENA : Component, ICachedReport {
+    public class CachedCRAPV_ENABILL : Component, ICachedReport {
         
-        public CachedCRCV_ENA() {
+        public CachedCRAPV_ENABILL() {
         }
         
         [Browsable(false)]
@@ -153,7 +153,7 @@ namespace VoucherPROVER2.Clients.MPM {
         }
         
         public virtual CrystalDecisions.CrystalReports.Engine.ReportDocument CreateReport() {
-            CRCV_ENA rpt = new CRCV_ENA();
+            CRAPV_ENABILL rpt = new CRAPV_ENABILL();
             rpt.Site = this.Site;
             return rpt;
         }

@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using VoucherPROVER2.Clients.ENA;
 using VoucherPROVER2.Clients.IVP;
-using VoucherPROVER2.Clients.MPM;
 using VoucherPROVER2.Clients.OWI;
 
 namespace VoucherPROVER2

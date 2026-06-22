@@ -15,7 +15,7 @@ using CrystalDecisions.ReportAppServer;
 using static VoucherPROVER2.Clients.ENA.Dataclass_ENA;
 using System.IO;
 using System.Data.OleDb;
-using VoucherPROVER2.Clients.MPM;
+using VoucherPROVER2.Clients.ENA;
 
 
 namespace VoucherPROVER2.Clients.ENA
@@ -663,7 +663,7 @@ namespace VoucherPROVER2.Clients.ENA
                                     TextObject textObject_CheckedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
                                     TextObject textObject_ApprovedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
                                     TextObject textObject_ApprovedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
-                                    TextObject textObject_ReceivedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+                                    //TextObject textObject_ReceivedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
                                     //TextObject textObject_ReceivedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
 
                                     TextObject textObject_CVAmountinWords = cRCV_ENA.ReportDefinition.ReportObjects["TextCVAmountInWords"] as TextObject;
@@ -695,7 +695,7 @@ namespace VoucherPROVER2.Clients.ENA
                                     textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
                                     textObject_ApprovedBy.Text = signatories.ApprovedByName;
                                     textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
-                                    textObject_ReceivedBy.Text = signatories.ReceivedByName;
+                                    //textObject_ReceivedBy.Text = signatories.ReceivedByName;
                                     //textObject_ReceivedByPos.Text = signatories.ReceivedByPosition;
 
                                     textObject_CVAmountinWords.Text = "          " + amountInWords;
@@ -1110,7 +1110,7 @@ namespace VoucherPROVER2.Clients.ENA
                 TextObject textObject_CheckedByPos = null;
                 TextObject textObject_ApprovedBy = null;
                 TextObject textObject_ApprovedByPos = null;
-                TextObject textObject_ReceivedBy = null;
+                //TextObject textObject_ReceivedBy = null;
 
                 try
                 {
@@ -1129,7 +1129,7 @@ namespace VoucherPROVER2.Clients.ENA
                     textObject_CheckedByPos = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
                     textObject_ApprovedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
                     textObject_ApprovedByPos = cRCV_ENABILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
-                    textObject_ReceivedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+                    //textObject_ReceivedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
 
                     AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
 
@@ -1146,7 +1146,7 @@ namespace VoucherPROVER2.Clients.ENA
                     textObject_CheckedByPos.Text = ReviewedByPosition;
                     textObject_ApprovedBy.Text = ApprovedByName;
                     textObject_ApprovedByPos.Text = ApprovedByPosition;
-                    textObject_ReceivedBy.Text = ReceivedByName;
+                    //textObject_ReceivedBy.Text = ReceivedByName;
 
 
                 }
@@ -2285,7 +2285,7 @@ namespace VoucherPROVER2.Clients.ENA
             if (accessToDatabase == null) accessToDatabase = new AccessToDatabase_ENA();
 
             // Format with a hyphen and 5 digits (e.g., CV-00001)
-            textBox_SeriesNumber.Text = $"#{seriesNumber:00000}";
+            textBox_SeriesNumber.Text = $"{seriesNumber:00000}";
         }
     }
 }

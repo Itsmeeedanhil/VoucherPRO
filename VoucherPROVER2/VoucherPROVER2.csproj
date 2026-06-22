@@ -94,40 +94,40 @@
     </Compile>
     <Compile Include="Clients\IVP\Dataclass_IVP.cs" />
     <Compile Include="Clients\IVP\Layouts_IVP.cs" />
-    <Compile Include="Clients\MPM\AccessQueries_ENA.cs" />
-    <Compile Include="Clients\MPM\AccessToDatabase_ENA.cs" />
-    <Compile Include="Clients\MPM\CRAPV_ENABILL.cs">
+    <Compile Include="Clients\ENA\AccessQueries_ENA.cs" />
+    <Compile Include="Clients\ENA\AccessToDatabase_ENA.cs" />
+    <Compile Include="Clients\ENA\CRAPV_ENABILL.cs">
       <DependentUpon>CRAPV_ENABILL.rpt</DependentUpon>
       <AutoGen>True</AutoGen>
       <SubType>Component</SubType>
       <DesignTime>True</DesignTime>
     </Compile>
-    <Compile Include="Clients\MPM\CRCV_ENA.cs">
+    <Compile Include="Clients\ENA\CRCV_ENA.cs">
       <DependentUpon>CRCV_ENA.rpt</DependentUpon>
       <AutoGen>True</AutoGen>
       <SubType>Component</SubType>
       <DesignTime>True</DesignTime>
     </Compile>
-    <Compile Include="Clients\MPM\CRCV_ENABILL.cs">
+    <Compile Include="Clients\ENA\CRCV_ENABILL.cs">
       <DependentUpon>CRCV_ENABILL.rpt</DependentUpon>
       <AutoGen>True</AutoGen>
       <SubType>Component</SubType>
       <DesignTime>True</DesignTime>
     </Compile>
-    <Compile Include="Clients\MPM\CRJV_ENA.cs">
+    <Compile Include="Clients\ENA\CRJV_ENA.cs">
       <DependentUpon>CRJV_ENA.rpt</DependentUpon>
       <AutoGen>True</AutoGen>
       <SubType>Component</SubType>
       <DesignTime>True</DesignTime>
     </Compile>
-    <Compile Include="Clients\MPM\Dashboard_ENA.cs">
+    <Compile Include="Clients\ENA\Dashboard_ENA.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Clients\MPM\Dashboard_ENA.Designer.cs">
+    <Compile Include="Clients\ENA\Dashboard_ENA.Designer.cs">
       <DependentUpon>Dashboard_ENA.cs</DependentUpon>
     </Compile>
-    <Compile Include="Clients\MPM\Dataclass_ENA.cs" />
-    <Compile Include="Clients\MPM\Layouts_ENA.cs" />
+    <Compile Include="Clients\ENA\Dataclass_ENA.cs" />
+    <Compile Include="Clients\ENA\Layouts_ENA.cs" />
     <Compile Include="Clients\OWI\AccessQueries_OWI.cs" />
     <Compile Include="Clients\OWI\AccessToDatabase_OWI.cs" />
     <Compile Include="Clients\OWI\CRAPV_OWIBILL.cs">
@@ -190,23 +190,23 @@
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRJV_IVP.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Clients\MPM\CRAPV_ENABILL.rpt">
+    <EmbeddedResource Include="Clients\ENA\CRAPV_ENABILL.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRAPV_ENABILL.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Clients\MPM\CRCV_ENA.rpt">
+    <EmbeddedResource Include="Clients\ENA\CRCV_ENA.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRCV_ENA.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Clients\MPM\CRCV_ENABILL.rpt">
+    <EmbeddedResource Include="Clients\ENA\CRCV_ENABILL.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRCV_ENABILL.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Clients\MPM\CRJV_ENA.rpt">
+    <EmbeddedResource Include="Clients\ENA\CRJV_ENA.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRJV_ENA.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Clients\MPM\Dashboard_ENA.resx">
+    <EmbeddedResource Include="Clients\ENA\Dashboard_ENA.resx">
       <DependentUpon>Dashboard_ENA.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Clients\OWI\CRAPV_OWIBILL.rpt">
