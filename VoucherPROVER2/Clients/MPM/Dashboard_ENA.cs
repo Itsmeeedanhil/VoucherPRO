@@ -674,11 +674,16 @@ namespace VoucherPROVER2.Clients.ENA
 
                                     double amount = cvData[0].TotalAmount;
                                     string amountInWords = AccessToDatabase_ENA.AmountToWordsConverter.Convert(amount);
-                                    string bank = cvData[0].BankAccount;
+                                    string rawBank = cvData[0].BankAccount ?? "";
+
+                                    // 2. Extract only the part after the ':'
+                                    string bank = rawBank.Contains(":")
+                                        ? rawBank.Split(':').Last().Trim()
+                                        : rawBank;
 
                                     textObject_CVRefNumber.Text = textBox_SeriesNumber.Text;
                                     textObject_CVRefNumber2.Text = refNumberCR.Contains("/")
-                                        ? refNumberCR.Split('/').Last()
+                                        ? refNumberCR.Split('/').First()
                                         : refNumberCR;
 
                                     textObject_CVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
@@ -1155,8 +1160,10 @@ namespace VoucherPROVER2.Clients.ENA
                 string amountInWords = AccessToDatabase_ENA.AmountToWordsConverter.Convert(amount);
 
                 amountInWords = "          " + amountInWords;
-                string refumber = refNumberCR.Contains("/") ? refNumberCR.Split('/').Last() : refNumberCR;
-                string bankaccount = bills[0].BankAccount ?? "";
+                string refumber = refNumberCR.Contains("/") ? refNumberCR.Split('/').First() : refNumberCR;
+                string bankaccount = (bills[0].BankAccount ?? "").Contains(":")
+                                    ? (bills[0].BankAccount ?? "").Split(':').Last().Trim()
+                                    : (bills[0].BankAccount ?? "");
 
                 if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
                 if (textObject_CVBILLRefnumber != null) textObject_CVBILLRefnumber.Text = refumber;
