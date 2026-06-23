@@ -15,7 +15,7 @@ namespace VoucherPROVER2
 {
     public class GlobalVariables
     {
-        public static string client = "ENA";
+        public static string client = "IVP";
         public static bool includeImage = true;
         public static bool includeItemReceipt = true;
         public static bool testWithoutData = true;

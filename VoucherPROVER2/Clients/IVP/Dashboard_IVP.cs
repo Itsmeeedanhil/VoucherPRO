@@ -365,10 +365,20 @@ namespace VoucherPROVER2.Clients.IVP
                                     accessToDatabase.UpdateManualSeriesNumber(formType, seriesNumber, selectedCompany);
 
                                     // 3. Update the TextBox display to show the NEXT number (CV-00002)
-                                    this.BeginInvoke((MethodInvoker)delegate
+                                    // 3. Update the TextBox display to show the NEXT number (CV-00002) safely
+                                    if (this.IsHandleCreated && !this.IsDisposed)
                                     {
+                                        this.BeginInvoke((MethodInvoker)delegate
+                                        {
+                                            UpdateSeriesNumberIVP(formType);
+                                        });
+                                    }
+                                    else
+                                    {
+                                        // Fallback: If the handle isn't fully ready yet, update directly 
+                                        // since we're already on the initialization thread.
                                         UpdateSeriesNumberIVP(formType);
-                                    });
+                                    }
                                 }
                             }
 
