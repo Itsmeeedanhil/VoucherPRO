@@ -666,6 +666,12 @@ namespace VoucherPROVER2.Clients.ENA
                                     //TextObject textObject_ReceivedBy = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
                                     //TextObject textObject_ReceivedByPos = cRCV_ENA.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
 
+                                    TextObject textObject_CompanyName = cRCV_ENA.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+                                    if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                                    {
+                                        textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
+                                    }
+
                                     TextObject textObject_CVAmountinWords = cRCV_ENA.ReportDefinition.ReportObjects["TextCVAmountInWords"] as TextObject;
                                     TextObject textObject_CVBankAccount = cRCV_ENA.ReportDefinition.ReportObjects["TextCVBankAccount"] as TextObject;
 
@@ -686,7 +692,7 @@ namespace VoucherPROVER2.Clients.ENA
                                         ? refNumberCR.Split('/').First()
                                         : refNumberCR;
 
-                                    textObject_CVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                                    textObject_CVCheckDate.Text = cvData[0].DueDate.ToString("MMMM dd, yyyy");
                                     textObject_CVPayee.Text = cvData[0].PayeeFullName;
 
                                     textObject_PreparedBy.Text = signatories.PreparedByName;
@@ -1105,12 +1111,15 @@ namespace VoucherPROVER2.Clients.ENA
                 TextObject textObject_CVBILLPayee = null;
                 TextObject textObject_CVBILLRefnumber = null;
                 TextObject textObject_PreparedBy = null;
+                TextObject textObject_CompanyName = null;
                 TextObject textObject_PreparedByPos = null;
                 TextObject textObject_CheckedBy = null;
                 TextObject textObject_CheckedByPos = null;
                 TextObject textObject_ApprovedBy = null;
                 TextObject textObject_ApprovedByPos = null;
                 //TextObject textObject_ReceivedBy = null;
+
+                
 
                 try
                 {
@@ -1130,6 +1139,15 @@ namespace VoucherPROVER2.Clients.ENA
                     textObject_ApprovedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
                     textObject_ApprovedByPos = cRCV_ENABILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
                     //textObject_ReceivedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+
+
+                    textObject_CompanyName = cRCV_ENABILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+
+                    if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                    {
+                        textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
+                    }
+
 
                     AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
 
@@ -1168,7 +1186,7 @@ namespace VoucherPROVER2.Clients.ENA
                 if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
                 if (textObject_CVBILLRefnumber != null) textObject_CVBILLRefnumber.Text = refumber;
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
-                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
                 if (textObject_CVBILLBankAccount != null) textObject_CVBILLBankAccount.Text = bankaccount;
 
