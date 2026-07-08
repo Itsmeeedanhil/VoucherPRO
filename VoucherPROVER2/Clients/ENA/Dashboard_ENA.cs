@@ -687,9 +687,11 @@ namespace VoucherPROVER2.Clients.ENA
                                         ? rawBank.Split(':').Last().Trim()
                                         : rawBank;
 
-                                    textObject_CVRefNumber.Text = textBox_SeriesNumber.Text;
-                                    textObject_CVRefNumber2.Text = refNumberCR.Contains("/")
+                                    textObject_CVRefNumber.Text = refNumberCR.Contains("/")
                                         ? refNumberCR.Split('/').First()
+                                        : refNumberCR;
+                                    textObject_CVRefNumber2.Text = refNumberCR.Contains("/")
+                                        ? refNumberCR.Split('/').Last()
                                         : refNumberCR;
 
                                     textObject_CVCheckDate.Text = cvData[0].DueDate.ToString("MMMM dd, yyyy");
@@ -1179,12 +1181,13 @@ namespace VoucherPROVER2.Clients.ENA
 
                 amountInWords = "          " + amountInWords;
                 string refumber = refNumberCR.Contains("/") ? refNumberCR.Split('/').First() : refNumberCR;
+                string refumber2 = refNumberCR.Contains("/") ? refNumberCR.Split('/').Last() : refNumberCR;
                 string bankaccount = (bills[0].BankAccount ?? "").Contains(":")
                                     ? (bills[0].BankAccount ?? "").Split(':').Last().Trim()
                                     : (bills[0].BankAccount ?? "");
 
-                if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
-                if (textObject_CVBILLRefnumber != null) textObject_CVBILLRefnumber.Text = refumber;
+                if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = refumber;
+                if (textObject_CVBILLRefnumber != null) textObject_CVBILLRefnumber.Text = refumber2;
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
@@ -2179,7 +2182,7 @@ namespace VoucherPROVER2.Clients.ENA
                 {
                     case 1: // Check Voucher
                         prefix = "CV";
-                        panel_SeriesNumber.Visible = true;
+                        panel_SeriesNumber.Visible = false;
                         panel_RefNumber.Visible = false;
                         panel_RefNumberCrystalReport.Visible = true;
                         panel_Signatory.Visible = true;
