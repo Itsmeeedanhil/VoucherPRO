@@ -761,6 +761,31 @@ namespace VoucherPROVER2.Clients.ENA
 
                             if (journal != null && journal.Count > 0)
                             {
+                                // =================================================================
+                                // FIX: Capture your original Memo text BEFORE padding the list
+                                // =================================================================
+                                string Memo = "                         " + journal[journal.Count - 1].Memo;
+                                // =================================================================
+
+                                // =================================================================
+                                // DYNAMIC DATA PADDING (Ensures at least 5 rows are sent to report)
+                                // =================================================================
+                                var journalLineType = journal[0].GetType();
+
+                                while (journal.Count < 8)
+                                {
+                                    var emptyLine = Activator.CreateInstance(journalLineType);
+
+                                    // Explicitly set blank/zero values to avoid NullReferenceExceptions in Crystal
+                                    try { journalLineType.GetProperty("Particulars")?.SetValue(emptyLine, ""); } catch { }
+                                    try { journalLineType.GetProperty("Debit")?.SetValue(emptyLine, 0.0); } catch { }
+                                    try { journalLineType.GetProperty("Credit")?.SetValue(emptyLine, 0.0); } catch { }
+                                    try { journalLineType.GetProperty("Memo")?.SetValue(emptyLine, ""); } catch { }
+
+                                    journal.Add((dynamic)emptyLine);
+                                }
+                                // =================================================================
+
                                 // 2. Set Header Text Objects
                                 TextObject textObject_JVCheckDate = cRJV_ENA.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
                                 TextObject textObject_JVRefnumber = cRJV_ENA.ReportDefinition.ReportObjects["TextJVRefnumber"] as TextObject;
@@ -774,7 +799,6 @@ namespace VoucherPROVER2.Clients.ENA
                                     textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                                 }
 
-
                                 TextObject textObject_PreparedBy = cRJV_ENA.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
                                 TextObject textObject_PreparedByPos = cRJV_ENA.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
                                 TextObject textObject_CheckedBy = cRJV_ENA.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
@@ -782,9 +806,8 @@ namespace VoucherPROVER2.Clients.ENA
                                 TextObject textObject_ApprovedBy = cRJV_ENA.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
                                 TextObject textObject_ApprovedByPos = cRJV_ENA.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
 
-                                if (textObject_JVCheckDate != null) textObject_JVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                                if (textObject_JVCheckDate != null) textObject_JVCheckDate.Text = journal[0].Date.ToString("MMMM dd, yyyy");
 
-                                string Memo = "                   " + journal[journal.Count - 1].Memo;
                                 string Refnumber = refNumberCR;
                                 double debitTotalAmount = 0;
                                 double creditTotalAmount = 0;
@@ -799,10 +822,8 @@ namespace VoucherPROVER2.Clients.ENA
                                 if (textObject_JVMemo != null) textObject_JVMemo.Text = Memo.ToString();
                                 if (textObject_JVRefnumber != null) textObject_JVRefnumber.Text = refNumberCR.ToString();
 
-
                                 AccessToDatabase_ENA accessToDatabase = new AccessToDatabase_ENA();
                                 var signatories = accessToDatabase.RetrieveAllSignatoryData();
-
 
                                 textObject_PreparedBy.Text = signatories.PreparedByName;
                                 textObject_PreparedByPos.Text = signatories.PreparedByPosition;
@@ -827,8 +848,6 @@ namespace VoucherPROVER2.Clients.ENA
                                 panel_Signatory.Visible = true;
                                 panel_Main.Visible = false;
                                 panel_Main_CR.Visible = true;
-
-                             
 
                                 reportViewer.ReportSource = cRJV_ENA;
                                 reportViewer.RefreshReport();
