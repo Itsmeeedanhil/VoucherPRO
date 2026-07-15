@@ -160,7 +160,7 @@ namespace VoucherPROVER2.Clients.ENA
                 "TCHEF FOOD CORPORATION",
                 "ANTARTICA COLD STORAGE INC.",
                 "FINANCIAL SERVICES GROUP",
-                "FAR EASTERN LOGISTICS AND CUSTOM BROKERAGE",
+                "FAR EASTERN LOGISTICS",
                 "ENASIA - NAVOTAS COLD STORAGE",
                 "ENASIA - SINKING FUND",
                 "PURA VIDA RESORT CORPORATION",
