@@ -220,7 +220,7 @@ namespace VoucherPROVER2.Clients.ENA
                         TermsRefFullName = bill.TermsRef?.FullName?.GetValue() ?? "",
                         APAccountRefFullName = bill.APAccountRef?.FullName?.GetValue() ?? "",
                         RefNumber = bill.RefNumber?.GetValue() ?? "",
-                        Memo = bill.Memo?.GetValue() ?? "",
+                        Memo = Truncate(bill.Memo?.GetValue() ?? "", 500),
                         AmountDue = bill.AmountDue?.GetValue() ?? 0,
                         IsPaid = bill.IsPaid?.GetValue() ?? false,
 
@@ -249,7 +249,7 @@ namespace VoucherPROVER2.Clients.ENA
                                 ExpenseLineAmount = exp.Amount?.GetValue() ?? 0,
                                 ExpenseLineClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
                                 ExpenseLineCustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
-                                ExpenseLineMemo = exp.Memo?.GetValue() ?? ""
+                                ExpenseLineMemo = Truncate(exp.Memo?.GetValue() ?? "", 500)
                             });
                         }
                     }
@@ -714,7 +714,7 @@ namespace VoucherPROVER2.Clients.ENA
                                     var line = orLine.JournalDebitLine;
                                     item.AccountName = line.AccountRef?.FullName?.GetValue() ?? "";
                                     item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
-                                    item.Memo = line.Memo?.GetValue() ?? "";
+                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 255);
                                     item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
                                     item.Debit = line.Amount?.GetValue() ?? 0;
                                     item.Credit = 0;
@@ -724,7 +724,7 @@ namespace VoucherPROVER2.Clients.ENA
                                     var line = orLine.JournalCreditLine;
                                     item.AccountName = line.AccountRef?.FullName?.GetValue() ?? "";
                                     item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
-                                    item.Memo = line.Memo?.GetValue() ?? "";
+                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 500);
                                     item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
                                     item.Debit = 0;
                                     item.Credit = line.Amount?.GetValue() ?? 0;
@@ -846,6 +846,13 @@ namespace VoucherPROVER2.Clients.ENA
             }
 
             return incrementalID;
+        }
+
+
+        private string Truncate(string value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            return value.Length <= maxLength ? value : value.Substring(0, maxLength);
         }
 
 

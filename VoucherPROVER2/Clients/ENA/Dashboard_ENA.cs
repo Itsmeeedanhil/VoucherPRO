@@ -718,7 +718,7 @@ namespace VoucherPROVER2.Clients.ENA
                                         
 
                                         
-                                        textObject_Remarks.Text = cvData[0].Memo;
+                                        textObject_Remarks.Text = SafeTruncate(cvData[0].Memo, 500);
                                         textObject_CVSubTotal.Text = cvData[0].TotalAmount.ToString("N2");
 
                                         InsertDataToCheckVoucherCompiledENA(refNumberCR, cvData);
@@ -1275,6 +1275,13 @@ namespace VoucherPROVER2.Clients.ENA
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
 
+            // Local helper function to safely truncate text to database limits
+            string SafeTruncate(string value, int maxLength)
+            {
+                if (string.IsNullOrEmpty(value)) return "";
+                return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+            }
+
             using (OleDbConnection connection = new OleDbConnection(connectionString))
             {
                 connection.Open();
@@ -1297,26 +1304,25 @@ namespace VoucherPROVER2.Clients.ENA
 
                 // 2. Prepare Insert Query
                 string insertQuery = @"
-                        INSERT INTO CheckVoucherCompiled 
-                        (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-                        VALUES 
-                        (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+                INSERT INTO CheckVoucherCompiled 
+                (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+                VALUES 
+                (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
 
                 foreach (var check in checkData)
                 {
                     try
                     {
-                        // COMMON FIELDS
-                        string memoValue = string.IsNullOrEmpty(check.ExpensesMemo) ? "" : check.ExpensesMemo;
-                        string customerJob = string.IsNullOrEmpty(check.ExpensesCustomerJob) ? "" : check.ExpensesCustomerJob;
+                        // COMMON FIELDS (Safely Truncate @Memo and @CustomerJob to 255 chars)
+                        string memoValue = SafeTruncate(check.ExpensesMemo, 255);
+                        string customerJob = SafeTruncate(check.ExpensesCustomerJob, 255);
 
                         // ---------------------------------------------------------
                         // FIXED SECTION: INSERT ITEM ENTRY
-                        // Changed 'check.ItemName' to 'check.Item'
                         // ---------------------------------------------------------
                         if (!string.IsNullOrEmpty(check.Item))
                         {
-                            string itemName = check.Item; // FIXED: use check.Item
+                            string itemName = SafeTruncate(check.Item, 255); // Safe truncate for Particulars
                             string itemClass = check.ItemClass;
                             double itemAmount = check.ItemAmount;
 
@@ -1342,19 +1348,11 @@ namespace VoucherPROVER2.Clients.ENA
 
                         // ---------------------------------------------------------
                         // FIXED SECTION: INSERT EXPENSE ENTRY
-                        // Changed 'check.AccountNameCheck' to 'check.Account'
                         // ---------------------------------------------------------
                         if (!string.IsNullOrEmpty(check.Account))
                         {
-                            // Note: check.AccountNumber might also be empty if you didn't assign it in the retrieval function.
-                            // If check.AccountNumber is null, this line might look like " - Utilities". 
-                            // You might want to just use check.Account if you don't have numbers.
-                            string expenseName = check.Account;
-
-                            // If you have account numbers populated, use this format instead:
-                            // string expenseName = check.AccountNumber + " - " + check.Account;
-
-                            string expenseClass = check.ExpenseClass; // Ensure this property name matches too (ExpenseClass vs AccountClassCheck)
+                            string expenseName = SafeTruncate(check.Account, 255); // Safe truncate for Particulars
+                            string expenseClass = check.ExpenseClass;
                             double expenseAmount = check.ExpensesAmount;
 
                             string debit = expenseAmount > 0 ? expenseAmount.ToString("N2") : "";
@@ -1376,13 +1374,17 @@ namespace VoucherPROVER2.Clients.ENA
                                 command.ExecuteNonQuery();
                             }
                         }
+
+                        // ---------------------------------------------------------
+                        // DESCRIPTION ONLY FALLBACK ENTRY
+                        // ---------------------------------------------------------
                         if (string.IsNullOrEmpty(check.Item) && string.IsNullOrEmpty(check.Account) && !string.IsNullOrEmpty(check.ItemDescription))
                         {
                             using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                             {
                                 command.Parameters.AddWithValue("@RefNumber", refNumber);
-                                // We use the Description field here since Item/Account are blank
-                                command.Parameters.AddWithValue("@Particulars", check.ItemDescription);
+                                // Safe truncate the ItemDescription so it fits in the Particulars database column
+                                command.Parameters.AddWithValue("@Particulars", SafeTruncate(check.ItemDescription, 255));
                                 command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
                                 command.Parameters.AddWithValue("@Debit", "");
                                 command.Parameters.AddWithValue("@Credit", "");
@@ -1395,6 +1397,7 @@ namespace VoucherPROVER2.Clients.ENA
                     }
                     catch (Exception ex)
                     {
+                        // This is where your error box was spawning
                         MessageBox.Show($"Error processing check data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
@@ -1411,6 +1414,13 @@ namespace VoucherPROVER2.Clients.ENA
 
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
+
+            // Local helper function to safely truncate text to database limits
+            string SafeTruncate(string value, int maxLength)
+            {
+                if (string.IsNullOrEmpty(value)) return "";
+                return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+            }
 
             using (OleDbConnection connection = new OleDbConnection(connectionString))
             {
@@ -1432,23 +1442,21 @@ namespace VoucherPROVER2.Clients.ENA
                 }
 
                 // 2. Prepare Insert Query
-                // ADDED: [Name] column and @Name placeholder
                 string insertQuery = @"
-                            INSERT INTO JV_Compiled 
-                            (RefNumber, [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
-                            VALUES 
-                            (@RefNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
+                    INSERT INTO JV_Compiled 
+                    (RefNumber, [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
+                    VALUES 
+                    (@RefNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
 
                 foreach (var line in journalData)
                 {
                     try
                     {
-                        // MAPPING VARIABLES
-                        string particulars = string.IsNullOrEmpty(line.AccountName) ? "" : line.AccountName;
+                        // MAPPING VARIABLES (With Safe Truncation to prevent DB overflow)
+                        string particulars = SafeTruncate(line.AccountName, 255);
                         string className = line.Class;
-                        // ADDED: Name mapping (Ensuring it handles nulls)
-                        string nameValue = string.IsNullOrEmpty(line.Name) ? "" : line.Name;
-                        string memoValue = string.IsNullOrEmpty(line.Memo) ? "" : line.Memo;
+                        string nameValue = SafeTruncate(line.Name, 255);
+                        string memoValue = SafeTruncate(line.Memo, 255); // Change 255 to 500 if the database column is 'Long Text/Memo'
 
                         string debitStr = "";
                         string creditStr = "";
@@ -1477,7 +1485,7 @@ namespace VoucherPROVER2.Clients.ENA
                             // Handle Class nulls
                             command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(className) ? (object)DBNull.Value : className);
 
-                            // ADDED: Name Parameter
+                            // Name Parameter
                             command.Parameters.AddWithValue("@Name", string.IsNullOrEmpty(nameValue) ? (object)DBNull.Value : nameValue);
 
                             // Insert separated Debit and Credit strings
@@ -2326,6 +2334,12 @@ namespace VoucherPROVER2.Clients.ENA
 
             // Format with a hyphen and 5 digits (e.g., CV-00001)
             textBox_SeriesNumber.Text = $"{seriesNumber:00000}";
+        }
+
+        private string SafeTruncate(string value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value)) return value;
+            return value.Length > maxLength ? value.Substring(0, maxLength) : value;
         }
     }
 }
