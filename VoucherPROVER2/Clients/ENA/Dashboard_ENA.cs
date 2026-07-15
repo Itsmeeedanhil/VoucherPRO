@@ -162,7 +162,7 @@ namespace VoucherPROVER2.Clients.ENA
                 "FINANCIAL SERVICES GROUP",
                 "FAR EASTERN LOGISTICS AND CUSTOM BROKERAGE",
                 "ENASIA - NAVOTAS COLD STORAGE",
-                "ENASIA - SKINKING FUND",
+                "ENASIA - SINKING FUND",
                 "PURA VIDA RESORT CORPORATION",
 
 
