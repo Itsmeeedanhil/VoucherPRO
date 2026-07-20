@@ -119,6 +119,12 @@ namespace VoucherPROVER2.Clients.INT
             public double ItemAmount { get; set; }
 
             // Properties specific to expenses
+
+            public string AddressBlockAddr1 { get; set; }
+            public string AddressBlockAddr2 { get; set; }
+            public string AddressBlockAddr3 { get; set; }
+            public string AddressBlockAddr4 { get; set; }
+            public string AddressCity { get; set; }
             public string Account { get; set; }
             public string AccountName { get; set; }
             public string AccountNameCheck { get; set; }

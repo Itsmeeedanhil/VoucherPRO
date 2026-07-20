@@ -549,6 +549,9 @@ namespace VoucherPROVER2.Clients.INT
                     string memo = check.Memo?.GetValue() ?? "";
                     string address1 = check.Address?.Addr1?.GetValue() ?? "";
                     string address2 = check.Address?.Addr2?.GetValue() ?? "";
+                    string address3 = check.Address?.Addr3?.GetValue() ?? "";
+                    string address4 = check.Address?.Addr4?.GetValue() ?? "";
+                    string addressCity = check.Address?.City?.GetValue() ?? "";
                     double totalAmount = check.Amount?.GetValue() ?? 0;
                     string currentRef = check.RefNumber?.GetValue() ?? "";
                     string duedate = check.TxnDate?.GetValue().ToString("yyyy-MM-dd") ?? "";
@@ -576,8 +579,11 @@ namespace VoucherPROVER2.Clients.INT
                                 TotalAmount = totalAmount,
                                 DueDate = txnDate,
                                 Memo = memo,
-                                Address = address1,
-                                Address2 = address2,
+                                AddressBlockAddr1 = address1,
+                                AddressBlockAddr2 = address2,
+                                AddressBlockAddr3 = address3,
+                                AddressBlockAddr4 = address4,
+                                AddressCity = addressCity,
 
                                 Account = expAccount,
                                 ExpenseClass = exp.ClassRef?.FullName?.GetValue() ?? "",
@@ -617,8 +623,11 @@ namespace VoucherPROVER2.Clients.INT
                                     TotalAmount = totalAmount,
                                     DueDate = txnDate,
                                     Memo = memo,
-                                    Address = address1,
-                                    Address2 = address2,
+                                    AddressBlockAddr1 = address1,
+                                    AddressBlockAddr2 = address2,
+                                    AddressBlockAddr3 = address3,
+                                    AddressBlockAddr4 = address4,
+                                    AddressCity = addressCity,
 
                                     Item = itemName,
                                     ItemDescription = item.Desc?.GetValue() ?? "",
