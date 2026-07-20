@@ -60,6 +60,40 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Clients\INTEGRATED\AccessQueries_INT.cs" />
+    <Compile Include="Clients\INTEGRATED\AccessToDatabase_INT.cs" />
+    <Compile Include="Clients\INTEGRATED\CRAPV_INTBILL.cs">
+      <DependentUpon>CRAPV_INTBILL.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\INTEGRATED\CRCV_INT.cs">
+      <DependentUpon>CRCV_INT.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\INTEGRATED\CRCV_INTBILL.cs">
+      <DependentUpon>CRCV_INTBILL.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\INTEGRATED\CRJV_INT.cs">
+      <DependentUpon>CRJV_INT.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\INTEGRATED\Dashboard_INT.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Clients\INTEGRATED\Dashboard_INT.Designer.cs">
+      <DependentUpon>Dashboard_INT.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Clients\INTEGRATED\Dataclass_INT.cs" />
+    <Compile Include="Clients\INTEGRATED\Layouts_ENA.cs" />
     <Compile Include="Clients\IVP\AccessQueries_IVP.cs" />
     <Compile Include="Clients\IVP\AccessToDatabase_IVP.cs" />
     <Compile Include="Clients\IVP\CRAPV_IVPBILL.cs">
@@ -174,6 +208,25 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Clients\INTEGRATED\CRAPV_INTBILL.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRAPV_INTBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\INTEGRATED\CRCV_INT.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_INT.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\INTEGRATED\CRCV_INTBILL.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_INTBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\INTEGRATED\CRJV_INT.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRJV_INT.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\INTEGRATED\Dashboard_INT.resx">
+      <DependentUpon>Dashboard_INT.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Clients\IVP\CRAPV_IVPBILL.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRAPV_IVPBILL.cs</LastGenOutput>

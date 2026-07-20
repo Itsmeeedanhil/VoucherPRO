@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using VoucherPROVER2.Clients.ENA;
+using VoucherPROVER2.Clients.INT;
 using VoucherPROVER2.Clients.IVP;
 using VoucherPROVER2.Clients.OWI;
 
@@ -15,7 +16,7 @@ namespace VoucherPROVER2
 {
     public class GlobalVariables
     {
-        public static string client = "ENA";
+        public static string client = "INT";
         public static bool includeImage = true;
         public static bool includeItemReceipt = true;
         public static bool testWithoutData = true;
@@ -63,6 +64,19 @@ namespace VoucherPROVER2
 
                 // 2. Call the method that returns the panel
                 Panel enaContent = dashboard_ENA.ContainerPanel();
+
+                // 3. Add that panel into the current panel's controls
+                panel.Controls.Add(enaContent);
+
+                return panel;
+            }
+            if (GlobalVariables.client == "INT")
+            {
+                // 1. Instantiate the specific dashboard class
+                Dashboard_INT dashboard_INT = new Dashboard_INT();
+
+                // 2. Call the method that returns the panel
+                Panel enaContent = dashboard_INT.ContainerPanel();
 
                 // 3. Add that panel into the current panel's controls
                 panel.Controls.Add(enaContent);

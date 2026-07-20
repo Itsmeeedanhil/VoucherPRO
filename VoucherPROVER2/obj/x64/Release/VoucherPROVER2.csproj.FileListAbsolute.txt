@@ -28,3 +28,4 @@ C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Rele
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.exe
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\Interop.PROMPTINGLib.dll
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.Clients.ENA.Dashboard_ENA.resources
+C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.Clients.INT.Dashboard_INT.resources
