@@ -60,6 +60,40 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Clients\DRC\AccessQueries_DRC.cs" />
+    <Compile Include="Clients\DRC\AccessToDatabase_DRC.cs" />
+    <Compile Include="Clients\DRC\CRAPV_DRCBILL.cs">
+      <DependentUpon>CRAPV_DRCBILL.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\DRC\CRCV_DRC.cs">
+      <DependentUpon>CRCV_DRC.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\DRC\CRCV_DRCBILL.cs">
+      <DependentUpon>CRCV_DRCBILL.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\DRC\CRJV_DRC.cs">
+      <DependentUpon>CRJV_DRC.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\DRC\Dashboard_DRC.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Clients\DRC\Dashboard_DRC.Designer.cs">
+      <DependentUpon>Dashboard_DRC.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Clients\DRC\Dataclass_DRC.cs" />
+    <Compile Include="Clients\DRC\Layouts_DRC.cs" />
     <Compile Include="Clients\INTEGRATED\AccessQueries_INT.cs" />
     <Compile Include="Clients\INTEGRATED\AccessToDatabase_INT.cs" />
     <Compile Include="Clients\INTEGRATED\CRAPV_INTBILL.cs">
@@ -208,6 +242,25 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Clients\DRC\CRAPV_DRCBILL.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRAPV_DRCBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\DRC\CRCV_DRC.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_DRC.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\DRC\CRCV_DRCBILL.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_DRCBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\DRC\CRJV_DRC.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRJV_DRC.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\DRC\Dashboard_DRC.resx">
+      <DependentUpon>Dashboard_DRC.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Clients\INTEGRATED\CRAPV_INTBILL.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRAPV_INTBILL.cs</LastGenOutput>

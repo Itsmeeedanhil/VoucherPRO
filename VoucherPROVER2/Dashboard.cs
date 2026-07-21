@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using VoucherPROVER2.Clients.DRC;
 using VoucherPROVER2.Clients.ENA;
 using VoucherPROVER2.Clients.INT;
 using VoucherPROVER2.Clients.IVP;
@@ -16,7 +17,7 @@ namespace VoucherPROVER2
 {
     public class GlobalVariables
     {
-        public static string client = "INT";
+        public static string client = "DRC";
         public static bool includeImage = true;
         public static bool includeItemReceipt = true;
         public static bool testWithoutData = true;
@@ -83,13 +84,26 @@ namespace VoucherPROVER2
 
                 return panel;
             }
-            if (GlobalVariables.client == "OWI")
+            if (GlobalVariables.client == "OWI") //SIR  GERALD CLIENT
             {
                 // 1. Instantiate the specific dashboard class
                 Dashboard_OWI dashboard_OWI = new Dashboard_OWI();
 
                 // 2. Call the method that returns the panel
                 Panel mpmContent = dashboard_OWI.ContainerPanel();
+
+                // 3. Add that panel into the current panel's controls
+                panel.Controls.Add(mpmContent);
+
+                return panel;
+            }
+            if (GlobalVariables.client == "DRC") // SIR GERALD CLIENT
+            {
+                // 1. Instantiate the specific dashboard class
+                Dashboard_DRC dashboard_DRC = new Dashboard_DRC();
+
+                // 2. Call the method that returns the panel
+                Panel mpmContent = dashboard_DRC.ContainerPanel();
 
                 // 3. Add that panel into the current panel's controls
                 panel.Controls.Add(mpmContent);
