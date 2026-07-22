@@ -171,10 +171,13 @@ namespace VoucherPROVER2.Clients.DRC
             public string AddrCity { get; set; }
             public string RefNumber { get; set; }
             public DateTime DateCreated { get; set; }
+            public DateTime TxnDate { get; set; }
             public string Memo { get; set; }
+            public string VendorFullName { get; set; }
             public double TotalAmount { get; set; }
             public string BankAccount { get; set; }
             public string Account { get; set; }
+            public string AccountNumber { get; set; }
             public string ExpensesMemo { get; set; }
             public string ItemDescription { get; set; }
             public string ItemClass { get; set; }

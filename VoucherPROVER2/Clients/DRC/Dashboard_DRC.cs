@@ -160,19 +160,16 @@ namespace VoucherPROVER2.Clients.DRC
 
             comboBox_Company.SelectedIndexChanged += (sender, e) =>
             {
-                // Only update if we are on CV (Index 1) or JV (Index 3)
                 string formType = "";
                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                 else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
+                else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
+                else if (comboBox_Forms.SelectedIndex == 5) formType = "IR";
 
                 if (formType != "")
                 {
                     string selectedCompany = comboBox_Company.SelectedItem.ToString();
-
-                    // Fetch the correct number for this specific company
                     seriesNumber = accessToDatabase.GetSeriesNumberFromDatabase(formType, selectedCompany);
-
-                    // Update the textbox text
                     UpdateSeriesNumberDRC(formType);
                 }
             };
@@ -297,35 +294,28 @@ namespace VoucherPROVER2.Clients.DRC
                 {
                     foreach (ToolStripItem item in toolStrip.Items)
                     {
-                        // FIX: Check if ToolTipText is not null before checking Contains
                         if (string.IsNullOrEmpty(item.ToolTipText) || !item.ToolTipText.Contains("Print"))
                         {
                             continue;
                         }
 
-                        // If we get here, we found the Print button
                         item.Click += (s, e) =>
                         {
-
                             if (GlobalVariables.client == "DRC")
                             {
                                 string formType = "";
                                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                                 else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
                                 else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
+                                else if (comboBox_Forms.SelectedIndex == 5) formType = "IR";
 
                                 string selectedCompany = comboBox_Company.SelectedItem?.ToString();
 
                                 if (!string.IsNullOrEmpty(formType) && !string.IsNullOrEmpty(selectedCompany))
                                 {
-                                    // 1. Increment the number currently in memory
                                     seriesNumber++;
-
-                                    // 2. Save the NEW number to the database automatically
                                     accessToDatabase.UpdateManualSeriesNumber(formType, seriesNumber, selectedCompany);
 
-                                    // 3. Update the TextBox display to show the NEXT number (CV-00002)
-                                    // 3. Update the TextBox display to show the NEXT number (CV-00002) safely
                                     if (this.IsHandleCreated && !this.IsDisposed)
                                     {
                                         this.BeginInvoke((MethodInvoker)delegate
@@ -335,13 +325,10 @@ namespace VoucherPROVER2.Clients.DRC
                                     }
                                     else
                                     {
-                                        // Fallback: If the handle isn't fully ready yet, update directly 
-                                        // since we're already on the initialization thread.
                                         UpdateSeriesNumberDRC(formType);
                                     }
                                 }
                             }
-
                         };
                     }
                 }
@@ -449,6 +436,7 @@ namespace VoucherPROVER2.Clients.DRC
                 "Check",
                 "Journal Voucher",
                 "Accounts Payable Voucher",
+                "Receiving Report",
 
             });
                 comboBox_Forms.SelectedIndex = 0;
@@ -509,13 +497,10 @@ namespace VoucherPROVER2.Clients.DRC
                     if (comboBox_Forms.SelectedIndex == 1) prefix = "CV";
                     else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
                     else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
+                    else if (comboBox_Forms.SelectedIndex == 5) prefix = "IR";
 
-                    UpdateSeriesNumberDRC(prefix); // Use the new 5-digit formatter
+                    UpdateSeriesNumberDRC(prefix);
                 }
-
-
-
-
             };
 
             Button button_Increment = new Button
@@ -537,7 +522,9 @@ namespace VoucherPROVER2.Clients.DRC
                     if (comboBox_Forms.SelectedIndex == 1) prefix = "CV";
                     else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
                     else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
-                    UpdateSeriesNumberDRC(prefix); // Use the new 5-digit formatter
+                    else if (comboBox_Forms.SelectedIndex == 5) prefix = "IR";
+
+                    UpdateSeriesNumberDRC(prefix);
                 }
             };
 
@@ -872,6 +859,12 @@ namespace VoucherPROVER2.Clients.DRC
                             // You can reuse GenerateBillPaymentReport_IVP or create a specific APV one:
                             GenerateAPVReport_DRC(refNumberCR);
                         }
+                        // 5. ITEM RECEIPT (IR) - NEW MODULE ENTRY
+                        else if (comboBox_Forms.SelectedIndex == 5)
+                        {
+                            string refNumberCR = textBox_ReferenceNumber_CR.Text;
+                            GenerateItemReceiptReport_DRC(refNumberCR);
+                        }
                     }
 
                 }
@@ -899,14 +892,10 @@ namespace VoucherPROVER2.Clients.DRC
                     return false;
 
                 TextObject textObject_CVBILLCheckNumber = null;
-                //TextObject textObject_CVBILLAmountInWords = null;
                 TextObject textObject_CVBILLCheckDate = null;
                 TextObject textObject_CVBILLPayee = null;
+                TextObject textObject_CVBILLTerms = null;
                 TextObject textObject_CVBILLAddress = null;
-                TextObject textObject_CVBILLTIN = null;
-                TextObject textObject_CVBILLCurrency = null;
-                TextObject textObject_CVBILLCurrate = null;
-                //TextObject textObject_CVBILLTotalAmount = null;
                 TextObject textObject_CVBILLTotalDebitAmount = null;
                 TextObject textObject_CVBILLTotalCreditAmount = null;
                 TextObject textObject_PreparedBy = null;
@@ -917,18 +906,18 @@ namespace VoucherPROVER2.Clients.DRC
                 TextObject textObject_ApprovedByPos = null;
                 TextObject textObject_ReceivedBy = null;
                 TextObject textObject_ReceivedByPos = null;
+                TextObject textObject_CVBILLBank = null;
+                TextObject textObject_CVBILLNumber = null;
+                TextObject textObject_CVBILLDate = null;
+                TextObject textObject_CVBILLDue = null;
 
                 try
                 {
                     textObject_CVBILLCheckNumber = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
-                    textObject_CVBILLAddress = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
-                    textObject_CVBILLTIN = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTIN"] as TextObject;
-                    textObject_CVBILLCurrency = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLCurrency"] as TextObject;
-                    textObject_CVBILLCurrate = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLCurrate"] as TextObject;
-                    //textObject_CVBILLAmountInWords = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLAmountInWords"] as TextObject;
                     textObject_CVBILLCheckDate = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
                     textObject_CVBILLPayee = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
-                    //textObject_CVBILLTotalAmount = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTotalAmount"] as TextObject;
+                    textObject_CVBILLAddress = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
+                    textObject_CVBILLTerms = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTerms"] as TextObject;
                     textObject_CVBILLTotalDebitAmount = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
                     textObject_CVBILLTotalCreditAmount = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
 
@@ -938,6 +927,11 @@ namespace VoucherPROVER2.Clients.DRC
                         textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                     }
 
+
+                    textObject_CVBILLBank = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLBank"] as TextObject;
+                    textObject_CVBILLNumber = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLNumber"] as TextObject;
+                    textObject_CVBILLDate = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLDate"] as TextObject;
+                    textObject_CVBILLDue = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLDue"] as TextObject;
 
 
 
@@ -1014,34 +1008,42 @@ namespace VoucherPROVER2.Clients.DRC
 
                 double amount = bills[0].AmountDue;
                 string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(amount);
-                var b = bills[0];
+
+                string rawBank = bills[0].BankAccount ?? "";
+
+                string bank = rawBank.Contains(":")
+                    ? rawBank.Split(':').Last().Trim()
+                    : rawBank;
+
+                var c = bills[0];
 
                 // Line 1: Combine Addr1, Addr2, Addr3, Addr4 into one string separated by commas
                 string streetLine = string.Join(", ", new[] {
-                     b.VendorAddressAddr1,
-                     b.VendorAddressAddr2,
-                     b.VendorAddressAddr3,
-                     b.VendorAddressAddr4
-                 }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                                                 c.VendorAddressAddr1,
+                                                 c.VendorAddressAddr2,
+                                                 c.VendorAddressAddr3,
+                                                 c.VendorAddressAddr4
+                                             }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 // Line 2: City (Add State/Zip here if you have them in your BillTable)
                 string cityLine = string.Join(" ", new[] {
-                     b.VendorAddressCity,
-                 }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                                                 c.VendorAddressCity,
+                                             }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 // Final: Join the two lines with a single NewLine
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
-                //if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
-                //if (textObject_CVBILLTotalAmount != null) textObject_CVBILLTotalAmount.Text = bills[0].AmountDue.ToString("N2");
+                if (textObject_CVBILLTerms != null) textObject_CVBILLTerms.Text = bills[0].TermsRefFullName ?? "";
 
-                if (textObject_CVBILLTIN != null) textObject_CVBILLTIN.Text = bills[0].Tin ?? "";
-                if (textObject_CVBILLCurrency != null) textObject_CVBILLCurrency.Text = bills[0].Currency ?? "";
-                if (textObject_CVBILLCurrate != null) textObject_CVBILLCurrate.Text = bills[0].Exchangerate.ToString("N2");
+
+                if (textObject_CVBILLBank != null) textObject_CVBILLBank.Text = bank;
+                if (textObject_CVBILLNumber != null) textObject_CVBILLNumber.Text = bills[0].RefNumber ?? "";
+                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy") ?? "";
+                if (textObject_CVBILLDue != null) textObject_CVBILLDue.Text = amount.ToString();
 
                 SubreportObject subreportObject = null;
                 try
@@ -1068,28 +1070,18 @@ namespace VoucherPROVER2.Clients.DRC
                     try
                     {
                         TextObject textObject_BILLSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
-                        TextObject textObject_BILLCVSubCheckDate = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckDate"] as TextObject;
-                        TextObject textObject_BILLCVSubTotal = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSUBTotalAmount"] as TextObject;
-                        TextObject textObject_BILLCVSubCheckNumber = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubCheckNumber"] as TextObject;
-                        TextObject textObject_BILLCVTERMS = subReportDocument.ReportDefinition.ReportObjects["TextCVBILLSubTerms"] as TextObject;
-                        //TextObject textObject_BILLSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountPayable"] as TextObject;
+                        TextObject textObject_BILLSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountPayable"] as TextObject;
                         TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
-                        TextObject textObject_PaidSign = subReportDocument.ReportDefinition.ReportObjects["TextPaidSign"] as TextObject;
-                        if (textObject_PaidSign != null)
-                        {
-                            textObject_PaidSign.Text = comboBox_Currency.SelectedIndex == 1 ? "$" : "₱";
-                        }
+                        TextObject textObject_BILLSubAccountCode = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountCode"] as TextObject;
+
 
                         if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].Memo ?? "";
-                        if (textObject_BILLCVTERMS != null) textObject_BILLCVTERMS.Text = bills[0].TermsRefFullName ?? "";
-                        if (textObject_BILLCVSubCheckDate != null) textObject_BILLCVSubCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
-                        if (textObject_BILLCVSubTotal != null) textObject_BILLCVSubTotal.Text = bills[0].AmountDue.ToString("N2");
-                        if (textObject_BILLCVSubCheckNumber != null) textObject_BILLCVSubCheckNumber.Text = bills[0].RefNumber ?? "";
-                        //if (textObject_BILLCVSubCheckNumber != null) textObject_BILLSubAccountPayable.Text = bills[0].BankAccount ?? "";
+                        if (textObject_BILLSubAccountPayable != null) textObject_BILLSubAccountPayable.Text = bills[0].APAccountRefFullName ?? "";
+                        if (textObject_BILLSubAccountCode != null) textObject_BILLSubAccountCode.Text = bills[0].AccountNumber ?? "";
                         if (textObject_BILLSubAmountPayable != null)
                         {
                             // Sums the AmountDue of all items in the bills list
-                            double totalAmountDue = bills.Sum(a => a.AmountDue);
+                            double totalAmountDue = bills.Sum(b => b.AmountDue);
                             textObject_BILLSubAmountPayable.Text = totalAmountDue.ToString("N2");
                         }
 
@@ -1109,6 +1101,234 @@ namespace VoucherPROVER2.Clients.DRC
                 panel_Main_CR.Visible = true;
 
                 reportViewer.ReportSource = cRAPV_DRCBILL;
+                reportViewer.RefreshReport();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"KAYAK ERROR HEHEHE:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        private bool GenerateItemReceiptReport_DRC(string refNumberCR)
+        {
+            try
+            {
+                CRIR_DRC cRIR_DRC = new CRIR_DRC();
+                string databasePathIR = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
+                SetDatabaseLocation(cRIR_DRC, databasePathIR);
+
+                AccessQueries_DRC accessQueries = new AccessQueries_DRC();
+                receipts = accessQueries.GetItemReceiptData_DRC(refNumberCR);
+
+                if (receipts == null || receipts.Count == 0)
+                    return false;
+
+                TextObject textObject_IRSeriesNumber = null;
+                TextObject textObject_IRDate = null;
+                TextObject textObject_IRVendor = null;
+                TextObject textObject_IRAddress = null;
+                TextObject textObject_IRTotalDebitAmount = null;
+                TextObject textObject_IRTotalCreditAmount = null;
+                TextObject textObject_IRBank = null;
+                TextObject textObject_IRRefnumber = null;
+                TextObject textObject_IRCheckDate = null;
+                TextObject textObject_IRDueAmount = null;
+
+                TextObject textObject_CompanyName = null;
+                TextObject textObject_PreparedBy = null;
+                TextObject textObject_PreparedByPos = null;
+                TextObject textObject_CheckedBy = null;
+                TextObject textObject_CheckedByPos = null;
+                TextObject textObject_ApprovedBy = null;
+                TextObject textObject_ApprovedByPos = null;
+                TextObject textObject_ReceivedBy = null;
+                TextObject textObject_ReceivedByPos = null;
+
+                try
+                {
+                    textObject_IRSeriesNumber = cRIR_DRC.ReportDefinition.ReportObjects["TextIRSeriesNumber"] as TextObject;
+                    textObject_IRDate = cRIR_DRC.ReportDefinition.ReportObjects["TextIRDate"] as TextObject;
+                    textObject_IRVendor = cRIR_DRC.ReportDefinition.ReportObjects["TextIRVendor"] as TextObject;
+                    textObject_IRAddress = cRIR_DRC.ReportDefinition.ReportObjects["TextIRAddress"] as TextObject;
+                    textObject_IRTotalDebitAmount = cRIR_DRC.ReportDefinition.ReportObjects["TextIRTotalDebitAmount"] as TextObject;
+                    textObject_IRTotalCreditAmount = cRIR_DRC.ReportDefinition.ReportObjects["TextIRTotalCreditAmount"] as TextObject;
+                    textObject_IRBank = cRIR_DRC.ReportDefinition.ReportObjects["TextIRBank"] as TextObject;
+                    textObject_IRRefnumber = cRIR_DRC.ReportDefinition.ReportObjects["TextIRRefnumber"] as TextObject;
+                    textObject_IRCheckDate = cRIR_DRC.ReportDefinition.ReportObjects["TextIRCheckDate"] as TextObject;
+                    textObject_IRDueAmount = cRIR_DRC.ReportDefinition.ReportObjects["TextIRDueAmoount"] as TextObject; 
+                    textObject_CompanyName = cRIR_DRC.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+                    if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                    {
+                        textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
+                    }
+
+                    textObject_PreparedBy = cRIR_DRC.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
+                    textObject_PreparedByPos = cRIR_DRC.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                    textObject_CheckedBy = cRIR_DRC.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
+                    textObject_CheckedByPos = cRIR_DRC.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                    textObject_ApprovedBy = cRIR_DRC.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                    textObject_ApprovedByPos = cRIR_DRC.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                    textObject_ReceivedBy = cRIR_DRC.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
+                    textObject_ReceivedByPos = cRIR_DRC.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
+
+                    AccessToDatabase_DRC accessToDatabase = new AccessToDatabase_DRC();
+
+                    var (PreparedByName, PreparedByPosition,
+                         ReviewedByName, ReviewedByPosition,
+                         RecommendingApprovalName, RecommendingApprovalPosition,
+                         ApprovedByName, ApprovedByPosition,
+                         ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
+
+
+                    double debitTotalAmount = 0;
+                    double creditTotalAmount = 0;
+
+                    foreach (var receipt in receipts) // 'receipts' is List<ItemReciept>
+                    {
+                        try
+                        {
+                            double lineAmount = 0;
+
+                            // Extract amount based on line type
+                            if (receipt.ReceiptItemType == ReceiptItemType.ReceiptItem)
+                            {
+                                lineAmount = receipt.ItemAmount;
+                            }
+                            else if (receipt.ReceiptItemType == ReceiptItemType.RecieptExpense)
+                            {
+                                lineAmount = receipt.ExpensesAmount;
+                            }
+
+                            // Accumulate Debit and Credit
+                            if (lineAmount != 0)
+                            {
+                                if (lineAmount > 0)
+                                {
+                                    debitTotalAmount += lineAmount;
+                                }
+                                else
+                                {
+                                    creditTotalAmount += Math.Abs(lineAmount);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error processing item receipt detail: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+
+
+                    textObject_PreparedBy.Text = PreparedByName;
+                    textObject_PreparedByPos.Text = PreparedByPosition;
+                    textObject_CheckedBy.Text = ReviewedByName;
+                    textObject_CheckedByPos.Text = ReviewedByPosition;
+                    textObject_ApprovedBy.Text = ApprovedByName;
+                    textObject_ApprovedByPos.Text = ApprovedByPosition;
+                    textObject_ReceivedBy.Text = ReceivedByName;
+                    textObject_ReceivedByPos.Text = ReceivedByPosition;
+
+
+                    if (textObject_IRTotalDebitAmount != null) textObject_IRTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
+                    if (textObject_IRTotalCreditAmount != null) textObject_IRTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
+
+                    var firstReceipt = receipts.FirstOrDefault();
+                    if (firstReceipt != null)
+                    {
+                        // Format Multi-line Address
+                        string streetLine = string.Join(", ", new[] {
+                            firstReceipt.Addr1,
+                            firstReceipt.Addr2,
+                            firstReceipt.Addr3,
+                            firstReceipt.Addr4
+                        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                        string cityLine = firstReceipt.AddrCity ?? "";
+                        string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                        // Clean Bank / AP Account Name (Strip parent hierarchy if colon exists)
+                        string rawBank = firstReceipt.BankAccount ?? "";
+                        string bank = rawBank.Contains(":") ? rawBank.Split(':').Last().Trim() : rawBank;
+
+                        // Assign Text Objects
+                        if (textObject_IRSeriesNumber != null) textObject_IRSeriesNumber.Text = textBox_SeriesNumber.Text;
+                        if (textObject_IRDate != null) textObject_IRDate.Text = firstReceipt.TxnDate.ToString("MMMM dd, yyyy");
+                        if (textObject_IRCheckDate != null) textObject_IRCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                        if (textObject_IRVendor != null) textObject_IRVendor.Text = firstReceipt.VendorFullName ?? "";
+                        if (textObject_IRAddress != null) textObject_IRAddress.Text = fullAddress;
+                        if (textObject_IRBank != null) textObject_IRBank.Text = bank;
+                        if (textObject_IRRefnumber != null) textObject_IRRefnumber.Text = firstReceipt.RefNumber ?? "";
+                        if (textObject_IRDueAmount != null) textObject_IRDueAmount.Text = firstReceipt.TotalAmount.ToString("N2");
+                    }
+                }
+                catch
+                {
+                    throw;
+                }
+
+                // Handle Subreport
+                SubreportObject subreportObject = null;
+                try
+                {
+                    subreportObject = cRIR_DRC.ReportDefinition.ReportObjects["SubreportIRDetails"] as SubreportObject;
+                }
+                catch
+                {
+                    throw;
+                }
+
+                if (subreportObject != null)
+                {
+                    ReportDocument subReportDocument = null;
+                    try
+                    {
+                        subReportDocument = cRIR_DRC.OpenSubreport(subreportObject.SubreportName);
+                    }
+                    catch
+                    {
+                        throw;
+                    }
+
+                    try
+                    {
+                        TextObject textObject_IRSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextIRRemarks"] as TextObject;
+                        TextObject textObject_IRSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextIRSubAccountPayable"] as TextObject;
+                        TextObject textObject_IRSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextIRSubAmountPayable"] as TextObject;
+                        TextObject textObject_IRSubAccountCode = subReportDocument.ReportDefinition.ReportObjects["TextIRSubAccountCode"] as TextObject;
+
+                        if (receipts.Count > 0)
+                        {
+                            if (textObject_IRSubRemarks != null) textObject_IRSubRemarks.Text = receipts[0].Memo ?? "";
+                            if (textObject_IRSubAccountPayable != null) textObject_IRSubAccountPayable.Text = receipts[0].BankAccount ?? "";
+                            if (textObject_IRSubAccountCode != null) textObject_IRSubAccountCode.Text = receipts[0].AccountNumber ?? "";
+                            if (textObject_IRSubAmountPayable != null) textObject_IRSubAmountPayable.Text = receipts[0].TotalAmount.ToString("N2");
+                        }
+
+                        // Populate database compiled table before rendering subreport
+                        InsertDataToItemReceiptCompiled(refNumberCR, receipts);
+                    }
+                    catch
+                    {
+                        throw;
+                    }
+                }
+                else
+                {
+                    // Fallback: execute insertion even if subreport object isn't isolated by name
+                    InsertDataToItemReceiptCompiled(refNumberCR, receipts);
+                }
+
+                cRIR_DRC.SetParameterValue("ReferenceNumber", refNumberCR);
+
+                panel_Printing.Visible = false;
+                panel_Signatory.Visible = true;
+                panel_Main.Visible = false;
+                panel_Main_CR.Visible = true;
+
+                reportViewer.ReportSource = cRIR_DRC;
                 reportViewer.RefreshReport();
 
                 return true;
@@ -1351,6 +1571,106 @@ namespace VoucherPROVER2.Clients.DRC
                 return false;
             }
         }
+
+
+        public static void InsertDataToItemReceiptCompiled(string refNumber, List<ItemReciept> itemReceipts)
+        {
+            string connectionString = AccessToDatabase_DRC.GetAccessConnectionString();
+            double debitTotalAmount = 0;
+            double creditTotalAmount = 0;
+
+            using (OleDbConnection connection = new OleDbConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+
+                    // 1. Clear old data
+                    string deleteQuery = "DELETE FROM IR_Compiled";
+                    using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
+                    {
+                        deleteCommand.ExecuteNonQuery();
+                    }
+
+                    // 2. Prepare Insert Query (Replaced Amount with Debit & Credit)
+                    // Order: RefNumber, AccountNumber, Item, Description, Quantity, Cost, Debit, Credit
+                    string insertQuery = @"INSERT INTO IR_Compiled 
+                (RefNumber, [AccountNumber], [Item], [Description], [Quantity], [Cost], [Debit], [Credit]) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+                    foreach (var detail in itemReceipts)
+                    {
+                        string accountNumber = "";
+                        string particulars = "";
+                        string description = "";
+                        double quantity = 0;
+                        double cost = 0;
+                        double amount = 0;
+
+                        // Handle Item Lines vs Expense Lines
+                        if (detail.ReceiptItemType == ReceiptItemType.ReceiptItem)
+                        {
+                            accountNumber = ""; // Items usually do not have an AccountNumber
+                            particulars = detail.Item ?? "";
+                            description = detail.ItemDescription ?? "";
+                            quantity = detail.ItemQuantity;
+                            cost = detail.ItemCost;
+                            amount = detail.ItemAmount;
+                        }
+                        else if (detail.ReceiptItemType == ReceiptItemType.RecieptExpense)
+                        {
+                            accountNumber = detail.AccountNumber ?? ""; // Extract account number populated from QB
+                            particulars = detail.Account ?? "";
+                            description = detail.ExpensesMemo ?? "";
+                            quantity = 0;
+                            cost = 0;
+                            amount = detail.ExpensesAmount;
+                        }
+
+                        // Clean particulars: Extract string after colon if sub-account/sub-item format exists (e.g. "Parent:Child")
+                        if (!string.IsNullOrEmpty(particulars) && particulars.Contains(":"))
+                        {
+                            particulars = particulars.Substring(particulars.LastIndexOf(':') + 1).Trim();
+                        }
+
+                        // Calculate Debit / Credit strings and totals
+                        string debitStr = amount > 0 ? amount.ToString("N2") : "";
+                        string creditStr = amount < 0 ? Math.Abs(amount).ToString("N2") : "";
+
+                        if (amount > 0) debitTotalAmount += amount;
+                        else if (amount < 0) creditTotalAmount += Math.Abs(amount);
+
+                        // 3. Execute Insert Command
+                        using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
+                        {
+                            // OleDb parameter ordering MUST match the SQL query order exactly
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrEmpty(refNumber) ? (object)DBNull.Value : refNumber;
+
+                            // ACCOUNT NUMBER PARAMETER
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrWhiteSpace(accountNumber)
+                                ? (object)DBNull.Value
+                                : accountNumber;
+
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = particulars;
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = description;
+                            command.Parameters.Add("?", OleDbType.Double).Value = quantity;
+                            command.Parameters.Add("?", OleDbType.Double).Value = cost;
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = debitStr;
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = creditStr;
+
+                            command.ExecuteNonQuery();
+                        }
+                    }
+
+                    connection.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error compiling Item Receipt data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
 
         public static void InsertDataToCheckVoucherCompiledDRC(string refNumber, List<CheckTableExpensesAndItems> checkData)
         {
@@ -2153,20 +2473,16 @@ namespace VoucherPROVER2.Clients.DRC
             {
                 try
                 {
-                    // Reset counters for new print job
                     itemCounter = 0;
                     pageCounter = 1;
 
-                    if (comboBox_Forms.SelectedIndex == 3) // APV
+                    if (comboBox_Forms.SelectedIndex == 3)
                     {
                         int totalItemDetails = apvData.Sum(apvData => apvData.ItemDetails.Count);
-
                         int totalPages = (int)Math.Ceiling((double)totalItemDetails / GlobalVariables.itemsPerPageAPV);
-                        Console.WriteLine($"Print: APV Data Count: {totalItemDetails}, Total Pages: {totalPages}");
                         printDocument.PrinterSettings.MaximumPage = totalPages;
                     }
 
-                    // Update preview control to start at the first page
                     printPreviewControl.StartPage = 0;
 
                     PrintDialog printDialog = new PrintDialog
@@ -2179,65 +2495,30 @@ namespace VoucherPROVER2.Clients.DRC
                         GlobalVariables.includeImage = false;
                         printDialog.Document.Print();
 
-                        // Hide preview after printing
                         printPreviewControl.Visible = false;
                         printPreviewControl.Zoom = 1;
                         panel_Printing.Visible = false;
 
-
-                        if (GlobalVariables.client == "LEADS")
+                        if (GlobalVariables.client == "DRC")
                         {
-                            string columnName = comboBox_Forms.SelectedIndex == 2 ? "CVSeries" : "APVSeries";
-                            accessToDatabase.IncrementSeriesNumberInDatabase(columnName); // Increment for next print
-
-                            seriesNumber = accessToDatabase.GetSeriesNumberFromDatabase(columnName);
-                            UpdateSeriesNumber(comboBox_Forms.SelectedIndex == 2 ? "CV" : "APV");
-                        }
-                        else if (GlobalVariables.client == "KAYAK")
-                        {
-                            /* string columnName = comboBox_Forms.SelectedIndex == 1 ? "CVSeries" : "APVSeries";
-                             accessToDatabase.IncrementSeriesNumberInDatabase(columnName); // Increment for next print
-
-                             seriesNumber = accessToDatabase.GetSeriesNumberFromDatabase(columnName);
-                             UpdateSeriesNumber(comboBox_Forms.SelectedIndex == 1 ? "CV" : "APV");*/
-                        }
-                        else if (GlobalVariables.client == "CPI")
-                        {
-                            string columnName = comboBox_Forms.SelectedIndex == 1 ? "CVSeries" : "APVSeries";
-                            accessToDatabase.IncrementSeriesNumberInDatabase(columnName); // Increment for next print
-
-                            seriesNumber = accessToDatabase.GetSeriesNumberFromDatabase(columnName);
-                            UpdateSeriesNumber(comboBox_Forms.SelectedIndex == 1 ? "CV" : "APV");
-                        }
-
-                        else if (GlobalVariables.client == "DRC")
-                        {
-                            // 1. Determine Form Type
                             string formType = "";
                             if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                             else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
                             else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
+                            else if (comboBox_Forms.SelectedIndex == 5) formType = "IR";
 
                             if (formType != "")
                             {
-                                // 2. Get Selected Company
                                 string selectedCompany = comboBox_Company.SelectedItem?.ToString();
 
                                 if (!string.IsNullOrEmpty(selectedCompany))
                                 {
-                                    // 3. Increment the number in memory
                                     seriesNumber++;
-
-                                    // 4. Save the new number to the Database using the specific company column
-                                    // Note: accessToDatabase.UpdateManualSeriesNumber handles the column mapping logic you wrote earlier
                                     accessToDatabase.UpdateManualSeriesNumber(formType, seriesNumber, selectedCompany);
-
-                                    // 5. Update the UI with the new format (e.g., CV00002)
                                     UpdateSeriesNumberDRC(formType);
                                 }
                             }
                         }
-
                     }
                 }
                 catch (Exception ex)
@@ -2263,18 +2544,7 @@ namespace VoucherPROVER2.Clients.DRC
 
             if (GlobalVariables.client == "DRC")
             {
-                // Logic for visibility of company panel
-                /*if (GlobalVariables.client == "IVP" && comboBox_Forms.SelectedItem?.ToString() == "Check")
-                {
-                    MessageBox.Show("The 'Check' form is not accessible.", "Access Restricted", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-
-                    // Silently reset to blank (index 0) so they can't stay on this tab
-                    comboBox_Forms.SelectedIndex = 0;
-                    return;
-                }*/
-
-
-                if (comboBox_Forms.SelectedIndex == 1 || comboBox_Forms.SelectedIndex == 3 || comboBox_Forms.SelectedIndex == 4) // CV or JV
+                if (comboBox_Forms.SelectedIndex == 1 || comboBox_Forms.SelectedIndex == 3 || comboBox_Forms.SelectedIndex == 4 || comboBox_Forms.SelectedIndex == 5)
                 {
                     panel_Company.Visible = true;
                 }
@@ -2290,6 +2560,7 @@ namespace VoucherPROVER2.Clients.DRC
                 if (comboBox_Forms.SelectedIndex == 1) prefix = "CV";
                 else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
                 else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
+                else if (comboBox_Forms.SelectedIndex == 5) prefix = "IR";
 
                 if (prefix != "")
                 {
@@ -2301,7 +2572,6 @@ namespace VoucherPROVER2.Clients.DRC
                     }
                     else
                     {
-                        // If no company selected, show prefix only or leave empty
                         textBox_SeriesNumber.Text = $"{prefix}-00000";
                     }
                 }
@@ -2310,7 +2580,7 @@ namespace VoucherPROVER2.Clients.DRC
                 {
                     case 1: // Check Voucher
                         prefix = "CV";
-                        panel_SeriesNumber.Visible = false;
+                        panel_SeriesNumber.Visible = true;
                         panel_RefNumber.Visible = false;
                         panel_RefNumberCrystalReport.Visible = true;
                         panel_Signatory.Visible = true;
@@ -2351,16 +2621,29 @@ namespace VoucherPROVER2.Clients.DRC
                         if (comboBox_Currency != null) comboBox_Currency.Visible = false;
                         panel_Company.Height = 61;
                         break;
+
                     case 4: // Accounts Payable Voucher
                         prefix = "APV";
-                        panel_SeriesNumber.Visible = false;
+                        panel_SeriesNumber.Visible = true;
                         panel_RefNumber.Visible = false;
                         panel_RefNumberCrystalReport.Visible = true;
                         panel_Signatory.Visible = true;
 
                         label_SeriesNumberText.Text = "Current Series Number: APV";
 
-                        // Layout settings
+                        panel_Main.Visible = false;
+                        panel_Main_CR.Visible = true;
+                        break;
+
+                    case 5: // Item Receipt
+                        prefix = "IR";
+                        panel_SeriesNumber.Visible = true;
+                        panel_RefNumber.Visible = false;
+                        panel_RefNumberCrystalReport.Visible = true;
+                        panel_Signatory.Visible = true;
+
+                        label_SeriesNumberText.Text = "Current Series Number: IR";
+
                         panel_Main.Visible = false;
                         panel_Main_CR.Visible = true;
                         break;
@@ -2376,12 +2659,9 @@ namespace VoucherPROVER2.Clients.DRC
                         return;
                 }
             }
-
-
-
             else
             {
-                if (comboBox_Forms.SelectedIndex == 1) // CV
+                if (comboBox_Forms.SelectedIndex == 1)
                 {
                     panel_SeriesNumber.Visible = true;
                     label_SeriesNumberText.Text = "Current Series Number: CV";
@@ -2431,13 +2711,14 @@ namespace VoucherPROVER2.Clients.DRC
                     string formPrefix = "";
                     if (comboBox_Forms.SelectedIndex == 1) formPrefix = "CV";
                     else if (comboBox_Forms.SelectedIndex == 3) formPrefix = "JV";
+                    else if (comboBox_Forms.SelectedIndex == 4) formPrefix = "APV";
+                    else if (comboBox_Forms.SelectedIndex == 5) formPrefix = "IR";
 
                     if (!string.IsNullOrEmpty(formPrefix))
                     {
-                        // Clean the input: Just remove "CV" or "JV"
-                        // The user sees "CV00001", stripping "CV" leaves "00001"
                         string cleanInput = textBox_SeriesNumber.Text
                             .Replace(formPrefix, "")
+                            .Replace("-", "")
                             .Trim();
 
                         if (int.TryParse(cleanInput, out int adjustedSeries))
@@ -2447,8 +2728,8 @@ namespace VoucherPROVER2.Clients.DRC
                     }
                 }
             }
-
         }
+
         private void TextBox_SeriesNumber_Leave(object sender, EventArgs e)
         {
             if (GlobalVariables.client == "DRC")
@@ -2457,10 +2738,10 @@ namespace VoucherPROVER2.Clients.DRC
                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                 else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
                 else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
+                else if (comboBox_Forms.SelectedIndex == 5) formType = "IR";
 
                 if (!string.IsNullOrEmpty(formType) && comboBox_Company.SelectedItem != null)
                 {
-                    // Pass the Company Name so Database knows which column (e.g. NL_CV) to update
                     accessToDatabase.UpdateManualSeriesNumber(formType, seriesNumber, comboBox_Company.SelectedItem.ToString());
                 }
             }
@@ -2468,8 +2749,9 @@ namespace VoucherPROVER2.Clients.DRC
 
         private void UpdateSeriesNumber(string prefix)
         {
-            textBox_SeriesNumber.Text = $"{prefix}{seriesNumber:000}"; // Formats seriesNumber as a 3-digit number
+            textBox_SeriesNumber.Text = $"{prefix}{seriesNumber:000}";
         }
+
         private void RefreshSeriesNumber(string columnName)
         {
             seriesNumber = accessToDatabase.GetSeriesNumberFromDatabase(columnName);
@@ -2477,7 +2759,6 @@ namespace VoucherPROVER2.Clients.DRC
             textBox_SeriesNumber.Text = $"{prefix}{seriesNumber:000}";
         }
 
-        // 1. HELPER: Maps the full company name to the short code (e.g., "North Luzon" -> "NL")
         private string GetCompanyCode(string fullCompanyName)
         {
             if (string.IsNullOrEmpty(fullCompanyName)) return "";
@@ -2489,13 +2770,9 @@ namespace VoucherPROVER2.Clients.DRC
             }
         }
 
-
         private void UpdateSeriesNumberDRC(string formPrefix)
         {
-            // Ensure accessToDatabase is initialized
             if (accessToDatabase == null) accessToDatabase = new AccessToDatabase_DRC();
-
-            // Format with a hyphen and 5 digits (e.g., CV-00001)
             textBox_SeriesNumber.Text = $"{formPrefix}-{seriesNumber:00000}";
         }
     }

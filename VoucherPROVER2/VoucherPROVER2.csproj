@@ -68,6 +68,12 @@
       <SubType>Component</SubType>
       <DesignTime>True</DesignTime>
     </Compile>
+    <Compile Include="Clients\DRC\CRIR_DRC.cs">
+      <DependentUpon>CRIR_DRC.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
     <Compile Include="Clients\DRC\CRCV_DRCBILL.cs">
       <DependentUpon>CRCV_DRCBILL.rpt</DependentUpon>
       <AutoGen>True</AutoGen>
@@ -245,6 +251,10 @@
     <EmbeddedResource Include="Clients\DRC\CRAPV_DRCBILL.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRAPV_DRCBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\DRC\CRIR_DRC.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRIR_DRC.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Clients\DRC\CRCV_DRCBILL.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
