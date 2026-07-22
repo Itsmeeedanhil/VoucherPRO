@@ -15,6 +15,12 @@
     {
         "Entry"
         {
+        "MsmKey" = "8:_078E2FB2377940AF90B02CE0142A5723"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_21C77D52BEA24BBEB7B8166586C8E751"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -34,12 +40,6 @@
         "Entry"
         {
         "MsmKey" = "8:_70B8DE760A8A44FCBD522DD4E6B1D4E1"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_966AE57CBAE3459B8A862F325106D0B5"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -180,6 +180,26 @@
         }
         "File"
         {
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_078E2FB2377940AF90B02CE0142A5723"
+            {
+            "SourcePath" = "8:..\\VoucherPROVER2\\bin\\x64\\Release\\CheckDatabase.accdb"
+            "TargetName" = "8:CheckDatabase.accdb"
+            "Tag" = "8:"
+            "Folder" = "8:_C46ABFDAF12E4E83885621B3E3E2A024"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_2308FDC33B8AD30D39A47015D0AF0840"
             {
             "AssemblyRegister" = "3:1"
@@ -246,26 +266,6 @@
             {
             "SourcePath" = "8:..\\..\\..\\..\\Documents\\PROGRAMFILES\\logo1.ico"
             "TargetName" = "8:logo1.ico"
-            "Tag" = "8:"
-            "Folder" = "8:_C46ABFDAF12E4E83885621B3E3E2A024"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:FALSE"
-            "IsDependency" = "11:FALSE"
-            "IsolateTo" = "8:"
-            }
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_966AE57CBAE3459B8A862F325106D0B5"
-            {
-            "SourcePath" = "8:..\\VoucherPROVER2\\bin\\x64\\Release\\CheckDatabase.accdb"
-            "TargetName" = "8:CheckDatabase.accdb"
             "Tag" = "8:"
             "Folder" = "8:_C46ABFDAF12E4E83885621B3E3E2A024"
             "Condition" = "8:"
@@ -401,7 +401,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:VoucherProV2"
         "ProductCode" = "8:{2772AA88-D77E-4427-9A72-5CDD0516E40A}"
-        "PackageCode" = "8:{93D41A41-9CDC-4B25-8837-D80B619044AB}"
+        "PackageCode" = "8:{33E2A244-B347-4094-8583-8948A18DE7FD}"
         "UpgradeCode" = "8:{DB1161FD-DFBB-43FE-91A6-468069DF8231}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
