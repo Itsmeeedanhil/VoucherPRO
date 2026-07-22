@@ -220,7 +220,7 @@ namespace VoucherPROVER2.Clients.DRC
                         TermsRefFullName = bill.TermsRef?.FullName?.GetValue() ?? "",
                         APAccountRefFullName = bill.APAccountRef?.FullName?.GetValue() ?? "",
                         RefNumber = bill.RefNumber?.GetValue() ?? "",
-                        Memo = bill.Memo?.GetValue() ?? "",
+                        Memo = Truncate(bill.Memo?.GetValue() ?? "", 500),
                         AmountDue = bill.AmountDue?.GetValue() ?? 0,
                         IsPaid = bill.IsPaid?.GetValue() ?? false,
 
@@ -249,7 +249,7 @@ namespace VoucherPROVER2.Clients.DRC
                                 ExpenseLineAmount = exp.Amount?.GetValue() ?? 0,
                                 ExpenseLineClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
                                 ExpenseLineCustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
-                                ExpenseLineMemo = exp.Memo?.GetValue() ?? ""
+                                ExpenseLineMemo = Truncate(exp.Memo?.GetValue() ?? "", 500)
                             });
                         }
                     }
@@ -306,6 +306,11 @@ namespace VoucherPROVER2.Clients.DRC
                 Console.WriteLine("[DEBUG] Session Opened Successfully.");
 
                 // ====================================================
+                // FETCH ALL ACCOUNT NUMBERS FROM QUICKBOOKS
+                // ====================================================
+                Dictionary<string, string> accountNumbersDict = GetAccountNumbersFromQBBILL(sessionManager);
+
+                // ====================================================
                 // 1. QUERY BILL PAYMENT CHECK USING RefNumber
                 // ====================================================
                 IMsgSetRequest req1 = sessionManager.CreateMsgSetRequest("US", 13, 0);
@@ -332,7 +337,7 @@ namespace VoucherPROVER2.Clients.DRC
 
                 IBillPaymentCheckRet bp = bpList.GetAt(0);
 
-                // HEADER FROM BILL PAYMENT CHECK (These stay constant for all bills in this check)
+                // HEADER FROM BILL PAYMENT CHECK
                 DateTime payDate = bp.TxnDate?.GetValue() ?? DateTime.MinValue;
                 string payee = bp.PayeeEntityRef?.FullName?.GetValue() ?? "";
                 string address1 = bp.Address?.Addr1?.GetValue() ?? "";
@@ -342,14 +347,13 @@ namespace VoucherPROVER2.Clients.DRC
                 double amountPaid = bp.Amount?.GetValue() ?? 0;
 
                 // ====================================================
-                // *** CHANGED: GET ALL APPLIED BILL TxnIDs (NOT JUST INDEX 0)
+                // GET ALL APPLIED BILL TxnIDs
                 // ====================================================
                 List<string> appliedTxnIDs = new List<string>();
 
                 if (bp.AppliedToTxnRetList != null && bp.AppliedToTxnRetList.Count > 0)
                 {
                     Console.WriteLine($"[DEBUG] AppliedToTxn List Count: {bp.AppliedToTxnRetList.Count}");
-                    // Loop through ALL applied transactions
                     for (int k = 0; k < bp.AppliedToTxnRetList.Count; k++)
                     {
                         var applied = bp.AppliedToTxnRetList.GetAt(k);
@@ -376,7 +380,6 @@ namespace VoucherPROVER2.Clients.DRC
                 IBillQuery billQuery = req2.AppendBillQueryRq();
                 billQuery.IncludeLineItems.SetValue(true);
 
-                // *** CHANGED: Add ALL TxnIDs to the query list
                 foreach (string id in appliedTxnIDs)
                 {
                     billQuery.ORBillQuery.TxnIDList.Add(id);
@@ -395,7 +398,7 @@ namespace VoucherPROVER2.Clients.DRC
                 }
 
                 // ====================================================
-                // *** CHANGED: LOOP THROUGH ALL RETRIEVED BILLS
+                // LOOP THROUGH ALL RETRIEVED BILLS
                 // ====================================================
                 Console.WriteLine($"[DEBUG] Retrieved {billList.Count} Bill(s). Processing...");
 
@@ -412,25 +415,37 @@ namespace VoucherPROVER2.Clients.DRC
                     string billRefNumber = bill.RefNumber?.GetValue() ?? "";
                     string specificTxnID = bill.TxnID?.GetValue() ?? "";
 
+                    // Get AccountNumber for A/P Account Ref if available
+                    string apListID = bill.APAccountRef?.ListID?.GetValue() ?? "";
+                    string billAccNum = "";
+                    if (!string.IsNullOrEmpty(apListID) && accountNumbersDict.ContainsKey(apListID))
+                    {
+                        billAccNum = accountNumbersDict[apListID];
+                    }
+                    else if (!string.IsNullOrEmpty(billAPAccount) && accountNumbersDict.ContainsKey(billAPAccount))
+                    {
+                        billAccNum = accountNumbersDict[billAPAccount];
+                    }
+
                     Console.WriteLine($"[DEBUG] Processing Bill #{bIndex + 1}: Ref {billRefNumber}");
 
-                    // Create BillTable object for THIS specific bill
                     BillTable bt = new BillTable
                     {
                         DateCreated = payDate,
-                        DueDate = payDate, // Or dueDate depending on your report requirement
+                        DueDate = payDate,
                         PayeeFullName = payee,
                         Address = address1,
                         Address2 = address2,
                         BankAccount = bankAccount,
                         APAccountRefFullName = billAPAccount,
-                        Amount = amountPaid, // This is the Check Total
-                        RefNumber = refNumber, // This is the Check Ref Number
-                        AppliedRefNumber = billRefNumber, // This is the specific Bill Ref Number
+                        AccountNumber = billAccNum, // Header AccountNumber
+                        Amount = amountPaid,
+                        RefNumber = refNumber,
+                        AppliedRefNumber = billRefNumber,
                         AppliedToTxnTxnID = specificTxnID,
                         Memo = memo,
                         BillMemo = billMemo,
-                        AmountDue = amountDue, // The amount of this specific bill
+                        AmountDue = amountDue,
                     };
 
                     // Process Expense Lines for THIS bill
@@ -439,13 +454,28 @@ namespace VoucherPROVER2.Clients.DRC
                         for (int i = 0; i < bill.ExpenseLineRetList.Count; i++)
                         {
                             var exp = bill.ExpenseLineRetList.GetAt(i);
+                            string expAccountName = exp.AccountRef?.FullName?.GetValue() ?? "";
+                            string expListID = exp.AccountRef?.ListID?.GetValue() ?? "";
+
+                            // Lookup Account Number from dictionary
+                            string expAccNumber = "";
+                            if (!string.IsNullOrEmpty(expListID) && accountNumbersDict.ContainsKey(expListID))
+                            {
+                                expAccNumber = accountNumbersDict[expListID];
+                            }
+                            else if (!string.IsNullOrEmpty(expAccountName) && accountNumbersDict.ContainsKey(expAccountName))
+                            {
+                                expAccNumber = accountNumbersDict[expAccountName];
+                            }
+
                             bt.ItemDetails.Add(new ItemDetail
                             {
-                                ItemLineItemRefFullName = exp.AccountRef?.FullName?.GetValue() ?? "",
-                                ItemLineAmount = exp.Amount?.GetValue() ?? 0,
-                                ItemLineClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
-                                ItemLineCustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
-                                ItemLineMemo = exp.Memo?.GetValue() ?? "",
+                                ExpenseLineItemRefFullName = expAccountName,
+                                ExpenseLineAccountNumber = expAccNumber, // Expense Line AccountNumber
+                                ExpenseLineAmount = exp.Amount?.GetValue() ?? 0,
+                                ExpenseLineClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
+                                ExpenseLineCustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
+                                ExpenseLineMemo = exp.Memo?.GetValue() ?? "",
                             });
                         }
                     }
@@ -471,7 +501,6 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                     }
 
-                    // Add THIS bill to the main list
                     bills.Add(bt);
                 }
 
@@ -495,6 +524,55 @@ namespace VoucherPROVER2.Clients.DRC
             return bills;
         }
 
+        // ====================================================
+        // HELPER METHOD TO QUERY QUICKBOOKS FOR ACCOUNT NUMBERS
+        // ====================================================
+        private Dictionary<string, string> GetAccountNumbersFromQBBILL(QBSessionManager sessionManager)
+        {
+            Dictionary<string, string> accountDict = new Dictionary<string, string>();
+
+            try
+            {
+                IMsgSetRequest req = sessionManager.CreateMsgSetRequest("US", 13, 0);
+                req.Attributes.OnError = ENRqOnError.roeContinue;
+
+                IAccountQuery accQuery = req.AppendAccountQueryRq();
+
+                IMsgSetResponse res = sessionManager.DoRequests(req);
+                IResponse qbRes = res.ResponseList.GetAt(0);
+
+                IAccountRetList accList = qbRes.Detail as IAccountRetList;
+
+                if (accList != null)
+                {
+                    for (int i = 0; i < accList.Count; i++)
+                    {
+                        IAccountRet acc = accList.GetAt(i);
+                        string listID = acc.ListID?.GetValue() ?? "";
+                        string fullName = acc.FullName?.GetValue() ?? "";
+                        string accountNumber = acc.AccountNumber?.GetValue() ?? "";
+
+                        if (!string.IsNullOrEmpty(accountNumber))
+                        {
+                            if (!string.IsNullOrEmpty(listID) && !accountDict.ContainsKey(listID))
+                            {
+                                accountDict.Add(listID, accountNumber);
+                            }
+                            if (!string.IsNullOrEmpty(fullName) && !accountDict.ContainsKey(fullName))
+                            {
+                                accountDict.Add(fullName, accountNumber);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DEBUG] Error fetching Account Numbers: {ex.Message}");
+            }
+
+            return accountDict;
+        }
 
 
         public List<CheckTableExpensesAndItems> GetCheckExpensesAndItemsData_DRC(string refNumber)
@@ -539,6 +617,11 @@ namespace VoucherPROVER2.Clients.DRC
 
                 Console.WriteLine($"Found {list.Count} check(s).");
 
+                // -----------------------------------------------------------------
+                // FETCH ALL ACCOUNT NUMBERS FROM QUICKBOOKS
+                // -----------------------------------------------------------------
+                Dictionary<string, string> accountNumbersDict = GetAccountNumbersFromQB(sessionManager);
+
                 for (int i = 0; i < list.Count; i++)
                 {
                     ICheckRet check = list.GetAt(i);
@@ -550,6 +633,9 @@ namespace VoucherPROVER2.Clients.DRC
                     string memo = check.Memo?.GetValue() ?? "";
                     string address1 = check.Address?.Addr1?.GetValue() ?? "";
                     string address2 = check.Address?.Addr2?.GetValue() ?? "";
+                    string address3 = check.Address?.Addr3?.GetValue() ?? "";
+                    string address4 = check.Address?.Addr4?.GetValue() ?? "";
+                    string addressCity = check.Address?.City?.GetValue() ?? "";
                     double totalAmount = check.Amount?.GetValue() ?? 0;
                     string currentRef = check.RefNumber?.GetValue() ?? "";
                     string duedate = check.TxnDate?.GetValue().ToString("yyyy-MM-dd") ?? "";
@@ -564,9 +650,21 @@ namespace VoucherPROVER2.Clients.DRC
                             IExpenseLineRet exp = check.ExpenseLineRetList.GetAt(e);
 
                             string expAccount = exp.AccountRef?.FullName?.GetValue() ?? "";
+                            string expListID = exp.AccountRef?.ListID?.GetValue() ?? "";
                             double expAmount = exp.Amount?.GetValue() ?? 0;
 
-                            Console.WriteLine($"   -> [Expense Line] Account: {expAccount} | Amount: {expAmount}");
+                            // Match AccountNumber from dictionary lookup using ListID or FullName
+                            string accNumber = "";
+                            if (!string.IsNullOrEmpty(expListID) && accountNumbersDict.ContainsKey(expListID))
+                            {
+                                accNumber = accountNumbersDict[expListID];
+                            }
+                            else if (!string.IsNullOrEmpty(expAccount) && accountNumbersDict.ContainsKey(expAccount))
+                            {
+                                accNumber = accountNumbersDict[expAccount];
+                            }
+
+                            Console.WriteLine($"   -> [Expense Line] Account: {expAccount} | AccountNum: {accNumber} | Amount: {expAmount}");
 
                             checks.Add(new CheckTableExpensesAndItems
                             {
@@ -577,10 +675,14 @@ namespace VoucherPROVER2.Clients.DRC
                                 TotalAmount = totalAmount,
                                 DueDate = txnDate,
                                 Memo = memo,
-                                Address = address1,
-                                Address2 = address2,
+                                AddressBlockAddr1 = address1,
+                                AddressBlockAddr2 = address2,
+                                AddressBlockAddr3 = address3,
+                                AddressBlockAddr4 = address4,
+                                AddressCity = addressCity,
 
                                 Account = expAccount,
+                                AccountNumber = accNumber, // Assigned AccountNumber
                                 ExpenseClass = exp.ClassRef?.FullName?.GetValue() ?? "",
                                 ExpensesAmount = expAmount,
                                 ExpensesMemo = exp.Memo?.GetValue() ?? "",
@@ -618,8 +720,11 @@ namespace VoucherPROVER2.Clients.DRC
                                     TotalAmount = totalAmount,
                                     DueDate = txnDate,
                                     Memo = memo,
-                                    Address = address1,
-                                    Address2 = address2,
+                                    AddressBlockAddr1 = address1,
+                                    AddressBlockAddr2 = address2,
+                                    AddressBlockAddr3 = address3,
+                                    AddressBlockAddr4 = address4,
+                                    AddressCity = addressCity,
 
                                     Item = itemName,
                                     ItemDescription = item.Desc?.GetValue() ?? "",
@@ -651,6 +756,56 @@ namespace VoucherPROVER2.Clients.DRC
             }
 
             return checks;
+        }
+
+        // -----------------------------------------------------------------
+        // HELPER METHOD TO QUERY QUICKBOOKS FOR ACCOUNT NUMBERS
+        // -----------------------------------------------------------------
+        private Dictionary<string, string> GetAccountNumbersFromQB(QBSessionManager sessionManager)
+        {
+            Dictionary<string, string> accountDict = new Dictionary<string, string>();
+
+            try
+            {
+                IMsgSetRequest req = sessionManager.CreateMsgSetRequest("US", 13, 0);
+                req.Attributes.OnError = ENRqOnError.roeContinue;
+
+                IAccountQuery accQuery = req.AppendAccountQueryRq();
+
+                IMsgSetResponse res = sessionManager.DoRequests(req);
+                IResponse qbRes = res.ResponseList.GetAt(0);
+
+                IAccountRetList accList = qbRes.Detail as IAccountRetList;
+
+                if (accList != null)
+                {
+                    for (int i = 0; i < accList.Count; i++)
+                    {
+                        IAccountRet acc = accList.GetAt(i);
+                        string listID = acc.ListID?.GetValue() ?? "";
+                        string fullName = acc.FullName?.GetValue() ?? "";
+                        string accountNumber = acc.AccountNumber?.GetValue() ?? "";
+
+                        if (!string.IsNullOrEmpty(accountNumber))
+                        {
+                            if (!string.IsNullOrEmpty(listID) && !accountDict.ContainsKey(listID))
+                            {
+                                accountDict.Add(listID, accountNumber);
+                            }
+                            if (!string.IsNullOrEmpty(fullName) && !accountDict.ContainsKey(fullName))
+                            {
+                                accountDict.Add(fullName, accountNumber);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching Account Numbers: {ex.Message}");
+            }
+
+            return accountDict;
         }
 
 
@@ -715,7 +870,7 @@ namespace VoucherPROVER2.Clients.DRC
                                     var line = orLine.JournalDebitLine;
                                     item.AccountName = line.AccountRef?.FullName?.GetValue() ?? "";
                                     item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
-                                    item.Memo = line.Memo?.GetValue() ?? "";
+                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 255);
                                     item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
                                     item.Debit = line.Amount?.GetValue() ?? 0;
                                     item.Credit = 0;
@@ -725,7 +880,7 @@ namespace VoucherPROVER2.Clients.DRC
                                     var line = orLine.JournalCreditLine;
                                     item.AccountName = line.AccountRef?.FullName?.GetValue() ?? "";
                                     item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
-                                    item.Memo = line.Memo?.GetValue() ?? "";
+                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 500);
                                     item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
                                     item.Debit = 0;
                                     item.Credit = line.Amount?.GetValue() ?? 0;
@@ -847,6 +1002,13 @@ namespace VoucherPROVER2.Clients.DRC
             }
 
             return incrementalID;
+        }
+
+
+        private string Truncate(string value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            return value.Length <= maxLength ? value : value.Substring(0, maxLength);
         }
 
 

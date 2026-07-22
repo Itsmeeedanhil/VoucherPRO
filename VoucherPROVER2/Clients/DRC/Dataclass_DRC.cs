@@ -76,6 +76,8 @@ namespace VoucherPROVER2.Clients.DRC
 
 
             public string ExpenseLineItemRefFullName { get; set; }
+            public string ExpenseLineAccountNumber { get; set; }
+
             public double ExpenseLineAmount { get; set; }
             public string ExpenseLineClassRefFullName { get; set; }
             public string ExpenseLineCustomerJob { get; set; }
@@ -109,6 +111,11 @@ namespace VoucherPROVER2.Clients.DRC
             public string Memo { get; set; }
             public string IncrementalID { get; set; }
 
+            public string AddressBlockAddr1 { get; set; }
+            public string AddressBlockAddr2 { get; set; }
+            public string AddressBlockAddr3 { get; set; }
+            public string AddressBlockAddr4 { get; set; }
+            public string AddressCity { get; set; }
             public DateTime DueDate { get; set; }
 
             // Properties specific to items
