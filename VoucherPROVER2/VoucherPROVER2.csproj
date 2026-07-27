@@ -108,14 +108,14 @@
       <SubType>Component</SubType>
       <DesignTime>True</DesignTime>
     </Compile>
-    <Compile Include="Clients\INTEGRATED\CRCV_INT.cs">
-      <DependentUpon>CRCV_INT.rpt</DependentUpon>
+    <Compile Include="Clients\INTEGRATED\CRCV_INTBILL.cs">
+      <DependentUpon>CRCV_INTBILL.rpt</DependentUpon>
       <AutoGen>True</AutoGen>
       <SubType>Component</SubType>
       <DesignTime>True</DesignTime>
     </Compile>
-    <Compile Include="Clients\INTEGRATED\CRCV_INTBILL.cs">
-      <DependentUpon>CRCV_INTBILL.rpt</DependentUpon>
+    <Compile Include="Clients\INTEGRATED\CRCV_INT.cs">
+      <DependentUpon>CRCV_INT.rpt</DependentUpon>
       <AutoGen>True</AutoGen>
       <SubType>Component</SubType>
       <DesignTime>True</DesignTime>
@@ -275,13 +275,13 @@
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRAPV_INTBILL.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Clients\INTEGRATED\CRCV_INT.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>CRCV_INT.cs</LastGenOutput>
-    </EmbeddedResource>
     <EmbeddedResource Include="Clients\INTEGRATED\CRCV_INTBILL.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRCV_INTBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\INTEGRATED\CRCV_INT.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_INT.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Clients\INTEGRATED\CRJV_INT.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>

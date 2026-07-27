@@ -17,7 +17,7 @@ namespace VoucherPROVER2
 {
     public class GlobalVariables
     {
-        public static string client = "DRC";
+        public static string client = "INT";
         public static bool includeImage = true;
         public static bool includeItemReceipt = true;
         public static bool testWithoutData = true;
