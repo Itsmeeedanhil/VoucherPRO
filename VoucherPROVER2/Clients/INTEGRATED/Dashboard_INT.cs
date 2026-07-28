@@ -45,6 +45,8 @@ namespace VoucherPROVER2.Clients.INT
 
         Label label_SeriesNumberText;
         Label label_SignatoryRRStatus;
+        private Label label_VoucherType;
+        private ComboBox comboBox_VoucherType;
 
         TextBox textBox_SeriesNumber;
         TextBox textBox_ReceivedByRR;
@@ -121,12 +123,11 @@ namespace VoucherPROVER2.Clients.INT
             panel_Company = new FlowLayoutPanel
             {
                 Dock = DockStyle.Top,
-                Height = 120,
+                Height = 150,
                 Width = sideBarWidth - 10,
                 BackColor = Color.LightGray,
                 Padding = new Padding(5, 2, 5, 5),
                 BorderStyle = BorderStyle.FixedSingle,
-                // Only visible if client is IVP
                 Visible = (GlobalVariables.client == "INT")
             };
 
@@ -147,15 +148,11 @@ namespace VoucherPROVER2.Clients.INT
                 Font = font_Label,
             };
 
-            // ADD YOUR COMPANY NAMES HERE
             comboBox_Company.Items.AddRange(new string[]
             {
-
                 "Integrated Contractor & Plumbing Works, Inc.",
-
             });
 
-            // Set default selection
             if (comboBox_Company.Items.Count > 0)
             {
                 comboBox_Company.SelectedIndex = 0;
@@ -163,7 +160,6 @@ namespace VoucherPROVER2.Clients.INT
 
             comboBox_Company.SelectedIndexChanged += (sender, e) =>
             {
-                // Only update if we are on CV (Index 1) or JV (Index 3)
                 string formType = "";
                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                 else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
@@ -171,14 +167,41 @@ namespace VoucherPROVER2.Clients.INT
                 if (formType != "")
                 {
                     string selectedCompany = comboBox_Company.SelectedItem.ToString();
-
-                    // Fetch the correct number for this specific company
                     seriesNumber = accessToDatabase.GetSeriesNumberFromDatabase(formType, selectedCompany);
-
-                    // Update the textbox text
                     UpdateSeriesNumberINT(formType);
                 }
             };
+
+            // =========================================================================
+            // VOUCHER TYPE DROPDOWN (ONLY SHOWS FOR JOURNAL VOUCHER)
+            // =========================================================================
+            label_VoucherType = new Label // <-- Removed "Label" keyword here (uses class field)
+            {
+                Parent = panel_Company,
+                Width = sideBarWidth - 10,
+                Text = "SELECT VOUCHER TITLE:",
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = font_Label,
+                Margin = new Padding(0, 5, 0, 0),
+                Visible = (comboBox_Forms != null && comboBox_Forms.SelectedIndex == 3) // Initial check
+            };
+
+            comboBox_VoucherType = new ComboBox // <-- Removed "ComboBox" keyword here (uses class field)
+            {
+                Parent = panel_Company,
+                Width = sideBarWidth - 28,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = font_Label,
+                Visible = (comboBox_Forms != null && comboBox_Forms.SelectedIndex == 3) // Initial check
+            };
+
+            comboBox_VoucherType.Items.AddRange(new string[]
+            {
+                "JOURNAL ENTRY VOUCHER",
+                "EMPLOYEE SUPPLIES VOUCHER"
+            });
+            comboBox_VoucherType.SelectedIndex = 0;
+            // =========================================================================
 
             label_CurrencyText = new Label
             {
@@ -200,8 +223,6 @@ namespace VoucherPROVER2.Clients.INT
 
             comboBox_Currency.Items.AddRange(new string[] { "Peso (₱)", "Dollar ($)" });
             comboBox_Currency.SelectedIndex = 0;
-
-
 
             return panel_Company;
         }
@@ -470,10 +491,10 @@ namespace VoucherPROVER2.Clients.INT
                 comboBox_Forms.Items.AddRange(new string[]
             {
                 "",
-                "Check Voucher",
+                "Online Voucher",
                 "Check",
                 "Journal Voucher",
-                "Accounts Payable Voucher"
+                "Check Voucher"
 
             });
                 comboBox_Forms.SelectedIndex = 0;
@@ -775,27 +796,37 @@ namespace VoucherPROVER2.Clients.INT
                             AccessQueries_INT accessQueries = new AccessQueries_INT();
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
 
-                            // 1. Get the correct data
                             journal = accessQueries.GetJournalEntryForGrid(refNumberCR);
 
                             if (journal != null && journal.Count > 0)
                             {
-                                // =================================================================
-                                // FIX: Capture your original Memo text BEFORE padding the list
-                                // =================================================================
+                                // =========================================================================
+                                // READ VOUCHER TYPE SELECTION
+                                // =========================================================================
+                                string selectedVoucherTitle = comboBox_VoucherType?.SelectedItem?.ToString() ?? "JOURNAL ENTRY VOUCHER";
+                                string voucherNoLabel = (selectedVoucherTitle == "EMPLOYEE SUPPLIES VOUCHER") ? "E.S.V. No.:" : "J.V. No.:";
+
+                                // Pass title to report
+                                if (cRJV_INT.ReportDefinition.ReportObjects["TextReportTitle"] is TextObject textObject_ReportTitle)
+                                {
+                                    textObject_ReportTitle.Text = selectedVoucherTitle;
+                                }
+
+                                // Pass label to report
+                                if (cRJV_INT.ReportDefinition.ReportObjects["TextVoucherNoLabel"] is TextObject textObject_VoucherNoLabel)
+                                {
+                                    textObject_VoucherNoLabel.Text = voucherNoLabel;
+                                }
+                                // =========================================================================
+
+                                // Rest of your existing code below...
                                 string Memo = "                         " + journal[journal.Count - 1].Memo;
-                                // =================================================================
 
-                                // =================================================================
-                                // DYNAMIC DATA PADDING (Ensures at least 5 rows are sent to report)
-                                // =================================================================
                                 var journalLineType = journal[0].GetType();
-
                                 while (journal.Count < 8)
                                 {
                                     var emptyLine = Activator.CreateInstance(journalLineType);
-
-                                    // Explicitly set blank/zero values to avoid NullReferenceExceptions in Crystal
+                                    try { journalLineType.GetProperty("AccountNumber")?.SetValue(emptyLine, ""); } catch { }
                                     try { journalLineType.GetProperty("Particulars")?.SetValue(emptyLine, ""); } catch { }
                                     try { journalLineType.GetProperty("Debit")?.SetValue(emptyLine, 0.0); } catch { }
                                     try { journalLineType.GetProperty("Credit")?.SetValue(emptyLine, 0.0); } catch { }
@@ -803,14 +834,11 @@ namespace VoucherPROVER2.Clients.INT
 
                                     journal.Add((dynamic)emptyLine);
                                 }
-                                // =================================================================
 
-                                // 2. Set Header Text Objects
+
                                 TextObject textObject_JVCheckDate = cRJV_INT.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
                                 TextObject textObject_JVRefnumber = cRJV_INT.ReportDefinition.ReportObjects["TextJVRefnumber"] as TextObject;
-                                TextObject textObject_JVTotalDebitAmount = cRJV_INT.ReportDefinition.ReportObjects["TextJVTotalDebitAmount"] as TextObject;
-                                TextObject textObject_JVTotalCreditAmount = cRJV_INT.ReportDefinition.ReportObjects["TextJVTotalCreditAmount"] as TextObject;
-                                TextObject textObject_JVMemo = cRJV_INT.ReportDefinition.ReportObjects["TextJVMemo"] as TextObject;
+                                
 
                                 TextObject textObject_CompanyName = cRJV_INT.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
                                 if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
@@ -819,11 +847,11 @@ namespace VoucherPROVER2.Clients.INT
                                 }
 
                                 TextObject textObject_PreparedBy = cRJV_INT.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                                TextObject textObject_PreparedByPos = cRJV_INT.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                                //TextObject textObject_PreparedByPos = cRJV_INT.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
                                 TextObject textObject_CheckedBy = cRJV_INT.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                                TextObject textObject_CheckedByPos = cRJV_INT.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                                //TextObject textObject_CheckedByPos = cRJV_INT.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
                                 TextObject textObject_ApprovedBy = cRJV_INT.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                                TextObject textObject_ApprovedByPos = cRJV_INT.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                                //TextObject textObject_ApprovedByPos = cRJV_INT.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
 
                                 if (textObject_JVCheckDate != null) textObject_JVCheckDate.Text = journal[0].Date.ToString("MMMM dd, yyyy");
 
@@ -836,26 +864,31 @@ namespace VoucherPROVER2.Clients.INT
                                     debitTotalAmount += line.Debit;
                                     creditTotalAmount += line.Credit;
                                 }
-                                if (textObject_JVTotalDebitAmount != null) textObject_JVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                                if (textObject_JVTotalCreditAmount != null) textObject_JVTotalCreditAmount.Text = creditTotalAmount.ToString("N2");
-                                if (textObject_JVMemo != null) textObject_JVMemo.Text = Memo.ToString();
-                                if (textObject_JVRefnumber != null) textObject_JVRefnumber.Text = refNumberCR.ToString();
+
+                                if (textObject_JVRefnumber != null) textObject_JVRefnumber.Text = textBox_SeriesNumber.Text;
 
                                 AccessToDatabase_INT accessToDatabase = new AccessToDatabase_INT();
                                 var signatories = accessToDatabase.RetrieveAllSignatoryData();
 
                                 textObject_PreparedBy.Text = signatories.PreparedByName;
-                                textObject_PreparedByPos.Text = signatories.PreparedByPosition;
+                                //textObject_PreparedByPos.Text = signatories.PreparedByPosition;
                                 textObject_CheckedBy.Text = signatories.ReviewedByName;
-                                textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
+                                //textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
                                 textObject_ApprovedBy.Text = signatories.ApprovedByName;
-                                textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
+                                //textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
 
                                 // 4. Handle Subreport
                                 SubreportObject subreportObject = cRJV_INT.ReportDefinition.ReportObjects["SubreportJVDetailsIVP"] as SubreportObject;
                                 if (subreportObject != null)
                                 {
+                                    // Open the subreport document
                                     ReportDocument subReportDocument = cRJV_INT.OpenSubreport(subreportObject.SubreportName);
+
+                                    // 1. Locate the Text Object inside the subreport by its name in Crystal Reports
+                                    TextObject textObject_Memo = subReportDocument.ReportDefinition.ReportObjects["TextJVMemo"] as TextObject;
+
+
+                                    if (textObject_Memo != null) textObject_Memo.Text = journal[0].Memo;
                                 }
 
                                 InsertDataToJournalCompiled(refNumberCR, journal);
@@ -1618,22 +1651,23 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                // 2. Prepare Insert Query
+                // 2. Prepare Insert Query (Added [AccountNumber] field)
                 string insertQuery = @"
-                    INSERT INTO JV_Compiled 
-                    (RefNumber, [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
-                    VALUES 
-                    (@RefNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
+                        INSERT INTO JV_Compiled 
+                        (RefNumber, [AccountNumber], [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
+                        VALUES 
+                        (@RefNumber, @AccountNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
 
                 foreach (var line in journalData)
                 {
                     try
                     {
                         // MAPPING VARIABLES (With Safe Truncation to prevent DB overflow)
-                        string particulars = SafeTruncate(line.AccountName, 255);
+                        string accountNumber = SafeTruncate(line.AccountNumber, 50);
+                        string particulars = SafeTruncate(line.AccountName, 500);
                         string className = line.Class;
                         string nameValue = SafeTruncate(line.Name, 255);
-                        string memoValue = SafeTruncate(line.Memo, 255); // Change 255 to 500 if the database column is 'Long Text/Memo'
+                        string memoValue = SafeTruncate(line.Memo, 255);
 
                         string debitStr = "";
                         string creditStr = "";
@@ -1655,8 +1689,10 @@ namespace VoucherPROVER2.Clients.INT
                         // EXECUTE INSERT
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
-                            // IMPORTANT: The order of these parameters MUST match the order in the SQL string above
+                            // OleDb relies strictly on POSITIONAL parameter matching.
+                            // The order below EXACTLY matches the INSERT statement above.
                             command.Parameters.AddWithValue("@RefNumber", refNumber);
+                            command.Parameters.AddWithValue("@AccountNumber", string.IsNullOrEmpty(accountNumber) ? (object)DBNull.Value : accountNumber);
                             command.Parameters.AddWithValue("@Particulars", particulars);
 
                             // Handle Class nulls
@@ -2449,18 +2485,14 @@ namespace VoucherPROVER2.Clients.INT
 
             if (GlobalVariables.client == "INT")
             {
-                // Logic for visibility of company panel
-                /*if (GlobalVariables.client == "IVP" && comboBox_Forms.SelectedItem?.ToString() == "Check")
-                {
-                    MessageBox.Show("The 'Check' form is not accessible.", "Access Restricted", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                // 1. Hide Voucher Type controls by default at the start of every change
+                SetVoucherTypeVisibility(false);
 
-                    // Silently reset to blank (index 0) so they can't stay on this tab
-                    comboBox_Forms.SelectedIndex = 0;
-                    return;
-                }*/
-
-
-                if (comboBox_Forms.SelectedIndex == 1 || comboBox_Forms.SelectedIndex == 3 || comboBox_Forms.SelectedIndex == 4) // CV or JV
+                // 2. Control panel_Company visibility (Include Online Voucher index if needed)
+                // Adjust these indices to match your combo box order:
+                // (e.g., 1 = CV, 3 = JV, 4 = APV, 5 = Online Voucher)
+                if (comboBox_Forms.SelectedIndex == 1 || comboBox_Forms.SelectedIndex == 3 ||
+                    comboBox_Forms.SelectedIndex == 4 || comboBox_Forms.SelectedIndex == 5)
                 {
                     panel_Company.Visible = true;
                 }
@@ -2472,7 +2504,6 @@ namespace VoucherPROVER2.Clients.INT
                 if (panel_PayeeOverride != null) panel_PayeeOverride.Visible = false;
 
                 string prefix = "";
-
                 if (comboBox_Forms.SelectedIndex == 1) prefix = "CV";
                 else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
                 else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
@@ -2487,7 +2518,6 @@ namespace VoucherPROVER2.Clients.INT
                     }
                     else
                     {
-                        // If no company selected, show prefix only or leave empty
                         textBox_SeriesNumber.Text = $"{prefix}-00000";
                     }
                 }
@@ -2504,7 +2534,6 @@ namespace VoucherPROVER2.Clients.INT
 
                         if (label_CurrencyText != null) label_CurrencyText.Visible = true;
                         if (comboBox_Currency != null) comboBox_Currency.Visible = true;
-                        panel_Company.Height = 120;
 
                         panel_Main.Visible = false;
                         panel_Main_CR.Visible = true;
@@ -2535,7 +2564,9 @@ namespace VoucherPROVER2.Clients.INT
 
                         if (label_CurrencyText != null) label_CurrencyText.Visible = false;
                         if (comboBox_Currency != null) comboBox_Currency.Visible = false;
-                        panel_Company.Height = 61;
+
+                        // ONLY SHOW VOUCHER TITLE FOR JOURNAL VOUCHER
+                        SetVoucherTypeVisibility(true);
                         break;
 
                     case 4: // Accounts Payable Voucher
@@ -2547,7 +2578,22 @@ namespace VoucherPROVER2.Clients.INT
 
                         label_SeriesNumberText.Text = "Current Series Number: APV";
 
-                        // Layout settings
+                        if (label_CurrencyText != null) label_CurrencyText.Visible = false;
+                        if (comboBox_Currency != null) comboBox_Currency.Visible = false;
+
+                        panel_Main.Visible = false;
+                        panel_Main_CR.Visible = true;
+                        break;
+
+                    case 5: // Online Voucher (Change number to match your actual Index)
+                        panel_SeriesNumber.Visible = false;
+                        panel_RefNumber.Visible = false;
+                        panel_RefNumberCrystalReport.Visible = true;
+                        panel_Signatory.Visible = true;
+
+                        if (label_CurrencyText != null) label_CurrencyText.Visible = false;
+                        if (comboBox_Currency != null) comboBox_Currency.Visible = false;
+
                         panel_Main.Visible = false;
                         panel_Main_CR.Visible = true;
                         break;
@@ -2563,17 +2609,17 @@ namespace VoucherPROVER2.Clients.INT
                         return;
                 }
             }
+        }
 
+        private void SetVoucherTypeVisibility(bool isVisible)
+        {
+            if (label_VoucherType != null) label_VoucherType.Visible = isVisible;
+            if (comboBox_VoucherType != null) comboBox_VoucherType.Visible = isVisible;
 
-
-            else
+            // Adjust company panel height dynamically based on whether Voucher Type is visible
+            if (panel_Company != null)
             {
-                if (comboBox_Forms.SelectedIndex == 1) // CV
-                {
-                    panel_SeriesNumber.Visible = true;
-                    label_SeriesNumberText.Text = "Current Series Number: CV";
-                    textBox_SeriesNumber.Text = "CV" + seriesNumber;
-                }
+                panel_Company.Height = isVisible ? 120 : 61;
             }
         }
 

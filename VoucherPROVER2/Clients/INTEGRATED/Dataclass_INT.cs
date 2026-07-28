@@ -208,6 +208,8 @@ namespace VoucherPROVER2.Clients.INT
 
             // The Columns
             public string Type { get; set; } = "General Journal";
+
+            public string AccountNumber { get; set; }
             public DateTime Date { get; set; }
             public string Num { get; set; }
             public string Name { get; set; }      // EntityRef (The Customer/Vendor)

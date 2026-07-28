@@ -674,13 +674,15 @@ namespace VoucherPROVER2.Clients.INT
                 sessionManager.OpenConnection2("", "QB Journal Grid", ENConnectionType.ctLocalQBD);
                 sessionManager.BeginSession("", ENOpenMode.omDontCare);
 
+                // 1. FETCH ACCOUNT NUMBERS MAP FROM CHART OF ACCOUNTS
+                Dictionary<string, string> accountMap = GetAccountNumbersMap(sessionManager);
+
                 IMsgSetRequest request = sessionManager.CreateMsgSetRequest("US", 13, 0);
                 request.Attributes.OnError = ENRqOnError.roeContinue;
 
                 IJournalEntryQuery jeQuery = request.AppendJournalEntryQueryRq();
 
-                // 1. QUERY BROADLY
-                // We are forced to use mcStartsWith because your SDK lacks mcValues
+                // 2. QUERY BROADLY
                 jeQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.MatchCriterion.SetValue(ENMatchCriterion.mcStartsWith);
                 jeQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.RefNumber.SetValue(refNumber);
                 jeQuery.IncludeLineItems.SetValue(true);
@@ -696,14 +698,12 @@ namespace VoucherPROVER2.Clients.INT
                         IJournalEntryRet je = list.GetAt(i);
                         string docNum = je.RefNumber.GetValue();
 
-                        // 2. FILTER STRICTLY (Manual Exact Match)
-                        // If QuickBooks returns "JV0010" but we wanted "JV001", skip it.
+                        // FILTER STRICTLY
                         if (docNum != refNumber)
                         {
                             continue;
                         }
 
-                        // If we get here, it is the correct RefNumber. Extract lines.
                         DateTime date = je.TxnDate.GetValue();
 
                         if (je.ORJournalLineList != null)
@@ -721,9 +721,13 @@ namespace VoucherPROVER2.Clients.INT
                                 if (orLine.JournalDebitLine != null)
                                 {
                                     var line = orLine.JournalDebitLine;
-                                    item.AccountName = line.AccountRef?.FullName?.GetValue() ?? "";
+                                    string fullAccountName = line.AccountRef?.FullName?.GetValue() ?? "";
+
+                                    item.AccountName = fullAccountName;
+                                    // Match from Chart of Accounts Map
+                                    item.AccountNumber = GetAccountNumberFromMap(accountMap, fullAccountName);
                                     item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
-                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 255);
+                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 500);
                                     item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
                                     item.Debit = line.Amount?.GetValue() ?? 0;
                                     item.Credit = 0;
@@ -731,7 +735,11 @@ namespace VoucherPROVER2.Clients.INT
                                 else if (orLine.JournalCreditLine != null)
                                 {
                                     var line = orLine.JournalCreditLine;
-                                    item.AccountName = line.AccountRef?.FullName?.GetValue() ?? "";
+                                    string fullAccountName = line.AccountRef?.FullName?.GetValue() ?? "";
+
+                                    item.AccountName = fullAccountName;
+                                    // Match from Chart of Accounts Map
+                                    item.AccountNumber = GetAccountNumberFromMap(accountMap, fullAccountName);
                                     item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
                                     item.Memo = Truncate(line.Memo?.GetValue() ?? "", 500);
                                     item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
@@ -743,9 +751,7 @@ namespace VoucherPROVER2.Clients.INT
                             }
                         }
 
-                        // 3. STOP IMMEDIATELY
-                        // We found one "JV001". Even if there is a duplicate "JV001" later in the list, 
-                        // we ignore it to prevent the Double Table issue.
+                        // STOP IMMEDIATELY
                         break;
                     }
                 }
@@ -760,6 +766,82 @@ namespace VoucherPROVER2.Clients.INT
             }
 
             return gridItems;
+        }
+
+        // =========================================================================
+        // HELPER METHODS
+        // =========================================================================
+
+        // Queries QuickBooks Chart of Accounts and creates a map of FullName -> AccountNumber
+        private Dictionary<string, string> GetAccountNumbersMap(QBSessionManager sessionManager)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                IMsgSetRequest request = sessionManager.CreateMsgSetRequest("US", 13, 0);
+                request.Attributes.OnError = ENRqOnError.roeContinue;
+
+                IAccountQuery accountQuery = request.AppendAccountQueryRq();
+                IMsgSetResponse response = sessionManager.DoRequests(request);
+
+                IResponse qbResponse = response.ResponseList.GetAt(0);
+                IAccountRetList accountList = qbResponse.Detail as IAccountRetList;
+
+                if (accountList != null)
+                {
+                    for (int i = 0; i < accountList.Count; i++)
+                    {
+                        IAccountRet account = accountList.GetAt(i);
+                        string fullName = account.FullName?.GetValue() ?? "";
+                        string acctNum = account.AccountNumber?.GetValue() ?? "";
+
+                        if (!string.IsNullOrEmpty(fullName) && !map.ContainsKey(fullName))
+                        {
+                            map.Add(fullName, acctNum);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error querying Chart of Accounts: {ex.Message}");
+            }
+
+            return map;
+        }
+
+        // Safe lookup method with fallback logic
+        private string GetAccountNumberFromMap(Dictionary<string, string> map, string fullName)
+        {
+            if (string.IsNullOrWhiteSpace(fullName)) return "";
+
+            // 1. Direct match from Chart of Accounts Map
+            if (map.TryGetValue(fullName, out string acctNum) && !string.IsNullOrWhiteSpace(acctNum))
+            {
+                return acctNum;
+            }
+
+            // 2. Fallback: Check if FullName contains an embedded number prefix
+            return ExtractAccountNumber(fullName);
+        }
+
+        private string ExtractAccountNumber(string fullName)
+        {
+            if (string.IsNullOrWhiteSpace(fullName)) return "";
+
+            // Handles sub-accounts by evaluating the last leaf account name if present
+            string targetPart = fullName.Contains(':') ? fullName.Split(':').Last().Trim() : fullName;
+
+            // Split on spaces, middle dots (·), hyphens, or colons
+            var parts = targetPart.Split(new[] { ' ', '·', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length > 0 && parts[0].Any(char.IsDigit))
+            {
+                return parts[0];
+            }
+
+            return "";
         }
 
 
