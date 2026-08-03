@@ -1250,7 +1250,7 @@ namespace VoucherPROVER2.Clients.INT
             public static string Convert(double amount)
             {
                 if (amount == 0)
-                    return "Zero Pesos Only";
+                    return "Zero Pesos";
 
                 if (amount < 0)
                     return "Negative amount, cannot convert to words";
@@ -1266,11 +1266,11 @@ namespace VoucherPROVER2.Clients.INT
                 {
                     result = pesoWords + " Pesos";
                     //result = pesoWords + " and " + centavos + "/100 Pesos Only"; kanan terrys
-                    result += " and " + centavoWords + " Centavos Only";
+                    result += " and " + centavoWords + " Centavos";
                 }
                 else
                 {
-                    result = pesoWords + " Pesos Only";
+                    result = pesoWords + " Pesos";
                 }
 
                 return result;

@@ -150,11 +150,11 @@ namespace VoucherPROVER2.Clients.INT
 
             comboBox_Company.Items.AddRange(new string[]
             {
-                "Integrated Contractor & Plumbing Works, Inc.",
+                "INTEGRATED CONTRACTOR & Plumbing Works, Inc.",
             });
 
             if (comboBox_Company.Items.Count > 0)
-            {
+            {   
                 comboBox_Company.SelectedIndex = 0;
             }
 
@@ -491,10 +491,10 @@ namespace VoucherPROVER2.Clients.INT
                 comboBox_Forms.Items.AddRange(new string[]
             {
                 "",
-                "Online Voucher",
+                "Online Voucher (Write Checks)",
                 "Check",
-                "Journal Voucher",
-                "Check Voucher"
+                "Journal Voucher (General Journal)",
+                "Check Voucher (Enter Bills)"
 
             });
                 comboBox_Forms.SelectedIndex = 0;
@@ -961,8 +961,6 @@ namespace VoucherPROVER2.Clients.INT
                     textObject_CVBILLAddress = cRAPV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
                     textObject_CVBILLPayee = cRAPV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
                     textObject_CVBILLDate = cRAPV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLDate"] as TextObject;
-                    
-
                     textObject_CVBILLAmountInWords = cRAPV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLAmountInWords"] as TextObject;
                     textObject_CVBILLCheckDate = cRAPV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
                     textObject_CVBILLRefNumber = cRAPV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLRefNumber"] as TextObject;
@@ -979,188 +977,92 @@ namespace VoucherPROVER2.Clients.INT
                     AccessToDatabase_INT accessToDatabase = new AccessToDatabase_INT();
 
                     var (PreparedByName, PreparedByPosition,
-                       ReviewedByName, ReviewedByPosition,
-                       RecommendingApprovalName, RecommendingApprovalPosition,
-                       ApprovedByName, ApprovedByPosition,
-                       ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
+                         ReviewedByName, ReviewedByPosition,
+                         RecommendingApprovalName, RecommendingApprovalPosition,
+                         ApprovedByName, ApprovedByPosition,
+                         ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
 
-
-                    double debitTotalAmount = 0;
-                    double creditTotalAmount = 0;
-
-                    textObject_PreparedBy.Text = PreparedByName;
-                    textObject_PreparedByPos.Text = PreparedByPosition;
-                    textObject_CheckedBy.Text = ReviewedByName;
-                    textObject_CheckedByPos.Text = ReviewedByPosition;
-                    textObject_ApprovedBy.Text = ApprovedByName;
-                    textObject_ApprovedByPos.Text = ApprovedByPosition;
-
-                    foreach (var bill in bills) // 'bills' is List<BillTable>
-                    {
-                        foreach (var item in bill.ItemDetails)
-                        {
-                            try
-                            {
-                                // Handle ItemLineAmount
-                                if (item.ItemLineAmount != 0)
-                                {
-                                    if (item.ItemLineAmount > 0)
-                                        debitTotalAmount += item.ItemLineAmount;
-                                    else
-                                        creditTotalAmount += Math.Abs(item.ItemLineAmount);
-                                }
-
-                                // Handle ExpenseLineAmount
-                                if (item.ExpenseLineAmount != 0)
-                                {
-                                    if (item.ExpenseLineAmount > 0)
-                                        debitTotalAmount += item.ExpenseLineAmount;
-                                    else
-                                        creditTotalAmount += Math.Abs(item.ExpenseLineAmount);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show($"Error processing item detail: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            }
-                        }
-                    }
-
-
+                    if (textObject_PreparedBy != null) textObject_PreparedBy.Text = PreparedByName;
+                    if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = PreparedByPosition;
+                    if (textObject_CheckedBy != null) textObject_CheckedBy.Text = ReviewedByName;
+                    if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = ReviewedByPosition;
+                    if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = ApprovedByName;
+                    if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = ApprovedByPosition;
                 }
                 catch
                 {
                     throw;
                 }
 
+                // =========================================================================
+                // CONSOLIDATED TOTALS ACROSS ALL BILLS
+                // =========================================================================
+                double totalVoucherAmount = bills.Sum(bill =>
+                {
+                    double lineSum = bill.ItemDetails?.Sum(d => d.ItemLineAmount > 0 ? d.ItemLineAmount : d.ExpenseLineAmount) ?? 0;
+                    return lineSum > 0 ? lineSum : (bill.AmountDue > 0 ? bill.AmountDue : bill.Amount);
+                });
 
-                double amount = bills[0].AmountDue;
+                string amountInWords = "          " + AccessToDatabase_INT.AmountToWordsConverter.Convert(totalVoucherAmount);
 
                 string bankaccount = (bills[0].BankAccount ?? "").Contains(":")
                                     ? (bills[0].BankAccount ?? "").Split(':').Last().Trim()
                                     : (bills[0].BankAccount ?? "");
 
+                var b = bills[0]; // Now 'b' won't conflict with the lambda above!
 
-                string amountInWords = AccessToDatabase_INT.AmountToWordsConverter.Convert(amount);
-                var b = bills[0];
-
-                // Line 1: Combine Addr1, Addr2, Addr3, Addr4 into one string separated by commas
                 string streetLine = string.Join(", ", new[] {
-                     b.VendorAddressAddr1,
-                     b.VendorAddressAddr2,
-                     b.VendorAddressAddr3,
-                     b.VendorAddressAddr4
-                 }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            b.VendorAddressAddr1,
+            b.VendorAddressAddr2,
+            b.VendorAddressAddr3,
+            b.VendorAddressAddr4
+                }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                // Line 2: City (Add State/Zip here if you have them in your BillTable)
                 string cityLine = string.Join(" ", new[] {
-                     b.VendorAddressCity,
-                 }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            b.VendorAddressCity,
+                }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                // Final: Join the two lines with a single NewLine
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 if (textObject_CVBILLRefNumber != null) textObject_CVBILLRefNumber.Text = refNumberCR;
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
-                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = DateTime.Now.ToString("MMMM dd, yyyy"); ;
+                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
-                if (textObject_CVBILLTotalAmount != null) textObject_CVBILLTotalAmount.Text = bills[0].AmountDue.ToString("N2");
+                if (textObject_CVBILLTotalAmount != null) textObject_CVBILLTotalAmount.Text = totalVoucherAmount.ToString("N2");
                 if (textObject_CVBILLBankAccount != null) textObject_CVBILLBankAccount.Text = bankaccount;
 
-
-                SubreportObject subreportObject = null;
-
-                try
-                {
-                    subreportObject = cRAPV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINT"] as SubreportObject;
-                }
-                catch
-                {
-                    throw;
-                }
-
+                // Subreport 1: Details / Remarks Summary
+                SubreportObject subreportObject = cRAPV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINT"] as SubreportObject;
                 if (subreportObject != null)
                 {
-                    ReportDocument subReportDocument = null;
-                    try
-                    {
-                        subReportDocument = cRAPV_INTBILL.OpenSubreport(subreportObject.SubreportName);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                    ReportDocument subReportDocument = cRAPV_INTBILL.OpenSubreport(subreportObject.SubreportName);
 
-                    try
-                    {
-                        TextObject textObject_BILLSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
-                        TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
+                    TextObject textObject_BILLSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
+                    TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
 
-                        if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].Memo ?? "";
-                        if (textObject_BILLSubAmountPayable != null)
-                        {
-                            double totalAmountDue = bills.Sum(a => a.AmountDue);
-                            textObject_BILLSubAmountPayable.Text = totalAmountDue.ToString("N2");
-                        }
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                   
+
+                    if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].Memo;
+                    if (textObject_BILLSubAmountPayable != null) textObject_BILLSubAmountPayable.Text = totalVoucherAmount.ToString("N2");
                 }
 
-                // Subreport 2: SubreportCVDetailsIVP
-                SubreportObject subreportObjectIVP = null;
-
-                try
-                {
-                    subreportObjectIVP = cRAPV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
-                }
-                catch
-                {
-                    throw;
-                }
-
+                // Subreport 2: IVP (Debit Details)
+                SubreportObject subreportObjectIVP = cRAPV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                 if (subreportObjectIVP != null)
                 {
-                    ReportDocument subReportDocumentIVP = null;
-                    try
-                    {
-                        subReportDocumentIVP = cRAPV_INTBILL.OpenSubreport(subreportObjectIVP.SubreportName);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                    cRAPV_INTBILL.OpenSubreport(subreportObjectIVP.SubreportName);
                 }
 
-                // Subreport 3: SubreportCVDetailsINTCredit
-                SubreportObject subreportObjectINTCredit = null;
-
-                try
-                {
-                    subreportObjectINTCredit = cRAPV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINTCredit"] as SubreportObject;
-                }
-                catch
-                {
-                    throw;
-                }
-
+                // Subreport 3: INTCredit (Credit Details)
+                SubreportObject subreportObjectINTCredit = cRAPV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINTCredit"] as SubreportObject;
                 if (subreportObjectINTCredit != null)
                 {
-                    ReportDocument subReportDocumentINTCredit = null;
-                    try
-                    {
-                        subReportDocumentINTCredit = cRAPV_INTBILL.OpenSubreport(subreportObjectINTCredit.SubreportName);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                    cRAPV_INTBILL.OpenSubreport(subreportObjectINTCredit.SubreportName);
                 }
 
+                // Populate MS Access Staging Database
                 InsertDataToBillCompiled(refNumberCR, bills);
 
                 cRAPV_INTBILL.SetParameterValue("ReferenceNumber", refNumberCR);
@@ -1210,9 +1112,6 @@ namespace VoucherPROVER2.Clients.INT
                 TextObject textObject_CheckedByPos = null;
                 TextObject textObject_ApprovedBy = null;
                 TextObject textObject_ApprovedByPos = null;
-                //TextObject textObject_ReceivedBy = null;
-
-                
 
                 try
                 {
@@ -1224,7 +1123,7 @@ namespace VoucherPROVER2.Clients.INT
                     textObject_CVBILLCheckDate = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
                     textObject_CVBILLRefnumber = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
                     textObject_CVBILLBankAccount = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLBankAccount"] as TextObject;
-                    textObject_CVBILLAmount= cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLLAmount"] as TextObject;
+                    textObject_CVBILLAmount = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLLAmount"] as TextObject;
 
                     textObject_PreparedBy = cRCV_INTBILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
                     textObject_PreparedByPos = cRCV_INTBILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
@@ -1232,158 +1131,125 @@ namespace VoucherPROVER2.Clients.INT
                     textObject_CheckedByPos = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
                     textObject_ApprovedBy = cRCV_INTBILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
                     textObject_ApprovedByPos = cRCV_INTBILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
-                    //textObject_ReceivedBy = cRCV_ENABILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
-
 
                     AccessToDatabase_INT accessToDatabase = new AccessToDatabase_INT();
 
                     var (PreparedByName, PreparedByPosition,
-                       ReviewedByName, ReviewedByPosition,
-                       RecommendingApprovalName, RecommendingApprovalPosition,
-                       ApprovedByName, ApprovedByPosition,
-                       ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
+                         ReviewedByName, ReviewedByPosition,
+                         RecommendingApprovalName, RecommendingApprovalPosition,
+                         ApprovedByName, ApprovedByPosition,
+                         ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
 
-
-                    textObject_PreparedBy.Text = PreparedByName;
-                    textObject_PreparedByPos.Text = PreparedByPosition;
-                    textObject_CheckedBy.Text = ReviewedByName;
-                    textObject_CheckedByPos.Text = ReviewedByPosition;
-                    textObject_ApprovedBy.Text = ApprovedByName;
-                    textObject_ApprovedByPos.Text = ApprovedByPosition;
-                    //textObject_ReceivedBy.Text = ReceivedByName;
-
-
+                    if (textObject_PreparedBy != null) textObject_PreparedBy.Text = PreparedByName;
+                    if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = PreparedByPosition;
+                    if (textObject_CheckedBy != null) textObject_CheckedBy.Text = ReviewedByName;
+                    if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = ReviewedByPosition;
+                    if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = ApprovedByName;
+                    if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = ApprovedByPosition;
                 }
                 catch
                 {
                     throw;
                 }
 
+                // =========================================================================
+                // 1. CALCULATE INDIVIDUAL BILL AMOUNTS AND SUMMARY REMARKS
+                // =========================================================================
+                var billSummaryList = bills
+                    .Where(x => !string.IsNullOrWhiteSpace(x.RefNumber) || !string.IsNullOrWhiteSpace(x.AppliedRefNumber))
+                    .GroupBy(x => !string.IsNullOrWhiteSpace(x.AppliedRefNumber) ? x.AppliedRefNumber.Trim() : x.RefNumber.Trim())
+                    .Select(g =>
+                    {
+                        var firstBill = g.First();
+                        // Determine paid amount per bill without defaulting to total check amount
+                        double paidAmount = firstBill.AppliedAmount > 0
+                            ? firstBill.AppliedAmount
+                            : (firstBill.Amount > 0 ? firstBill.Amount : firstBill.AmountDue);
 
-                double amount = bills[0].AmountDue;
-                string amountInWords = AccessToDatabase_INT.AmountToWordsConverter.Convert(amount);
+                        return new
+                        {
+                            RefNumber = g.Key,
+                            Amount = paidAmount
+                        };
+                    })
+                    .ToList();
 
-                amountInWords = "          " + amountInWords;
-                string refumber = refNumberCR.Contains("/") ? refNumberCR.Split('/').First() : refNumberCR;
+                // Build remarks string: SI#4414 - 240.00, etc.
+                string billRemarksText = string.Join(Environment.NewLine,
+                    billSummaryList.Select(b => $"SI#{b.RefNumber} - {b.Amount:N2}"));
+
+                // Append main Memo if present
+                string mainMemo = bills[0].BillMemo ?? bills[0].Memo;
+                if (!string.IsNullOrWhiteSpace(mainMemo))
+                {
+                    billRemarksText = string.IsNullOrWhiteSpace(billRemarksText)
+                        ? mainMemo
+                        : $"{mainMemo}{Environment.NewLine}{billRemarksText}";
+                }
+
+                // Real total payout (sum of actual bill payments: 240 + 432 + 1000 = 1,672.00)
+                double realCheckTotal = billSummaryList.Sum(x => x.Amount);
+                if (realCheckTotal == 0) realCheckTotal = bills[0].Amount;
+
+                string amountInWords = "          " + AccessToDatabase_INT.AmountToWordsConverter.Convert(realCheckTotal);
                 string refumber2 = refNumberCR.Contains("/") ? refNumberCR.Split('/').Last() : refNumberCR;
                 string bankaccount = (bills[0].BankAccount ?? "").Contains(":")
                                     ? (bills[0].BankAccount ?? "").Split(':').Last().Trim()
                                     : (bills[0].BankAccount ?? "");
 
+                var bObj = bills[0];
 
-                var b = bills[0];
-
-                // Line 1: Combine Addr1, Addr2, Addr3, Addr4 into one string separated by commas
+                // Line 1: Combine Addr1 and Addr2
                 string streetLine = string.Join(", ", new[] {
-                                                 b.VendorAddressAddr1,
-                                                 b.VendorAddressAddr2,
-                                                 b.VendorAddressAddr3,
-                                                 b.VendorAddressAddr4
-                                             }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            bObj.Address,
+            bObj.Address2,
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                // Line 2: City (Add State/Zip here if you have them in your BillTable)
+                // Line 2: City
                 string cityLine = string.Join(" ", new[] {
-                                                 b.VendorAddressCity,
-                                             }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            bObj.VendorAddressCity,
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                // Final: Join the two lines with a single NewLine
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
-
-
 
                 if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
                 if (textObject_CVBILLRefnumber != null) textObject_CVBILLRefnumber.Text = refumber2;
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
-                if (textObject_CVBILLAmount != null) textObject_CVBILLAmount.Text = bills[0].AmountDue.ToString("N2");
+                if (textObject_CVBILLAmount != null) textObject_CVBILLAmount.Text = realCheckTotal.ToString("N2");
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
                 if (textObject_CVBILLBankAccount != null) textObject_CVBILLBankAccount.Text = bankaccount;
 
-                SubreportObject subreportObjectIVP = null;
-                try
-                {
-                    subreportObjectIVP = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
-                }
-                catch
-                {
-                    throw;
-                }
-
+                // Subreport 1: Debit Details
+                SubreportObject subreportObjectIVP = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                 if (subreportObjectIVP != null)
                 {
-                    ReportDocument subReportDocumentIVP = null;
-                    try
-                    {
-                        subReportDocumentIVP = cRCV_INTBILL.OpenSubreport(subreportObjectIVP.SubreportName);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
-
-                }
-                SubreportObject subreportObjectINTCredit = null;
-                try
-                {
-                    subreportObjectINTCredit = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINTCredit"] as SubreportObject;
-                }
-                catch
-                {
-                    throw;
+                    cRCV_INTBILL.OpenSubreport(subreportObjectIVP.SubreportName);
                 }
 
+                // Subreport 2: Credit Details
+                SubreportObject subreportObjectINTCredit = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINTCredit"] as SubreportObject;
                 if (subreportObjectINTCredit != null)
                 {
-                    ReportDocument subReportDocumentINTCredit = null;
-                    try
-                    {
-                        subReportDocumentINTCredit = cRCV_INTBILL.OpenSubreport(subreportObjectINTCredit.SubreportName);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
-
+                    cRCV_INTBILL.OpenSubreport(subreportObjectINTCredit.SubreportName);
                 }
 
-                // Subreport 2: SubreportCVDetailsINTCredit
-                SubreportObject subreportObjectINT = null;
-                try
-                {
-                    subreportObjectINT = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINT"] as SubreportObject;
-                }
-                catch
-                {
-                    throw;
-                }
-
+                // Subreport 3: Remarks and Subtotal
+                SubreportObject subreportObjectINT = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINT"] as SubreportObject;
                 if (subreportObjectINT != null)
                 {
-                    ReportDocument subReportDocumentINT = null;
-                    try
-                    {
-                        subReportDocumentINT = cRCV_INTBILL.OpenSubreport(subreportObjectINT.SubreportName);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                    ReportDocument subReportDocumentINT = cRCV_INTBILL.OpenSubreport(subreportObjectINT.SubreportName);
 
-                    try
-                    {
-                        TextObject textObject_BILLSubRemarks = subReportDocumentINT.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
-                        TextObject textObject_BILLCVSubTotal = subReportDocumentINT.ReportDefinition.ReportObjects["TextCVBILLSUBTotalAmount"] as TextObject;
+                    TextObject textObject_BILLSubRemarks = subReportDocumentINT.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
+                    
 
-                        if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].BillMemo ?? "";
-                        if (textObject_BILLCVSubTotal != null) textObject_BILLCVSubTotal.Text = bills[0].Amount.ToString("N2");
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                    if (textObject_BILLSubRemarks != null)
+                        textObject_BILLSubRemarks.Text = SafeTruncate(billRemarksText, 500);
+
                 }
 
+                // Populate staging database table
                 InsertDataToBillCompiled(refNumberCR, bills);
 
                 cRCV_INTBILL.SetParameterValue("ReferenceNumber", refNumberCR);
@@ -1411,7 +1277,7 @@ namespace VoucherPROVER2.Clients.INT
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
 
-            // Local helper function to safely truncate text to database limits
+            // Helper function to safely truncate strings to DB limit
             string SafeTruncate(string value, int maxLength)
             {
                 if (string.IsNullOrEmpty(value)) return "";
@@ -1422,14 +1288,13 @@ namespace VoucherPROVER2.Clients.INT
             {
                 connection.Open();
 
-                // 1. Clear old data
+                // 1. Clear old staging data
                 string deleteQuery = "DELETE FROM CheckVoucherCompiled";
                 using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
                 {
                     try
                     {
                         deleteCommand.ExecuteNonQuery();
-                        Console.WriteLine("Old data has been deleted from CheckVoucherCompiled.");
                     }
                     catch (Exception ex)
                     {
@@ -1440,133 +1305,152 @@ namespace VoucherPROVER2.Clients.INT
 
                 // 2. Prepare Insert Query
                 string insertQuery = @"
-                        INSERT INTO CheckVoucherCompiled 
-                        (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-                        VALUES 
-                        (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+                INSERT INTO CheckVoucherCompiled 
+                (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+                VALUES 
+                (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
 
                 // =========================================================================
-                // PASS 1: INSERT ALL DEBIT ENTRIES (Amounts > 0)
+                // AGGREGATION / GROUPING LOGIC (DEBITS)
                 // =========================================================================
-                foreach (var check in checkData)
+
+                // Group Positive Item Debits
+                var groupedItemDebits = checkData
+                    .Where(x => !string.IsNullOrEmpty(x.Item) && x.ItemAmount > 0)
+                    .GroupBy(x => new {
+                        Name = x.Item.Trim(),
+                        Class = x.ItemClass ?? "",
+                        Memo = x.ExpensesMemo ?? "",
+                        CustomerJob = x.ExpensesCustomerJob ?? ""
+                    })
+                    .Select(g => new {
+                        Particulars = g.Key.Name,
+                        Class = g.Key.Class,
+                        Memo = g.Key.Memo,
+                        CustomerJob = g.Key.CustomerJob,
+                        TotalAmount = g.Sum(x => x.ItemAmount)
+                    });
+
+                // Group Positive Expense Debits
+                var groupedExpenseDebits = checkData
+                    .Where(x => !string.IsNullOrEmpty(x.Account) && x.ExpensesAmount > 0)
+                    .GroupBy(x => new {
+                        Name = x.Account.Trim(),
+                        Class = x.ExpenseClass ?? "",
+                        Memo = x.ExpensesMemo ?? "",
+                        CustomerJob = x.ExpensesCustomerJob ?? ""
+                    })
+                    .Select(g => new {
+                        Particulars = g.Key.Name,
+                        Class = g.Key.Class,
+                        Memo = g.Key.Memo,
+                        CustomerJob = g.Key.CustomerJob,
+                        TotalAmount = g.Sum(x => x.ExpensesAmount)
+                    });
+
+                // Execute Debit Inserts
+                foreach (var entry in groupedItemDebits.Concat(groupedExpenseDebits))
                 {
                     try
                     {
-                        string memoValue = SafeTruncate(check.ExpensesMemo, 255);
-                        string customerJob = SafeTruncate(check.ExpensesCustomerJob, 255);
+                        debitTotalAmount += entry.TotalAmount;
 
-                        // --- ITEM DEBITS ---
-                        if (!string.IsNullOrEmpty(check.Item) && check.ItemAmount > 0)
+                        using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
-                            debitTotalAmount += check.ItemAmount;
-
-                            using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                            {
-                                command.Parameters.AddWithValue("@RefNumber", refNumber);
-                                command.Parameters.AddWithValue("@Particulars", SafeTruncate(check.Item, 255));
-                                command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(check.ItemClass) ? (object)DBNull.Value : check.ItemClass);
-                                command.Parameters.AddWithValue("@Debit", check.ItemAmount.ToString("N2"));
-                                command.Parameters.AddWithValue("@Credit", "");
-                                command.Parameters.AddWithValue("@Memo", memoValue);
-                                command.Parameters.AddWithValue("@CustomerJob", customerJob);
-                                command.ExecuteNonQuery();
-                            }
-                        }
-
-                        // --- EXPENSE DEBITS ---
-                        if (!string.IsNullOrEmpty(check.Account) && check.ExpensesAmount > 0)
-                        {
-                            debitTotalAmount += check.ExpensesAmount;
-
-                            using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                            {
-                                command.Parameters.AddWithValue("@RefNumber", refNumber);
-                                command.Parameters.AddWithValue("@Particulars", SafeTruncate(check.Account, 255));
-                                command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(check.ExpenseClass) ? (object)DBNull.Value : check.ExpenseClass);
-                                command.Parameters.AddWithValue("@Debit", check.ExpensesAmount.ToString("N2"));
-                                command.Parameters.AddWithValue("@Credit", "");
-                                command.Parameters.AddWithValue("@Memo", memoValue);
-                                command.Parameters.AddWithValue("@CustomerJob", customerJob);
-                                command.ExecuteNonQuery();
-                            }
+                            command.Parameters.AddWithValue("@RefNumber", refNumber);
+                            command.Parameters.AddWithValue("@Particulars", SafeTruncate(entry.Particulars, 255));
+                            command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(entry.Class) ? (object)DBNull.Value : entry.Class);
+                            command.Parameters.AddWithValue("@Debit", entry.TotalAmount.ToString("N2"));
+                            command.Parameters.AddWithValue("@Credit", "");
+                            command.Parameters.AddWithValue("@Memo", SafeTruncate(entry.Memo, 255));
+                            command.Parameters.AddWithValue("@CustomerJob", SafeTruncate(entry.CustomerJob, 255));
+                            command.ExecuteNonQuery();
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error processing Debit line: {ex.Message}");
+                        Console.WriteLine($"Error processing aggregated Debit line: {ex.Message}");
                     }
                 }
 
                 // =========================================================================
-                // PASS 2: INSERT ALL CREDIT ENTRIES FROM SPLITS (Amounts < 0)
+                // AGGREGATION / GROUPING LOGIC (CREDITS - Amounts < 0)
                 // =========================================================================
-                foreach (var check in checkData)
+
+                // Group Negative Item Credits (e.g. discounts/returns)
+                var groupedItemCredits = checkData
+                    .Where(x => !string.IsNullOrEmpty(x.Item) && x.ItemAmount < 0)
+                    .GroupBy(x => new {
+                        Name = x.Item.Trim(),
+                        Class = x.ItemClass ?? "",
+                        Memo = x.ExpensesMemo ?? "",
+                        CustomerJob = x.ExpensesCustomerJob ?? ""
+                    })
+                    .Select(g => new {
+                        Particulars = g.Key.Name,
+                        Class = g.Key.Class,
+                        Memo = g.Key.Memo,
+                        CustomerJob = g.Key.CustomerJob,
+                        TotalAmount = Math.Abs(g.Sum(x => x.ItemAmount))
+                    });
+
+                // Group Negative Expense Credits (e.g. Tax Withholdings / EWT)
+                var groupedExpenseCredits = checkData
+                    .Where(x => !string.IsNullOrEmpty(x.Account) && x.ExpensesAmount < 0)
+                    .GroupBy(x => new {
+                        Name = x.Account.Trim(),
+                        Class = x.ExpenseClass ?? "",
+                        Memo = x.ExpensesMemo ?? "",
+                        CustomerJob = x.ExpensesCustomerJob ?? ""
+                    })
+                    .Select(g => new {
+                        Particulars = g.Key.Name,
+                        Class = g.Key.Class,
+                        Memo = g.Key.Memo,
+                        CustomerJob = g.Key.CustomerJob,
+                        TotalAmount = Math.Abs(g.Sum(x => x.ExpensesAmount))
+                    });
+
+                // Execute Credit Line Inserts
+                foreach (var entry in groupedItemCredits.Concat(groupedExpenseCredits))
                 {
                     try
                     {
-                        string memoValue = SafeTruncate(check.ExpensesMemo, 255);
-                        string customerJob = SafeTruncate(check.ExpensesCustomerJob, 255);
+                        creditTotalAmount += entry.TotalAmount;
 
-                        // --- ITEM CREDITS ---
-                        if (!string.IsNullOrEmpty(check.Item) && check.ItemAmount < 0)
+                        using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
-                            double absoluteAmount = Math.Abs(check.ItemAmount);
-                            creditTotalAmount += absoluteAmount;
-
-                            using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                            {
-                                command.Parameters.AddWithValue("@RefNumber", refNumber);
-                                command.Parameters.AddWithValue("@Particulars", SafeTruncate(check.Item, 255));
-                                command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(check.ItemClass) ? (object)DBNull.Value : check.ItemClass);
-                                command.Parameters.AddWithValue("@Debit", "");
-                                command.Parameters.AddWithValue("@Credit", absoluteAmount.ToString("N2"));
-                                command.Parameters.AddWithValue("@Memo", memoValue);
-                                command.Parameters.AddWithValue("@CustomerJob", customerJob);
-                                command.ExecuteNonQuery();
-                            }
-                        }
-
-                        // --- EXPENSE CREDITS (e.g., Tax Withholdings) ---
-                        if (!string.IsNullOrEmpty(check.Account) && check.ExpensesAmount < 0)
-                        {
-                            double absoluteAmount = Math.Abs(check.ExpensesAmount);
-                            creditTotalAmount += absoluteAmount;
-
-                            using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                            {
-                                command.Parameters.AddWithValue("@RefNumber", refNumber);
-                                command.Parameters.AddWithValue("@Particulars", SafeTruncate(check.Account, 255));
-                                command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(check.ExpenseClass) ? (object)DBNull.Value : check.ExpenseClass);
-                                command.Parameters.AddWithValue("@Debit", "");
-                                command.Parameters.AddWithValue("@Credit", absoluteAmount.ToString("N2"));
-                                command.Parameters.AddWithValue("@Memo", memoValue);
-                                command.Parameters.AddWithValue("@CustomerJob", customerJob);
-                                command.ExecuteNonQuery();
-                            }
+                            command.Parameters.AddWithValue("@RefNumber", refNumber);
+                            command.Parameters.AddWithValue("@Particulars", SafeTruncate(entry.Particulars, 255));
+                            command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(entry.Class) ? (object)DBNull.Value : entry.Class);
+                            command.Parameters.AddWithValue("@Debit", "");
+                            command.Parameters.AddWithValue("@Credit", entry.TotalAmount.ToString("N2"));
+                            command.Parameters.AddWithValue("@Memo", SafeTruncate(entry.Memo, 255));
+                            command.Parameters.AddWithValue("@CustomerJob", SafeTruncate(entry.CustomerJob, 255));
+                            command.ExecuteNonQuery();
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error processing Credit line: {ex.Message}");
+                        Console.WriteLine($"Error processing aggregated Credit line: {ex.Message}");
                     }
                 }
 
                 // =========================================================================
-                // PASS 3: INSERT THE MAIN BANK ACCOUNT BALANCING CREDIT ENTRY
+                // PASS 3: MAIN BANK ACCOUNT BALANCING CREDIT ENTRY
                 // =========================================================================
                 if (checkData != null && checkData.Count > 0)
                 {
                     try
                     {
                         var mainCheck = checkData[0];
-                        // The actual total drop out of the check is typically the balance remaining
                         double finalCheckCredit = mainCheck.TotalAmount;
                         creditTotalAmount += finalCheckCredit;
 
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
                             command.Parameters.AddWithValue("@RefNumber", refNumber);
-                            // Standard practice to clean or label the target bank account asset name
+
                             string bankName = mainCheck.BankAccount.Contains(":")
                                 ? mainCheck.BankAccount.Split(':').Last().Trim()
                                 : mainCheck.BankAccount;
@@ -1588,28 +1472,34 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 // =========================================================================
-                // PASS 4: DESCRIPTION ONLY FALLBACKS
+                // PASS 4: DESCRIPTION-ONLY FALLBACKS
                 // =========================================================================
-                foreach (var check in checkData)
+                var descriptionOnlyEntries = checkData
+                    .Where(x => string.IsNullOrEmpty(x.Item) && string.IsNullOrEmpty(x.Account) && !string.IsNullOrEmpty(x.ItemDescription))
+                    .GroupBy(x => new {
+                        Description = x.ItemDescription.Trim(),
+                        Memo = x.ExpensesMemo ?? "",
+                        CustomerJob = x.ExpensesCustomerJob ?? ""
+                    })
+                    .Select(g => g.Key);
+
+                foreach (var desc in descriptionOnlyEntries)
                 {
-                    if (string.IsNullOrEmpty(check.Item) && string.IsNullOrEmpty(check.Account) && !string.IsNullOrEmpty(check.ItemDescription))
+                    try
                     {
-                        try
+                        using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
-                            using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                            {
-                                command.Parameters.AddWithValue("@RefNumber", refNumber);
-                                command.Parameters.AddWithValue("@Particulars", SafeTruncate(check.ItemDescription, 255));
-                                command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
-                                command.Parameters.AddWithValue("@Debit", "");
-                                command.Parameters.AddWithValue("@Credit", "");
-                                command.Parameters.AddWithValue("@Memo", SafeTruncate(check.ExpensesMemo, 255));
-                                command.Parameters.AddWithValue("@CustomerJob", SafeTruncate(check.ExpensesCustomerJob, 255));
-                                command.ExecuteNonQuery();
-                            }
+                            command.Parameters.AddWithValue("@RefNumber", refNumber);
+                            command.Parameters.AddWithValue("@Particulars", SafeTruncate(desc.Description, 255));
+                            command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
+                            command.Parameters.AddWithValue("@Debit", "");
+                            command.Parameters.AddWithValue("@Credit", "");
+                            command.Parameters.AddWithValue("@Memo", SafeTruncate(desc.Memo, 255));
+                            command.Parameters.AddWithValue("@CustomerJob", SafeTruncate(desc.CustomerJob, 255));
+                            command.ExecuteNonQuery();
                         }
-                        catch { }
                     }
+                    catch { }
                 }
 
                 connection.Close();
@@ -1729,7 +1619,6 @@ namespace VoucherPROVER2.Clients.INT
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
 
-            // Local helper function to safely truncate text to database limits
             string SafeTruncate(string value, int maxLength)
             {
                 if (string.IsNullOrEmpty(value)) return "";
@@ -1740,15 +1629,11 @@ namespace VoucherPROVER2.Clients.INT
             {
                 connection.Open();
 
-                // 1. Clear old data
+                // 1. Clear old staging data
                 string deleteQuery = "DELETE FROM Bill_Compiled";
                 using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
                 {
-                    try
-                    {
-                        deleteCommand.ExecuteNonQuery();
-                        Console.WriteLine("Old data has been deleted from Bill_Compiled.");
-                    }
+                    try { deleteCommand.ExecuteNonQuery(); }
                     catch (Exception ex)
                     {
                         MessageBox.Show($"Error deleting data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -1756,171 +1641,159 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                // 2. Prepare Insert Query
                 string insertQuery = @"
-                INSERT INTO Bill_Compiled 
-                (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-                VALUES 
-                (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+        INSERT INTO Bill_Compiled 
+        (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+        VALUES 
+        (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+
+                var allDetails = bills
+                    .Where(b => b.ItemDetails != null)
+                    .SelectMany(b => b.ItemDetails.Select(d => new { Bill = b, Detail = d }));
 
                 // =========================================================================
-                // PASS 1: INSERT ALL DEBIT ENTRIES (Amounts > 0)
+                // PASS 1: POSITIVE DEBIT EXPENSE / ITEM LINES (> 0)
                 // =========================================================================
-                foreach (var bill in bills)
+                var groupedItemDebits = allDetails
+                    .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount > 0)
+                    .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
+                    .Select(g => new {
+                        Particulars = g.Key,
+                        Memo = g.First().Detail.ItemLineMemo ?? "",
+                        TotalAmount = g.Sum(x => x.Detail.ItemLineAmount)
+                    });
+
+                var groupedExpenseDebits = allDetails
+                    .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount > 0)
+                    .GroupBy(x => x.Detail.ExpenseLineItemRefFullName.Trim())
+                    .Select(g => new {
+                        Particulars = g.Key,
+                        Memo = g.First().Detail.ExpenseLineMemo ?? "",
+                        TotalAmount = g.Sum(x => x.Detail.ExpenseLineAmount)
+                    });
+
+                foreach (var entry in groupedItemDebits.Concat(groupedExpenseDebits))
                 {
-                    if (bill.ItemDetails == null) continue;
-
-                    foreach (var detail in bill.ItemDetails)
+                    debitTotalAmount += entry.TotalAmount;
+                    using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                     {
-                        try
-                        {
-                            // --- ITEM DEBITS ---
-                            if (!string.IsNullOrEmpty(detail.ItemLineItemRefFullName) && detail.ItemLineAmount > 0)
-                            {
-                                debitTotalAmount += detail.ItemLineAmount;
-
-                                using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                                {
-                                    command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                                    command.Parameters.AddWithValue("@Particulars", SafeTruncate(detail.ItemLineItemRefFullName, 255));
-                                    command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(detail.ItemLineClassRefFullName) ? (object)DBNull.Value : detail.ItemLineClassRefFullName);
-                                    command.Parameters.AddWithValue("@Debit", detail.ItemLineAmount.ToString("N2"));
-                                    command.Parameters.AddWithValue("@Credit", "");
-                                    command.Parameters.AddWithValue("@Memo", SafeTruncate(detail.ItemLineMemo, 255));
-                                    command.Parameters.AddWithValue("@CustomerJob", SafeTruncate(detail.ItemLineCustomerJob, 255));
-                                    command.ExecuteNonQuery();
-                                }
-                            }
-
-                            // --- EXPENSE DEBITS ---
-                            if (!string.IsNullOrEmpty(detail.ExpenseLineItemRefFullName) && detail.ExpenseLineAmount > 0)
-                            {
-                                debitTotalAmount += detail.ExpenseLineAmount;
-
-                                string particulars = (!string.IsNullOrEmpty(bill.AccountNumber) ? bill.AccountNumber + " - " : "") + detail.ExpenseLineItemRefFullName;
-
-                                using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                                {
-                                    command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                                    command.Parameters.AddWithValue("@Particulars", SafeTruncate(particulars, 255));
-                                    command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(detail.ExpenseLineClassRefFullName) ? (object)DBNull.Value : detail.ExpenseLineClassRefFullName);
-                                    command.Parameters.AddWithValue("@Debit", detail.ExpenseLineAmount.ToString("N2"));
-                                    command.Parameters.AddWithValue("@Credit", "");
-                                    command.Parameters.AddWithValue("@Memo", SafeTruncate(detail.ExpenseLineMemo, 255));
-                                    command.Parameters.AddWithValue("@CustomerJob", SafeTruncate(detail.ExpenseLineCustomerJob, 255));
-                                    command.ExecuteNonQuery();
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error processing Debit line: {ex.Message}");
-                        }
+                        command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(entry.Particulars, 255));
+                        command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Debit", entry.TotalAmount.ToString("N2"));
+                        command.Parameters.AddWithValue("@Credit", "");
+                        command.Parameters.AddWithValue("@Memo", SafeTruncate(entry.Memo, 255));
+                        command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
+                        command.ExecuteNonQuery();
                     }
                 }
 
                 // =========================================================================
-                // PASS 2: INSERT ALL CREDIT ENTRIES FROM SPLITS (Amounts < 0)
+                // PASS 2: NEGATIVE EXPENSE/ITEM LINES -> INSERT AS CREDITS (< 0)
+                // (This catches the -2,420.00 Withholding Tax line from the Bill!)
                 // =========================================================================
-                foreach (var bill in bills)
+                var groupedExpenseCredits = allDetails
+                    .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount < 0)
+                    .GroupBy(x => {
+                        string rawAcc = x.Detail.ExpenseLineItemRefFullName.Trim();
+                        return rawAcc.Contains(":") ? rawAcc.Split(':').Last().Trim() : rawAcc;
+                    })
+                    .Select(g => new {
+                        Particulars = g.Key,
+                        Memo = g.First().Detail.ExpenseLineMemo ?? "",
+                        TotalCreditAmount = Math.Abs(g.Sum(x => x.Detail.ExpenseLineAmount))
+                    });
+
+                double totalNegativeCredits = 0;
+
+                foreach (var entry in groupedExpenseCredits)
                 {
-                    if (bill.ItemDetails == null) continue;
+                    totalNegativeCredits += entry.TotalCreditAmount;
+                    creditTotalAmount += entry.TotalCreditAmount;
 
-                    foreach (var detail in bill.ItemDetails)
+                    using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                     {
-                        try
-                        {
-                            // --- ITEM CREDITS ---
-                            if (!string.IsNullOrEmpty(detail.ItemLineItemRefFullName) && detail.ItemLineAmount < 0)
-                            {
-                                double absoluteAmount = Math.Abs(detail.ItemLineAmount);
-                                creditTotalAmount += absoluteAmount;
+                        command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(entry.Particulars, 255));
+                        command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Debit", "");
+                        command.Parameters.AddWithValue("@Credit", entry.TotalCreditAmount.ToString("N2"));
+                        command.Parameters.AddWithValue("@Memo", SafeTruncate(entry.Memo, 255));
+                        command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
+                        command.ExecuteNonQuery();
+                    }
+                }
 
-                                using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                                {
-                                    command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                                    command.Parameters.AddWithValue("@Particulars", SafeTruncate(detail.ItemLineItemRefFullName, 255));
-                                    command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(detail.ItemLineClassRefFullName) ? (object)DBNull.Value : detail.ItemLineClassRefFullName);
-                                    command.Parameters.AddWithValue("@Debit", "");
-                                    command.Parameters.AddWithValue("@Credit", absoluteAmount.ToString("N2"));
-                                    command.Parameters.AddWithValue("@Memo", SafeTruncate(detail.ItemLineMemo, 255));
-                                    command.Parameters.AddWithValue("@CustomerJob", SafeTruncate(detail.ItemLineCustomerJob, 255));
-                                    command.ExecuteNonQuery();
-                                }
-                            }
+                // Catch payment discounts if any exist
+                var groupedDiscounts = bills
+                    .Where(b => b.AppliedToTxnDiscountAmount > 0 && !string.IsNullOrEmpty(b.AppliedToTxnDiscountAccountRefFullName))
+                    .GroupBy(b => {
+                        string rawAcc = b.AppliedToTxnDiscountAccountRefFullName;
+                        return rawAcc.Contains(":") ? rawAcc.Split(':').Last().Trim() : rawAcc.Trim();
+                    })
+                    .Select(g => new {
+                        AccountName = g.Key,
+                        TotalDiscount = g.Sum(b => Math.Abs(b.AppliedToTxnDiscountAmount))
+                    });
 
-                            // --- EXPENSE CREDITS (e.g., Discounts or Adjustments) ---
-                            if (!string.IsNullOrEmpty(detail.ExpenseLineItemRefFullName) && detail.ExpenseLineAmount < 0)
-                            {
-                                double absoluteAmount = Math.Abs(detail.ExpenseLineAmount);
-                                creditTotalAmount += absoluteAmount;
+                foreach (var disc in groupedDiscounts)
+                {
+                    totalNegativeCredits += disc.TotalDiscount;
+                    creditTotalAmount += disc.TotalDiscount;
 
-                                string particulars = (!string.IsNullOrEmpty(bill.AccountNumber) ? bill.AccountNumber + " - " : "") + detail.ExpenseLineItemRefFullName;
-
-                                using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                                {
-                                    command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                                    command.Parameters.AddWithValue("@Particulars", SafeTruncate(particulars, 255));
-                                    command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(detail.ExpenseLineClassRefFullName) ? (object)DBNull.Value : detail.ExpenseLineClassRefFullName);
-                                    command.Parameters.AddWithValue("@Debit", "");
-                                    command.Parameters.AddWithValue("@Credit", absoluteAmount.ToString("N2"));
-                                    command.Parameters.AddWithValue("@Memo", SafeTruncate(detail.ExpenseLineMemo, 255));
-                                    command.Parameters.AddWithValue("@CustomerJob", SafeTruncate(detail.ExpenseLineCustomerJob, 255));
-                                    command.ExecuteNonQuery();
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error processing Credit line: {ex.Message}");
-                        }
+                    using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(disc.AccountName, 255));
+                        command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Debit", "");
+                        command.Parameters.AddWithValue("@Credit", disc.TotalDiscount.ToString("N2"));
+                        command.Parameters.AddWithValue("@Memo", SafeTruncate("Withholding Tax Applied", 255));
+                        command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
+                        command.ExecuteNonQuery();
                     }
                 }
 
                 // =========================================================================
-                // PASS 3: INSERT THE MAIN ACCOUNTS PAYABLE BALANCING CREDIT ENTRY
+                // PASS 3: NET ACCOUNTS PAYABLE CREDIT ENTRY
                 // =========================================================================
                 if (bills != null && bills.Count > 0)
                 {
                     try
                     {
+                        double netPaymentCredit = debitTotalAmount - totalNegativeCredits;
+                        creditTotalAmount += netPaymentCredit;
+
                         var mainBill = bills[0];
-                        double finalBillCredit = mainBill.AmountDue > 0 ? mainBill.AmountDue : mainBill.Amount;
-                        creditTotalAmount += finalBillCredit;
+                        string apAccount = !string.IsNullOrEmpty(mainBill.APAccountRefFullName)
+                                            ? mainBill.APAccountRefFullName
+                                            : (!string.IsNullOrEmpty(mainBill.AccountName) ? mainBill.AccountName : "Accounts Payable");
+
+                        if (apAccount.Contains(":"))
+                        {
+                            apAccount = apAccount.Split(':').Last().Trim();
+                        }
 
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
-                            // Map to APAccountRefFullName or AccountName if available, with a safe fallback
-                            string apAccount = !string.IsNullOrEmpty(mainBill.APAccountRefFullName)
-                                                ? mainBill.APAccountRefFullName
-                                                : (!string.IsNullOrEmpty(mainBill.AccountName) ? mainBill.AccountName : "Accounts Payable");
-
-                            if (apAccount.Contains(":"))
-                            {
-                                apAccount = apAccount.Split(':').Last().Trim();
-                            }
-
                             command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
                             command.Parameters.AddWithValue("@Particulars", SafeTruncate(apAccount, 255));
                             command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
                             command.Parameters.AddWithValue("@Debit", "");
-                            command.Parameters.AddWithValue("@Credit", finalBillCredit.ToString("N2"));
+                            command.Parameters.AddWithValue("@Credit", netPaymentCredit.ToString("N2"));
                             command.Parameters.AddWithValue("@Memo", SafeTruncate(mainBill.BillMemo ?? mainBill.Memo, 255));
                             command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
-
                             command.ExecuteNonQuery();
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error processing Main Credit entry: {ex.Message}");
+                        Console.WriteLine($"Error processing AP Credit entry: {ex.Message}");
                     }
                 }
 
                 connection.Close();
             }
-
-            Console.WriteLine($"Total Debit: {debitTotalAmount:F2}, Total Credit: {creditTotalAmount:F2}");
         }
 
         private FlowLayoutPanel Panel_SBRefNumber()

@@ -154,25 +154,18 @@ namespace VoucherPROVER2.Clients.INT
                 {
                     IBillRet bill = billList.GetAt(i);
 
-                    // --- FIXED: ROBUST TIN FETCHING ---
+                    // Fetch Vendor TIN
                     string vendorTIN = "";
-
                     if (bill.VendorRef != null)
                     {
                         try
                         {
                             string vendorListID = bill.VendorRef.ListID?.GetValue();
-
                             if (!string.IsNullOrEmpty(vendorListID))
                             {
-                                // Create a NEW request to query the Vendor specifically
                                 IMsgSetRequest vendorReq = sessionManager.CreateMsgSetRequest("US", 13, 0);
                                 IVendorQuery vq = vendorReq.AppendVendorQueryRq();
-
-                                // Filter by the specific Vendor ListID found on the bill
                                 vq.ORVendorListQuery.ListIDList.Add(vendorListID);
-
-                                // Make sure we ask for Custom Fields too (in case TIN is stored there)
                                 vq.OwnerIDList.Add("0");
 
                                 IMsgSetResponse vResp = sessionManager.DoRequests(vendorReq);
@@ -182,17 +175,13 @@ namespace VoucherPROVER2.Clients.INT
                                 if (vList != null && vList.Count > 0)
                                 {
                                     IVendorRet vendor = vList.GetAt(0);
-
-                                    // A. Check Standard TaxIdent Field
                                     vendorTIN = vendor.VendorTaxIdent?.GetValue() ?? "";
 
-                                    // B. If Standard is empty, check Custom Fields
                                     if (string.IsNullOrEmpty(vendorTIN) && vendor.DataExtRetList != null)
                                     {
                                         for (int k = 0; k < vendor.DataExtRetList.Count; k++)
                                         {
                                             var dataExt = vendor.DataExtRetList.GetAt(k);
-                                            // Case-insensitive check for "TIN"
                                             if (dataExt.DataExtName.GetValue().IndexOf("TIN", StringComparison.OrdinalIgnoreCase) >= 0)
                                             {
                                                 vendorTIN = dataExt.DataExtValue.GetValue();
@@ -205,11 +194,11 @@ namespace VoucherPROVER2.Clients.INT
                         }
                         catch (Exception tinEx)
                         {
-                            // Temporarily show error to debug
-                            MessageBox.Show("Error fetching TIN: " + tinEx.Message);
+                            Console.WriteLine("Error fetching TIN: " + tinEx.Message);
                         }
                     }
-                    // -----------------------------------
+
+                    double billAmountDue = bill.AmountDue?.GetValue() ?? 0;
 
                     BillTable bt = new BillTable
                     {
@@ -220,8 +209,10 @@ namespace VoucherPROVER2.Clients.INT
                         TermsRefFullName = bill.TermsRef?.FullName?.GetValue() ?? "",
                         APAccountRefFullName = bill.APAccountRef?.FullName?.GetValue() ?? "",
                         RefNumber = bill.RefNumber?.GetValue() ?? "",
+                        AppliedRefNumber = bill.RefNumber?.GetValue() ?? "",
                         Memo = Truncate(bill.Memo?.GetValue() ?? "", 500),
-                        AmountDue = bill.AmountDue?.GetValue() ?? 0,
+                        AmountDue = billAmountDue,
+                        Amount = billAmountDue,
                         IsPaid = bill.IsPaid?.GetValue() ?? false,
 
                         // Address Fields
@@ -231,7 +222,6 @@ namespace VoucherPROVER2.Clients.INT
                         VendorAddressAddr4 = bill.VendorAddress?.Addr4?.GetValue() ?? "",
                         VendorAddressCity = bill.VendorAddress?.City?.GetValue() ?? "",
 
-                        // NEW FIELDS
                         Tin = vendorTIN,
                         Currency = bill.CurrencyRef?.FullName?.GetValue() ?? "",
                         Exchangerate = bill.ExchangeRate?.GetValue() ?? 1.0
@@ -284,8 +274,12 @@ namespace VoucherPROVER2.Clients.INT
             }
             finally
             {
-                sessionManager.EndSession();
-                sessionManager.CloseConnection();
+                try
+                {
+                    sessionManager.EndSession();
+                    sessionManager.CloseConnection();
+                }
+                catch { }
             }
 
             return bills;
@@ -314,7 +308,6 @@ namespace VoucherPROVER2.Clients.INT
                 IBillPaymentCheckQuery bpcQuery = req1.AppendBillPaymentCheckQueryRq();
                 bpcQuery.IncludeLineItems.SetValue(true);
 
-                // exact match
                 bpcQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.MatchCriterion.SetValue(ENMatchCriterion.mcStartsWith);
                 bpcQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.RefNumber.SetValue(refNumber);
 
@@ -332,32 +325,41 @@ namespace VoucherPROVER2.Clients.INT
 
                 IBillPaymentCheckRet bp = bpList.GetAt(0);
 
-                // HEADER FROM BILL PAYMENT CHECK (These stay constant for all bills in this check)
+                // HEADER FROM BILL PAYMENT CHECK
                 DateTime payDate = bp.TxnDate?.GetValue() ?? DateTime.MinValue;
                 string payee = bp.PayeeEntityRef?.FullName?.GetValue() ?? "";
                 string address1 = bp.Address?.Addr1?.GetValue() ?? "";
                 string address2 = bp.Address?.Addr2?.GetValue() ?? "";
                 string bankAccount = bp.BankAccountRef?.FullName?.GetValue() ?? "";
                 string memo = bp.Memo?.GetValue() ?? "";
-                double amountPaid = bp.Amount?.GetValue() ?? 0;
+                double totalCheckAmountPaid = bp.Amount?.GetValue() ?? 0;
 
                 // ====================================================
-                // *** CHANGED: GET ALL APPLIED BILL TxnIDs (NOT JUST INDEX 0)
+                // *** STORE TxnIDs ALONG WITH APPLIED AMOUNT & DISCOUNT DATA ***
                 // ====================================================
-                List<string> appliedTxnIDs = new List<string>();
+                // Tuple: (AppliedAmount, DiscountAmount, DiscountAccount)
+                Dictionary<string, (double AppliedAmount, double DiscountAmount, string DiscountAccount)> appliedTxnDetails
+                    = new Dictionary<string, (double, double, string)>();
 
                 if (bp.AppliedToTxnRetList != null && bp.AppliedToTxnRetList.Count > 0)
                 {
                     Console.WriteLine($"[DEBUG] AppliedToTxn List Count: {bp.AppliedToTxnRetList.Count}");
-                    // Loop through ALL applied transactions
+
                     for (int k = 0; k < bp.AppliedToTxnRetList.Count; k++)
                     {
                         var applied = bp.AppliedToTxnRetList.GetAt(k);
                         string tId = applied.TxnID?.GetValue();
+
                         if (!string.IsNullOrEmpty(tId))
                         {
-                            appliedTxnIDs.Add(tId);
-                            Console.WriteLine($"[DEBUG] Found Applied Bill TxnID: {tId}");
+                            // EXTRACT INDIVIDUAL APPLIED AMOUNT (e.g. 240.00, 432.00, 1000.00)
+                            double appliedAmt = applied.Amount?.GetValue() ?? 0;
+                            double discAmt = applied.DiscountAmount?.GetValue() ?? 0;
+                            string discAcc = applied.DiscountAccountRef?.FullName?.GetValue() ?? "";
+
+                            appliedTxnDetails[tId] = (appliedAmt, discAmt, discAcc);
+
+                            Console.WriteLine($"[DEBUG] Found Applied Bill TxnID: {tId} | Paid: {appliedAmt} | Discount: {discAmt} | Account: {discAcc}");
                         }
                     }
                 }
@@ -376,13 +378,12 @@ namespace VoucherPROVER2.Clients.INT
                 IBillQuery billQuery = req2.AppendBillQueryRq();
                 billQuery.IncludeLineItems.SetValue(true);
 
-                // *** CHANGED: Add ALL TxnIDs to the query list
-                foreach (string id in appliedTxnIDs)
+                foreach (string id in appliedTxnDetails.Keys)
                 {
                     billQuery.ORBillQuery.TxnIDList.Add(id);
                 }
 
-                Console.WriteLine($"[DEBUG] Sending Bill Query for {appliedTxnIDs.Count} bills...");
+                Console.WriteLine($"[DEBUG] Sending Bill Query for {appliedTxnDetails.Count} bills...");
                 IMsgSetResponse resp2 = sessionManager.DoRequests(req2);
                 IResponse r2 = resp2.ResponseList.GetAt(0);
 
@@ -395,7 +396,7 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 // ====================================================
-                // *** CHANGED: LOOP THROUGH ALL RETRIEVED BILLS
+                // 3. LOOP THROUGH RETRIEVED BILLS AND ATTACH EXACT APPLIED AMOUNTS
                 // ====================================================
                 Console.WriteLine($"[DEBUG] Retrieved {billList.Count} Bill(s). Processing...");
 
@@ -403,7 +404,6 @@ namespace VoucherPROVER2.Clients.INT
                 {
                     IBillRet bill = billList.GetAt(bIndex);
 
-                    // BILL HEADER FIELDS
                     DateTime billDate = bill.TxnDate?.GetValue() ?? DateTime.MinValue;
                     DateTime dueDate = bill.DueDate?.GetValue() ?? DateTime.MinValue;
                     double amountDue = bill.AmountDue?.GetValue() ?? 0;
@@ -414,26 +414,47 @@ namespace VoucherPROVER2.Clients.INT
 
                     Console.WriteLine($"[DEBUG] Processing Bill #{bIndex + 1}: Ref {billRefNumber}");
 
-                    // Create BillTable object for THIS specific bill
+                    // Pull specific applied details for THIS bill
+                    double individualBillPaidAmt = 0;
+                    double discountAmt = 0;
+                    string discountAcc = "";
+
+                    if (appliedTxnDetails.ContainsKey(specificTxnID))
+                    {
+                        individualBillPaidAmt = appliedTxnDetails[specificTxnID].AppliedAmount;
+                        discountAmt = appliedTxnDetails[specificTxnID].DiscountAmount;
+                        discountAcc = appliedTxnDetails[specificTxnID].DiscountAccount;
+                    }
+
+                    // Create BillTable object and assign the INDIVIDUAL bill payment amount
                     BillTable bt = new BillTable
                     {
                         DateCreated = payDate,
-                        DueDate = payDate, // Or dueDate depending on your report requirement
+                        DueDate = payDate,
                         PayeeFullName = payee,
                         Address = address1,
                         Address2 = address2,
                         BankAccount = bankAccount,
                         APAccountRefFullName = billAPAccount,
-                        Amount = amountPaid, // This is the Check Total
-                        RefNumber = refNumber, // This is the Check Ref Number
-                        AppliedRefNumber = billRefNumber, // This is the specific Bill Ref Number
+
+                        // *** FIXED: Assign individual bill payment amount (NOT global check total) ***
+                        Amount = individualBillPaidAmt,
+                        AppliedAmount = individualBillPaidAmt,
+                        TotalCheckAmount = totalCheckAmountPaid, // If you need global check total stored separately
+
+                        RefNumber = refNumber,
+                        AppliedRefNumber = billRefNumber,
                         AppliedToTxnTxnID = specificTxnID,
                         Memo = memo,
                         BillMemo = billMemo,
-                        AmountDue = amountDue, // The amount of this specific bill
+                        AmountDue = amountDue,
+
+                        // ASSIGN WITHHOLDING TAX / DISCOUNT FIELDS
+                        AppliedToTxnDiscountAmount = discountAmt,
+                        AppliedToTxnDiscountAccountRefFullName = discountAcc
                     };
 
-                    // Process Expense Lines for THIS bill
+                    // Process Expense Lines
                     if (bill.ExpenseLineRetList != null)
                     {
                         for (int i = 0; i < bill.ExpenseLineRetList.Count; i++)
@@ -450,7 +471,7 @@ namespace VoucherPROVER2.Clients.INT
                         }
                     }
 
-                    // Process Item Lines for THIS bill
+                    // Process Item Lines
                     if (bill.ORItemLineRetList != null)
                     {
                         for (int i = 0; i < bill.ORItemLineRetList.Count; i++)
@@ -471,7 +492,6 @@ namespace VoucherPROVER2.Clients.INT
                         }
                     }
 
-                    // Add THIS bill to the main list
                     bills.Add(bt);
                 }
 

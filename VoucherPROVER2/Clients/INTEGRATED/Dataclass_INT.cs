@@ -34,6 +34,13 @@ namespace VoucherPROVER2.Clients.INT
             public string Currency { get; set; } //VendorRefFullName
             public double Exchangerate { get; set; } //VendorRefFullName
 
+            public double AppliedToTxnDiscountAmount { get; set; }
+            public string AppliedToTxnDiscountAccountRefListID { get; set; }
+            public string AppliedToTxnDiscountAccountRefFullName { get; set; }
+            public double AppliedAmount { get; set; }
+            public double TotalCheckAmount { get; set; }
+
+
             public DateTime DueDate { get; set; }
             public double AmountDue { get; set; }
             public string Memo { get; set; }
@@ -146,6 +153,7 @@ namespace VoucherPROVER2.Clients.INT
             public string HistoryCVNumber { get; set; }
             public string HistoryAPVNumber { get; set; }
             public string Remarks { get; set; }
+            public string AppliedRefNumber { get; set; }
 
             public string AccountClassCheck { get; set; }
 
