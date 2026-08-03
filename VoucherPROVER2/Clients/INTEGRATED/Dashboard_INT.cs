@@ -823,7 +823,7 @@ namespace VoucherPROVER2.Clients.INT
                                 string Memo = "                         " + journal[journal.Count - 1].Memo;
 
                                 var journalLineType = journal[0].GetType();
-                                while (journal.Count < 8)
+                                while (journal.Count < 10)
                                 {
                                     var emptyLine = Activator.CreateInstance(journalLineType);
                                     try { journalLineType.GetProperty("AccountNumber")?.SetValue(emptyLine, ""); } catch { }
@@ -865,7 +865,7 @@ namespace VoucherPROVER2.Clients.INT
                                     creditTotalAmount += line.Credit;
                                 }
 
-                                if (textObject_JVRefnumber != null) textObject_JVRefnumber.Text = textBox_SeriesNumber.Text;
+                                if (textObject_JVRefnumber != null) textObject_JVRefnumber.Text = refNumberCR;
 
                                 AccessToDatabase_INT accessToDatabase = new AccessToDatabase_INT();
                                 var signatories = accessToDatabase.RetrieveAllSignatoryData();
@@ -884,11 +884,6 @@ namespace VoucherPROVER2.Clients.INT
                                     // Open the subreport document
                                     ReportDocument subReportDocument = cRJV_INT.OpenSubreport(subreportObject.SubreportName);
 
-                                    // 1. Locate the Text Object inside the subreport by its name in Crystal Reports
-                                    TextObject textObject_Memo = subReportDocument.ReportDefinition.ReportObjects["TextJVMemo"] as TextObject;
-
-
-                                    if (textObject_Memo != null) textObject_Memo.Text = journal[0].Memo;
                                 }
 
                                 InsertDataToJournalCompiled(refNumberCR, journal);
@@ -1557,7 +1552,7 @@ namespace VoucherPROVER2.Clients.INT
                         string particulars = SafeTruncate(line.AccountName, 500);
                         string className = line.Class;
                         string nameValue = SafeTruncate(line.Name, 255);
-                        string memoValue = SafeTruncate(line.Memo, 255);
+                        string memoValue = SafeTruncate(line.Memo, 1000);
 
                         string debitStr = "";
                         string creditStr = "";
@@ -2428,7 +2423,7 @@ namespace VoucherPROVER2.Clients.INT
                         panel_RefNumber.Visible = false;
                         panel_RefNumberCrystalReport.Visible = true;
                         panel_Signatory.Visible = true;
-                        panel_SeriesNumber.Visible = true;
+                        panel_SeriesNumber.Visible = false;
 
                         panel_Main.Visible = false;
                         panel_Main_CR.Visible = true;
