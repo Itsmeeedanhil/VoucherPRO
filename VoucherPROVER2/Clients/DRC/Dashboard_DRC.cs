@@ -15,6 +15,7 @@ using CrystalDecisions.ReportAppServer;
 using static VoucherPROVER2.Clients.DRC.Dataclass_DRC;
 using System.IO;
 using System.Data.OleDb;
+using VoucherPROVER2.Clients.ENA;
 
 
 namespace VoucherPROVER2.Clients.DRC
@@ -1817,10 +1818,17 @@ namespace VoucherPROVER2.Clients.DRC
 
         public static void InsertDataToJournalCompiled(string refNumber, List<JournalGridItem> journalData)
         {
-            string connectionString = AccessToDatabase_DRC.GetAccessConnectionString();
+            string connectionString = AccessToDatabase_ENA.GetAccessConnectionString();
 
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
+
+            // Local helper function to safely truncate text to database limits
+            string SafeTruncate(string value, int maxLength)
+            {
+                if (string.IsNullOrEmpty(value)) return "";
+                return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+            }
 
             using (OleDbConnection connection = new OleDbConnection(connectionString))
             {
@@ -1842,23 +1850,21 @@ namespace VoucherPROVER2.Clients.DRC
                 }
 
                 // 2. Prepare Insert Query
-                // ADDED: [Name] column and @Name placeholder
                 string insertQuery = @"
-                            INSERT INTO JV_Compiled 
-                            (RefNumber, [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
-                            VALUES 
-                            (@RefNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
+                    INSERT INTO JV_Compiled 
+                    (RefNumber, [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
+                    VALUES 
+                    (@RefNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
 
                 foreach (var line in journalData)
                 {
                     try
                     {
-                        // MAPPING VARIABLES
-                        string particulars = string.IsNullOrEmpty(line.AccountName) ? "" : line.AccountName;
+                        // MAPPING VARIABLES (With Safe Truncation to prevent DB overflow)
+                        string particulars = SafeTruncate(line.AccountName, 255);
                         string className = line.Class;
-                        // ADDED: Name mapping (Ensuring it handles nulls)
-                        string nameValue = string.IsNullOrEmpty(line.Name) ? "" : line.Name;
-                        string memoValue = string.IsNullOrEmpty(line.Memo) ? "" : line.Memo;
+                        string nameValue = SafeTruncate(line.Name, 255);
+                        string memoValue = SafeTruncate(line.Memo, 255); // Change 255 to 500 if the database column is 'Long Text/Memo'
 
                         string debitStr = "";
                         string creditStr = "";
@@ -1887,7 +1893,7 @@ namespace VoucherPROVER2.Clients.DRC
                             // Handle Class nulls
                             command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(className) ? (object)DBNull.Value : className);
 
-                            // ADDED: Name Parameter
+                            // Name Parameter
                             command.Parameters.AddWithValue("@Name", string.IsNullOrEmpty(nameValue) ? (object)DBNull.Value : nameValue);
 
                             // Insert separated Debit and Credit strings
@@ -2080,7 +2086,7 @@ namespace VoucherPROVER2.Clients.DRC
 
                     object data = null;
                     
-                    if (GlobalVariables.client == "IVP")
+                    if (GlobalVariables.client == "DRC")
                     {
                         if (comboBox_Forms.SelectedIndex == 2) // Check
                         {

@@ -1204,7 +1204,7 @@ namespace VoucherPROVER2.Clients.DRC
                                     var line = orLine.JournalDebitLine;
                                     item.AccountName = line.AccountRef?.FullName?.GetValue() ?? "";
                                     item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
-                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 255);
+                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 500);
                                     item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
                                     item.Debit = line.Amount?.GetValue() ?? 0;
                                     item.Credit = 0;
