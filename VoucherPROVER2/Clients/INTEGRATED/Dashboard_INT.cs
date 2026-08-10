@@ -17,6 +17,7 @@ using System.IO;
 using System.Data.OleDb;
 using VoucherPROVER2.Clients.INT;
 using VoucherPROVER2.Clients.INTEGRATED;
+using QBFC16Lib;
 
 
 namespace VoucherPROVER2.Clients.INT
@@ -135,7 +136,7 @@ namespace VoucherPROVER2.Clients.INT
             {
                 Parent = panel_Company,
                 Width = sideBarWidth - 10,
-                Text = "SELECT COMPANY:",
+                Text = "COMPANY:",
                 TextAlign = ContentAlignment.MiddleLeft,
                 Font = font_Label,
             };
@@ -197,8 +198,8 @@ namespace VoucherPROVER2.Clients.INT
 
             comboBox_VoucherType.Items.AddRange(new string[]
             {
-                "JOURNAL ENTRY VOUCHER",
-                "EMPLOYEE SUPPLIES VOUCHER"
+                "JOURNAL VOUCHER",
+                "EMPLOYEES SUPPLIES VOUCHER"
             });
             comboBox_VoucherType.SelectedIndex = 0;
             // =========================================================================
@@ -491,10 +492,10 @@ namespace VoucherPROVER2.Clients.INT
                 comboBox_Forms.Items.AddRange(new string[]
             {
                 "",
-                "Online Voucher (Write Checks)",
+                "Check Voucher / Bills Payment",
                 "Check",
-                "Journal Voucher (General Journal)",
-                "Check Voucher (Enter Bills)"
+                "Journal Voucher",
+                "Check Voucher"
 
             });
                 comboBox_Forms.SelectedIndex = 0;
@@ -819,22 +820,6 @@ namespace VoucherPROVER2.Clients.INT
                                 }
                                 // =========================================================================
 
-                                // Rest of your existing code below...
-                                string Memo = "                         " + journal[journal.Count - 1].Memo;
-
-                                var journalLineType = journal[0].GetType();
-                                while (journal.Count < 10)
-                                {
-                                    var emptyLine = Activator.CreateInstance(journalLineType);
-                                    try { journalLineType.GetProperty("AccountNumber")?.SetValue(emptyLine, ""); } catch { }
-                                    try { journalLineType.GetProperty("Particulars")?.SetValue(emptyLine, ""); } catch { }
-                                    try { journalLineType.GetProperty("Debit")?.SetValue(emptyLine, 0.0); } catch { }
-                                    try { journalLineType.GetProperty("Credit")?.SetValue(emptyLine, 0.0); } catch { }
-                                    try { journalLineType.GetProperty("Memo")?.SetValue(emptyLine, ""); } catch { }
-
-                                    journal.Add((dynamic)emptyLine);
-                                }
-
 
                                 TextObject textObject_JVCheckDate = cRJV_INT.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
                                 TextObject textObject_JVRefnumber = cRJV_INT.ReportDefinition.ReportObjects["TextJVRefnumber"] as TextObject;
@@ -885,6 +870,7 @@ namespace VoucherPROVER2.Clients.INT
                                     ReportDocument subReportDocument = cRJV_INT.OpenSubreport(subreportObject.SubreportName);
 
                                 }
+
 
                                 InsertDataToJournalCompiled(refNumberCR, journal);
 
@@ -1944,9 +1930,9 @@ namespace VoucherPROVER2.Clients.INT
                 {
                     "Select Signatory Option",
                     "Prepared By:",
-                    "Certified Corrected By:",
-                    "Approved By:",
-                    "Received Payment By:",
+                    "Checked By:",
+                    "A/P:",
+                    //"Received Payment By:",
                 });
             }
 

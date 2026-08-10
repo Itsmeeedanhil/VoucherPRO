@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.Odbc;
 using System.Data.OleDb;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -1028,12 +1029,27 @@ namespace VoucherPROVER2.Clients.INT
             }
 
             return (
-                preparedByName, preparedByPosition,
-                reviewedByName, reviewedByPosition,
-                recommendingApprovalName, recommendingApprovalPosition,
-                approvedByName, approvedByPosition,
-                receivedByName, receivedByPosition
-                );
+                        ToTitleCase(preparedByName),
+                        ToTitleCase(preparedByPosition),
+                        ToTitleCase(reviewedByName),
+                        ToTitleCase(reviewedByPosition),
+                        ToTitleCase(recommendingApprovalName),
+                        ToTitleCase(recommendingApprovalPosition),
+                        ToTitleCase(approvedByName),
+                        ToTitleCase(approvedByPosition),
+                        ToTitleCase(receivedByName),
+                        ToTitleCase(receivedByPosition)
+                    );
+        }
+
+
+        public static string ToTitleCase(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return string.Empty;
+
+            // ToTitleCase works best when text is fully lowercased first
+            return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(input.ToLower());
         }
 
 
