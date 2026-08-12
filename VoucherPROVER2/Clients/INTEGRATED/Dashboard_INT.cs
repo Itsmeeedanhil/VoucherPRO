@@ -993,10 +993,10 @@ namespace VoucherPROVER2.Clients.INT
                 var b = bills[0]; // Now 'b' won't conflict with the lambda above!
 
                 string streetLine = string.Join(", ", new[] {
-            b.VendorAddressAddr1,
-            b.VendorAddressAddr2,
-            b.VendorAddressAddr3,
-            b.VendorAddressAddr4
+                    b.VendorAddressAddr1,
+                    b.VendorAddressAddr2,
+                    b.VendorAddressAddr3,
+                    b.VendorAddressAddr4
                 }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string cityLine = string.Join(" ", new[] {
@@ -1155,9 +1155,9 @@ namespace VoucherPROVER2.Clients.INT
                     })
                     .ToList();
 
-                // Build remarks string: SI#4414 - 240.00, etc.
+                // Left-align SI# (-20) and RIGHT-ALIGN Amount (+12)
                 string billRemarksText = string.Join(Environment.NewLine,
-                    billSummaryList.Select(b => $"SI#{b.RefNumber} - {b.Amount:N2}"));
+                    billSummaryList.Select(b => $"SI#{b.RefNumber,-20}{b.Amount,45:N2}"));
 
                 // Append main Memo if present
                 string mainMemo = bills[0].BillMemo ?? bills[0].Memo;
@@ -1623,10 +1623,10 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 string insertQuery = @"
-        INSERT INTO Bill_Compiled 
-        (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-        VALUES 
-        (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+                                        INSERT INTO Bill_Compiled 
+                                        (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+                                        VALUES 
+                                        (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
 
                 var allDetails = bills
                     .Where(b => b.ItemDetails != null)
@@ -1746,14 +1746,9 @@ namespace VoucherPROVER2.Clients.INT
                         creditTotalAmount += netPaymentCredit;
 
                         var mainBill = bills[0];
-                        string apAccount = !string.IsNullOrEmpty(mainBill.APAccountRefFullName)
-                                            ? mainBill.APAccountRefFullName
-                                            : (!string.IsNullOrEmpty(mainBill.AccountName) ? mainBill.AccountName : "Accounts Payable");
 
-                        if (apAccount.Contains(":"))
-                        {
-                            apAccount = apAccount.Split(':').Last().Trim();
-                        }
+                        // FIXED: Hardcode Particulars to "Vouchers Payable"
+                        string apAccount = "Vouchers Payable";
 
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
@@ -1776,6 +1771,8 @@ namespace VoucherPROVER2.Clients.INT
                 connection.Close();
             }
         }
+
+
 
         private FlowLayoutPanel Panel_SBRefNumber()
         {
