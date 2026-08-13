@@ -69,6 +69,7 @@ namespace VoucherPROVER2.Clients.DRC
         public class ItemDetail
         {
             public string ItemLineItemRefFullName { get; set; }
+            public string ItemLineAssetAccountRefFullName { get; set; } = "";
             public double ItemLineAmount { get; set; }
             public string ItemLineClassRefFullName { get; set; }
             public string ItemLineMemo { get; set; }

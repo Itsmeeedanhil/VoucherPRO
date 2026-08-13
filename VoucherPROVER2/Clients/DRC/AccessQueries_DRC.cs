@@ -543,9 +543,40 @@ namespace VoucherPROVER2.Clients.DRC
                             if (orItem.ItemLineRet != null)
                             {
                                 var item = orItem.ItemLineRet;
+                                string assetAccountFullName = "";
+
+                                // Query Item Inventory to get AssetAccountRef
+                                if (item.ItemRef != null && !string.IsNullOrEmpty(item.ItemRef.ListID?.GetValue()))
+                                {
+                                    try
+                                    {
+                                        IMsgSetRequest itemReq = sessionManager.CreateMsgSetRequest("US", 13, 0);
+                                        IItemInventoryQuery itemQuery = itemReq.AppendItemInventoryQueryRq();
+                                        itemQuery.ORListQueryWithOwnerIDAndClass.ListIDList.Add(item.ItemRef.ListID.GetValue());
+
+                                        IMsgSetResponse itemResp = sessionManager.DoRequests(itemReq);
+                                        IResponse itemResponseRoot = itemResp.ResponseList.GetAt(0);
+                                        IItemInventoryRetList itemRetList = itemResponseRoot.Detail as IItemInventoryRetList;
+
+                                        if (itemRetList != null && itemRetList.Count > 0)
+                                        {
+                                            var invItem = itemRetList.GetAt(0);
+                                            assetAccountFullName = invItem.AssetAccountRef?.FullName?.GetValue() ?? "";
+                                        }
+                                    }
+                                    catch (Exception itemEx)
+                                    {
+                                        Console.WriteLine("Error fetching Asset Account: " + itemEx.Message);
+                                    }
+                                }
+
                                 bt.ItemDetails.Add(new ItemDetail
                                 {
                                     ItemLineItemRefFullName = item.ItemRef?.FullName?.GetValue() ?? "",
+                                    // Store Asset Account Name (fallback to ItemRef if empty)
+                                    ItemLineAssetAccountRefFullName = !string.IsNullOrEmpty(assetAccountFullName)
+                                        ? assetAccountFullName
+                                        : (item.ItemRef?.FullName?.GetValue() ?? ""),
                                     ItemLineAmount = item.Amount?.GetValue() ?? 0,
                                     ItemLineClassRefFullName = item.ClassRef?.FullName?.GetValue() ?? "",
                                     ItemLineCustomerJob = item.CustomerRef?.FullName?.GetValue() ?? "",
@@ -574,6 +605,9 @@ namespace VoucherPROVER2.Clients.DRC
 
             return bills;
         }
+
+
+
 
         // ====================================================
         // HELPER METHOD TO QUERY QUICKBOOKS FOR ACCOUNT NUMBERS

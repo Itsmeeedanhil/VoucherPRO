@@ -704,8 +704,8 @@ namespace VoucherPROVER2.Clients.DRC
                                         catch (Exception ex) { MessageBox.Show($"Error computing totals: {ex.Message}"); }
                                     }
 
-                                    textObject_CVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                                    textObject_CVTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
+                                    textObject_CVTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
+                                    textObject_CVTotalCreditAmount.Text = $"PHP {debitTotalAmount:N2}";
 
 
                                     SubreportObject subreportObject = cRCV_DRC.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
@@ -806,8 +806,11 @@ namespace VoucherPROVER2.Clients.DRC
                                     debitTotalAmount += line.Debit;
                                     creditTotalAmount += line.Credit;
                                 }
-                                if (textObject_JVTotalDebitAmount != null) textObject_JVTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                                if (textObject_JVTotalCreditAmount != null) textObject_JVTotalCreditAmount.Text = creditTotalAmount.ToString("N2");
+                                if (textObject_JVTotalDebitAmount != null)
+                                    textObject_JVTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
+
+                                if (textObject_JVTotalCreditAmount != null)
+                                    textObject_JVTotalCreditAmount.Text = $"PHP {creditTotalAmount:N2}";
 
 
                                 AccessToDatabase_DRC accessToDatabase = new AccessToDatabase_DRC();
@@ -833,7 +836,8 @@ namespace VoucherPROVER2.Clients.DRC
 
                                     if (textObject_SubAccountPayable != null) textObject_SubAccountPayable.Text = journal[0].AccountName;
 
-                                    if (textObject_SubAmountPayable != null) textObject_SubAmountPayable.Text = debitTotalAmount.ToString("N2");
+                                    if (textObject_SubAmountPayable != null)
+                                        textObject_SubAmountPayable.Text = debitTotalAmount.ToString("N2");
                                 }
 
                                 InsertDataToJournalCompiled(refNumberCR, journal);
@@ -997,8 +1001,11 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                     }
 
-                    textObject_CVBILLTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                    textObject_CVBILLTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
+                    if (textObject_CVBILLTotalDebitAmount != null)
+                        textObject_CVBILLTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
+
+                    if (textObject_CVBILLTotalCreditAmount != null)
+                        textObject_CVBILLTotalCreditAmount.Text = $"PHP {debitTotalAmount:N2}";
 
                 }
                 catch
@@ -1044,7 +1051,8 @@ namespace VoucherPROVER2.Clients.DRC
                 if (textObject_CVBILLBank != null) textObject_CVBILLBank.Text = bank;
                 if (textObject_CVBILLNumber != null) textObject_CVBILLNumber.Text = bills[0].RefNumber ?? "";
                 if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy") ?? "";
-                if (textObject_CVBILLDue != null) textObject_CVBILLDue.Text = amount.ToString();
+                if (textObject_CVBILLDue != null)
+                    textObject_CVBILLDue.Text = amount.ToString("N2");
 
                 SubreportObject subreportObject = null;
                 try
@@ -1086,7 +1094,7 @@ namespace VoucherPROVER2.Clients.DRC
                             textObject_BILLSubAmountPayable.Text = totalAmountDue.ToString("N2");
                         }
 
-                        InsertDataToBillCompiled(refNumberCR, bills);
+                        InsertDataToBillAPVCompiled(refNumberCR, bills);
                     }
                     catch
                     {
@@ -1233,8 +1241,11 @@ namespace VoucherPROVER2.Clients.DRC
                     textObject_ReceivedByPos.Text = ReceivedByPosition;
 
 
-                    if (textObject_IRTotalDebitAmount != null) textObject_IRTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                    if (textObject_IRTotalCreditAmount != null) textObject_IRTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
+                    if (textObject_IRTotalDebitAmount != null)
+                        textObject_IRTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
+
+                    if (textObject_IRTotalCreditAmount != null)
+                        textObject_IRTotalCreditAmount.Text = $"PHP {debitTotalAmount:N2}";
 
                     var firstReceipt = receipts.FirstOrDefault();
                     if (firstReceipt != null)
@@ -1458,8 +1469,11 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                     }
 
-                    textObject_CVBILLTotalDebitAmount.Text = debitTotalAmount.ToString("N2");
-                    textObject_CVBILLTotalCreditAmount.Text = debitTotalAmount.ToString("N2");
+                    if (textObject_CVBILLTotalDebitAmount != null)
+                        textObject_CVBILLTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
+
+                    if (textObject_CVBILLTotalCreditAmount != null)
+                        textObject_CVBILLTotalCreditAmount.Text = $"PHP {debitTotalAmount:N2}";
 
                 }
                 catch
@@ -1504,7 +1518,8 @@ namespace VoucherPROVER2.Clients.DRC
                 if (textObject_CVBILLBank != null) textObject_CVBILLBank.Text = bank;
                 if (textObject_CVBILLNumber != null) textObject_CVBILLNumber.Text = bills[0].RefNumber ?? "";
                 if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy") ?? "";
-                if (textObject_CVBILLDue != null) textObject_CVBILLDue.Text = amount.ToString();
+                if (textObject_CVBILLDue != null)
+                    textObject_CVBILLDue.Text = amount.ToString("N2");
 
                 SubreportObject subreportObject = null;
                 try
@@ -2018,6 +2033,131 @@ namespace VoucherPROVER2.Clients.DRC
                             }
                         }
                     }
+                    connection.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error: {ex.Message}");
+                }
+            }
+        }
+
+        public static void InsertDataToBillAPVCompiled(string refNumber, List<BillTable> bills)
+        {
+            string connectionString = AccessToDatabase_DRC.GetAccessConnectionString();
+
+            using (OleDbConnection connection = new OleDbConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+
+                    // 1. CLEAR OLD DATA
+                    string deleteQuery = "DELETE FROM Bill_Compiled";
+                    using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
+                    {
+                        deleteCommand.ExecuteNonQuery();
+                    }
+
+                    // 2. PREPARE INSERT QUERY
+                    string insertQuery = @"INSERT INTO Bill_Compiled 
+            (RefNumber, [AccountNumber], Particulars, [Class], [Memo], [CustomerJob], Debit, Credit) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+                    // 3. FLATTEN ALL ITEM & EXPENSE LINES
+                    var allLines = bills.SelectMany(bill => bill.ItemDetails.Select(detail =>
+                    {
+                        string accountNumber = "";
+                        string rawParticulars = "";
+                        string classVal = "";
+                        string memo = "";
+                        string customerJob = "";
+                        double amount = 0;
+
+                        if (!string.IsNullOrEmpty(detail.ItemLineItemRefFullName))
+                        {
+                            accountNumber = "";
+                            // Fallback to ItemLineItemRefFullName if AssetAccount is empty
+                            rawParticulars = !string.IsNullOrWhiteSpace(detail.ItemLineAssetAccountRefFullName)
+                                ? detail.ItemLineAssetAccountRefFullName
+                                : detail.ItemLineItemRefFullName;
+
+                            classVal = detail.ItemLineClassRefFullName ?? "";
+                            memo = detail.ItemLineMemo ?? "";
+                            customerJob = detail.ItemLineCustomerJob ?? "";
+                            amount = detail.ItemLineAmount;
+                        }
+                        else if (!string.IsNullOrEmpty(detail.ExpenseLineItemRefFullName))
+                        {
+                            accountNumber = detail.ExpenseLineAccountNumber ?? bill.AccountNumber ?? "";
+                            rawParticulars = detail.ExpenseLineItemRefFullName;
+                            classVal = detail.ExpenseLineClassRefFullName ?? "";
+                            memo = detail.ExpenseLineMemo ?? "";
+                            customerJob = detail.ExpenseLineCustomerJob ?? "";
+                            amount = detail.ExpenseLineAmount;
+                        }
+                        else
+                        {
+                            return null; // Ignore empty lines
+                        }
+
+                        // Extract name after colon (e.g., "Inventories:Food" -> "Food")
+                        string particulars = rawParticulars;
+                        if (!string.IsNullOrEmpty(particulars) && particulars.Contains(":"))
+                        {
+                            particulars = particulars.Substring(particulars.LastIndexOf(':') + 1).Trim();
+                        }
+
+                        return new
+                        {
+                            AccountNumber = accountNumber,
+                            Particulars = particulars,
+                            Class = classVal,
+                            Memo = memo,
+                            CustomerJob = customerJob,
+                            Amount = amount
+                        };
+                    }))
+                    .Where(x => x != null && !string.IsNullOrEmpty(x.Particulars));
+
+                    // 4. GROUP & CONSOLIDATE BY PARTICULAR & ACCOUNT NUMBER
+                    var consolidatedLines = allLines
+                        .GroupBy(x => new { x.Particulars, x.AccountNumber })
+                        .Select(g => new
+                        {
+                            Particulars = g.Key.Particulars,
+                            AccountNumber = g.Key.AccountNumber,
+                            Class = g.First().Class,
+                            Memo = g.First().Memo,
+                            CustomerJob = g.First().CustomerJob,
+                            TotalAmount = g.Sum(x => x.Amount) // Summed consolidated amount
+                        });
+
+                    // 5. EXECUTE INSERT FOR CONSOLIDATED ROWS
+                    foreach (var item in consolidatedLines)
+                    {
+                        string debitStr = item.TotalAmount > 0 ? item.TotalAmount.ToString("N2") : "";
+                        string creditStr = item.TotalAmount < 0 ? Math.Abs(item.TotalAmount).ToString("N2") : "";
+
+                        using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
+                        {
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = refNumber ?? (object)DBNull.Value;
+
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrWhiteSpace(item.AccountNumber)
+                                ? (object)DBNull.Value
+                                : item.AccountNumber;
+
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = item.Particulars ?? "";
+                            command.Parameters.Add("?", string.IsNullOrWhiteSpace(item.Class) ? (object)DBNull.Value : item.Class);
+                            command.Parameters.Add("?", item.Memo ?? (object)DBNull.Value);
+                            command.Parameters.Add("?", item.CustomerJob ?? (object)DBNull.Value);
+                            command.Parameters.Add("?", debitStr);
+                            command.Parameters.Add("?", creditStr);
+
+                            command.ExecuteNonQuery();
+                        }
+                    }
+
                     connection.Close();
                 }
                 catch (Exception ex)

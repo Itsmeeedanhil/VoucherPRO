@@ -30,3 +30,5 @@ C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.exe
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.pdb
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.Clients.ENA.Dashboard_ENA.resources
+C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.Clients.DRC.Dashboard_DRC.resources
+C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\Release\VoucherPROVER2.Clients.INT.Dashboard_INT.resources

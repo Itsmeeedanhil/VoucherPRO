@@ -1182,14 +1182,14 @@ namespace VoucherPROVER2.Clients.INT
 
                 // Line 1: Combine Addr1 and Addr2
                 string streetLine = string.Join(", ", new[] {
-            bObj.Address,
-            bObj.Address2,
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                        bObj.Address,
+                        bObj.Address2,
+                    }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                // Line 2: City
-                string cityLine = string.Join(" ", new[] {
-            bObj.VendorAddressCity,
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                            // Line 2: City
+                            string cityLine = string.Join(" ", new[] {
+                        bObj.VendorAddressCity,
+                    }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 

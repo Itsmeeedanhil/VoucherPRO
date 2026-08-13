@@ -244,7 +244,6 @@ namespace VoucherPROVER2.Clients.INT
                         }
                     }
 
-                    // 4. Process Item Lines
                     if (bill.ORItemLineRetList != null)
                     {
                         for (int j = 0; j < bill.ORItemLineRetList.Count; j++)
