@@ -203,7 +203,7 @@ namespace VoucherPROVER2.Clients.INT
             });
             comboBox_VoucherType.SelectedIndex = 0;
             // =========================================================================
-
+/*
             label_CurrencyText = new Label
             {
                 Parent = panel_Company,
@@ -223,7 +223,7 @@ namespace VoucherPROVER2.Clients.INT
             };
 
             comboBox_Currency.Items.AddRange(new string[] { "Peso (₱)", "Dollar ($)" });
-            comboBox_Currency.SelectedIndex = 0;
+            comboBox_Currency.SelectedIndex = 0;*/
 
             return panel_Company;
         }
@@ -495,7 +495,7 @@ namespace VoucherPROVER2.Clients.INT
                 "Check Voucher / Bills Payment",
                 "Check",
                 "Journal Voucher",
-                "Check Voucher"
+                "Check Voucher / Enter Bills"
 
             });
                 comboBox_Forms.SelectedIndex = 0;
