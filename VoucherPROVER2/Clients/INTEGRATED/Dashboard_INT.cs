@@ -49,6 +49,9 @@ namespace VoucherPROVER2.Clients.INT
         private Label label_VoucherType;
         private ComboBox comboBox_VoucherType;
 
+        private Label label_APAccount;
+        private ComboBox comboBox_APAccount;
+
         TextBox textBox_SeriesNumber;
         TextBox textBox_ReceivedByRR;
         TextBox textBox_CheckedByRR;
@@ -124,7 +127,7 @@ namespace VoucherPROVER2.Clients.INT
             panel_Company = new FlowLayoutPanel
             {
                 Dock = DockStyle.Top,
-                Height = 150,
+                Height = 120,
                 Width = sideBarWidth - 10,
                 BackColor = Color.LightGray,
                 Padding = new Padding(5, 2, 5, 5),
@@ -172,6 +175,36 @@ namespace VoucherPROVER2.Clients.INT
                     UpdateSeriesNumberINT(formType);
                 }
             };
+
+            // =========================================================================
+            // AP ACCOUNT SELECTION (Vouchers Payable / Notes Payable)
+            // =========================================================================
+            label_APAccount = new Label
+            {
+                Parent = panel_Company,
+                Width = sideBarWidth - 10,
+                Text = "A/P ACCOUNT:",
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = font_Label,
+                Margin = new Padding(0, 5, 0, 0),
+                Visible = (comboBox_Forms != null && (comboBox_Forms.SelectedIndex == 1 || comboBox_Forms.SelectedIndex == 4))
+            };
+
+            comboBox_APAccount = new ComboBox
+            {
+                Parent = panel_Company,
+                Width = sideBarWidth - 28,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = font_Label,
+                Visible = (comboBox_Forms != null && (comboBox_Forms.SelectedIndex == 1 || comboBox_Forms.SelectedIndex == 4))
+            };
+
+            comboBox_APAccount.Items.AddRange(new string[]
+            {
+                "Vouchers Payable",
+                "Notes Payable"
+            });
+            comboBox_APAccount.SelectedIndex = 0;
 
             // =========================================================================
             // VOUCHER TYPE DROPDOWN (ONLY SHOWS FOR JOURNAL VOUCHER)
@@ -980,71 +1013,129 @@ namespace VoucherPROVER2.Clients.INT
                 // =========================================================================
                 double totalVoucherAmount = bills.Sum(bill =>
                 {
-                    double lineSum = bill.ItemDetails?.Sum(d => d.ItemLineAmount > 0 ? d.ItemLineAmount : d.ExpenseLineAmount) ?? 0;
+                    double lineSum = bill.ItemDetails?.Sum(d => d.ItemLineAmount > 0 ? d.ItemLineAmount : (d.ExpenseLineAmount > 0 ? d.ExpenseLineAmount : 0)) ?? 0;
                     return lineSum > 0 ? lineSum : (bill.AmountDue > 0 ? bill.AmountDue : bill.Amount);
                 });
 
                 string amountInWords = "          " + AccessToDatabase_INT.AmountToWordsConverter.Convert(totalVoucherAmount);
 
-                string bankaccount = (bills[0].BankAccount ?? "").Contains(":")
-                                    ? (bills[0].BankAccount ?? "").Split(':').Last().Trim()
-                                    : (bills[0].BankAccount ?? "");
+                string rawBank = bills.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.BankAccount))?.BankAccount ?? "";
+                string bankaccount = rawBank.Contains(":") ? rawBank.Split(':').Last().Trim() : rawBank;
 
-                var b = bills[0]; // Now 'b' won't conflict with the lambda above!
+                var primaryBill = bills.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.VendorAddressAddr1) || !string.IsNullOrWhiteSpace(x.VendorAddressCity)) ?? bills[0];
 
                 string streetLine = string.Join(", ", new[] {
-                    b.VendorAddressAddr1,
-                    b.VendorAddressAddr2,
-                    b.VendorAddressAddr3,
-                    b.VendorAddressAddr4
-                }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            primaryBill.VendorAddressAddr1,
+            primaryBill.VendorAddressAddr2,
+            primaryBill.VendorAddressAddr3,
+            primaryBill.VendorAddressAddr4
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string cityLine = string.Join(" ", new[] {
-            b.VendorAddressCity,
-                }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            primaryBill.VendorAddressCity,
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                string payeeNames = string.Join(", ", bills.Select(x => x.PayeeFullName).Where(p => !string.IsNullOrWhiteSpace(p)).Distinct());
+                DateTime latestDueDate = bills.Max(x => x.DueDate);
 
                 if (textObject_CVBILLRefNumber != null) textObject_CVBILLRefNumber.Text = refNumberCR;
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
                 if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
-                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
-                if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
+                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = latestDueDate.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = payeeNames;
                 if (textObject_CVBILLTotalAmount != null) textObject_CVBILLTotalAmount.Text = totalVoucherAmount.ToString("N2");
                 if (textObject_CVBILLBankAccount != null) textObject_CVBILLBankAccount.Text = bankaccount;
 
-                // Subreport 1: Details / Remarks Summary
+                // =========================================================================
+                // SUBREPORT 1: DETAILS / REMARKS & PER-BILL AMOUNTS
+                // =========================================================================
                 SubreportObject subreportObject = cRAPV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINT"] as SubreportObject;
                 if (subreportObject != null)
                 {
                     ReportDocument subReportDocument = cRAPV_INTBILL.OpenSubreport(subreportObject.SubreportName);
+                    SetDatabaseLocation(subReportDocument, databasePathBILL);
 
                     TextObject textObject_BILLSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
                     TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
 
-                   
+                    var memoLines = new List<string>();
+                    var amountLines = new List<string>();
 
-                    if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].Memo;
-                    if (textObject_BILLSubAmountPayable != null) textObject_BILLSubAmountPayable.Text = totalVoucherAmount.ToString("N2");
+                    if (bills.Count > 1)
+                    {
+                        memoLines.Add("Payment for the following:");
+                        amountLines.Add("");
+                    }
+
+                    foreach (var b in bills)
+                    {
+                        string currentMemo = !string.IsNullOrWhiteSpace(b.Memo)
+                            ? b.Memo.Trim()
+                            : (!string.IsNullOrWhiteSpace(b.BillMemo) ? b.BillMemo.Trim() : "");
+
+                        if (string.IsNullOrWhiteSpace(currentMemo))
+                        {
+                            currentMemo = b.RefNumber ?? "";
+                        }
+
+                        double currentBillAmount = b.ItemDetails?.Sum(d =>
+                            d.ItemLineAmount > 0 ? d.ItemLineAmount : (d.ExpenseLineAmount > 0 ? d.ExpenseLineAmount : 0)
+                        ) ?? 0;
+
+                        if (currentBillAmount <= 0)
+                        {
+                            currentBillAmount = b.AmountDue > 0 ? b.AmountDue : b.Amount;
+                        }
+
+                        memoLines.Add(currentMemo);
+                        amountLines.Add(currentBillAmount.ToString("N2"));
+                    }
+
+                    if (textObject_BILLSubRemarks != null)
+                    {
+                        textObject_BILLSubRemarks.Text = string.Join("\r\n", memoLines);
+                    }
+
+                    if (textObject_BILLSubAmountPayable != null)
+                    {
+                        textObject_BILLSubAmountPayable.Text = string.Join("\r\n", amountLines);
+                    }
                 }
 
                 // Subreport 2: IVP (Debit Details)
                 SubreportObject subreportObjectIVP = cRAPV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                 if (subreportObjectIVP != null)
                 {
-                    cRAPV_INTBILL.OpenSubreport(subreportObjectIVP.SubreportName);
+                    ReportDocument subDocIVP = cRAPV_INTBILL.OpenSubreport(subreportObjectIVP.SubreportName);
+                    SetDatabaseLocation(subDocIVP, databasePathBILL);
                 }
 
-                // Subreport 3: INTCredit (Credit Details)
+                // Subreport 3: INTCredit (Credit Details - Notes Payable / Vouchers Payable)
                 SubreportObject subreportObjectINTCredit = cRAPV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINTCredit"] as SubreportObject;
                 if (subreportObjectINTCredit != null)
                 {
-                    cRAPV_INTBILL.OpenSubreport(subreportObjectINTCredit.SubreportName);
+                    ReportDocument subDocCredit = cRAPV_INTBILL.OpenSubreport(subreportObjectINTCredit.SubreportName);
+                    SetDatabaseLocation(subDocCredit, databasePathBILL);
                 }
 
-                // Populate MS Access Staging Database
-                InsertDataToBillCompiled(refNumberCR, bills);
+                // =========================================================================
+                // GET SELECTED A/P ACCOUNT FROM DROPDOWN
+                // =========================================================================
+                string selectedAP = comboBox_APAccount?.SelectedItem?.ToString();
+                if (string.IsNullOrWhiteSpace(selectedAP))
+                {
+                    selectedAP = comboBox_APAccount?.Text;
+                }
+                if (string.IsNullOrWhiteSpace(selectedAP))
+                {
+                    selectedAP = "Vouchers Payable";
+                }
+
+                // Populate MS Access Staging Database with selected AP Account
+                InsertDataToAPVBillCompiled(refNumberCR, bills, selectedAP);
 
                 cRAPV_INTBILL.SetParameterValue("ReferenceNumber", refNumberCR);
 
@@ -1142,7 +1233,6 @@ namespace VoucherPROVER2.Clients.INT
                     .Select(g =>
                     {
                         var firstBill = g.First();
-                        // Determine paid amount per bill without defaulting to total check amount
                         double paidAmount = firstBill.AppliedAmount > 0
                             ? firstBill.AppliedAmount
                             : (firstBill.Amount > 0 ? firstBill.Amount : firstBill.AmountDue);
@@ -1155,20 +1245,19 @@ namespace VoucherPROVER2.Clients.INT
                     })
                     .ToList();
 
-                // Left-align SI# (-20) and RIGHT-ALIGN Amount (+12)
-                string billRemarksText = string.Join(Environment.NewLine,
-                    billSummaryList.Select(b => $"SI#{b.RefNumber,-20}{b.Amount,45:N2}"));
+                // Build list of lines with header if there are multiple bills
+                var remarksLines = new List<string>();
 
-                // Append main Memo if present
-                string mainMemo = bills[0].BillMemo ?? bills[0].Memo;
-                if (!string.IsNullOrWhiteSpace(mainMemo))
+                if (billSummaryList.Count > 1)
                 {
-                    billRemarksText = string.IsNullOrWhiteSpace(billRemarksText)
-                        ? mainMemo
-                        : $"{mainMemo}{Environment.NewLine}{billRemarksText}";
+                    remarksLines.Add("Payment for the following:");
                 }
 
-                // Real total payout (sum of actual bill payments: 240 + 432 + 1000 = 1,672.00)
+                remarksLines.AddRange(billSummaryList.Select(b => $"SI#{b.RefNumber,-20}{b.Amount,45:N2}"));
+
+                string billRemarksText = string.Join("\r\n", remarksLines);
+
+                // Real total payout
                 double realCheckTotal = billSummaryList.Sum(x => x.Amount);
                 if (realCheckTotal == 0) realCheckTotal = bills[0].Amount;
 
@@ -1182,14 +1271,14 @@ namespace VoucherPROVER2.Clients.INT
 
                 // Line 1: Combine Addr1 and Addr2
                 string streetLine = string.Join(", ", new[] {
-                        bObj.Address,
-                        bObj.Address2,
-                    }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            bObj.Address,
+            bObj.Address2,
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                            // Line 2: City
-                            string cityLine = string.Join(" ", new[] {
-                        bObj.VendorAddressCity,
-                    }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                // Line 2: City
+                string cityLine = string.Join(" ", new[] {
+            bObj.VendorAddressCity,
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
@@ -1202,18 +1291,36 @@ namespace VoucherPROVER2.Clients.INT
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
                 if (textObject_CVBILLBankAccount != null) textObject_CVBILLBankAccount.Text = bankaccount;
 
+                // =========================================================================
+                // GET SELECTED A/P ACCOUNT FROM DROPDOWN
+                // =========================================================================
+                string selectedAP = comboBox_APAccount?.SelectedItem?.ToString();
+                if (string.IsNullOrWhiteSpace(selectedAP))
+                {
+                    selectedAP = comboBox_APAccount?.Text;
+                }
+                if (string.IsNullOrWhiteSpace(selectedAP))
+                {
+                    selectedAP = "Vouchers Payable";
+                }
+
+                // Populate staging database table with the chosen AP account
+                InsertDataToBillCompiled(refNumberCR, bills, selectedAP);
+
                 // Subreport 1: Debit Details
                 SubreportObject subreportObjectIVP = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                 if (subreportObjectIVP != null)
                 {
-                    cRCV_INTBILL.OpenSubreport(subreportObjectIVP.SubreportName);
+                    ReportDocument subDocIVP = cRCV_INTBILL.OpenSubreport(subreportObjectIVP.SubreportName);
+                    SetDatabaseLocation(subDocIVP, databasePathBILL);
                 }
 
-                // Subreport 2: Credit Details
+                // Subreport 2: Credit Details (Displays the Vouchers Payable / Notes Payable line)
                 SubreportObject subreportObjectINTCredit = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINTCredit"] as SubreportObject;
                 if (subreportObjectINTCredit != null)
                 {
-                    cRCV_INTBILL.OpenSubreport(subreportObjectINTCredit.SubreportName);
+                    ReportDocument subDocCredit = cRCV_INTBILL.OpenSubreport(subreportObjectINTCredit.SubreportName);
+                    SetDatabaseLocation(subDocCredit, databasePathBILL);
                 }
 
                 // Subreport 3: Remarks and Subtotal
@@ -1221,17 +1328,13 @@ namespace VoucherPROVER2.Clients.INT
                 if (subreportObjectINT != null)
                 {
                     ReportDocument subReportDocumentINT = cRCV_INTBILL.OpenSubreport(subreportObjectINT.SubreportName);
+                    SetDatabaseLocation(subReportDocumentINT, databasePathBILL);
 
                     TextObject textObject_BILLSubRemarks = subReportDocumentINT.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
-                    
 
                     if (textObject_BILLSubRemarks != null)
-                        textObject_BILLSubRemarks.Text = SafeTruncate(billRemarksText, 500);
-
+                        textObject_BILLSubRemarks.Text = billRemarksText;
                 }
-
-                // Populate staging database table
-                InsertDataToBillCompiled(refNumberCR, bills);
 
                 cRCV_INTBILL.SetParameterValue("ReferenceNumber", refNumberCR);
 
@@ -1594,7 +1697,7 @@ namespace VoucherPROVER2.Clients.INT
             Console.WriteLine($"Processed. Total Debit: {debitTotalAmount:F2}, Total Credit: {creditTotalAmount:F2}");
         }
 
-        public static void InsertDataToBillCompiled(string refNumber, List<BillTable> bills)
+        public static void InsertDataToBillCompiled(string refNumber, List<BillTable> bills, string selectedAPAccount = "Vouchers Payable")
         {
             string connectionString = AccessToDatabase_INT.GetAccessConnectionString();
             double debitTotalAmount = 0;
@@ -1623,14 +1726,15 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 string insertQuery = @"
-                                        INSERT INTO Bill_Compiled 
-                                        (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-                                        VALUES 
-                                        (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+            INSERT INTO Bill_Compiled 
+            (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+            VALUES 
+            (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
 
                 var allDetails = bills
                     .Where(b => b.ItemDetails != null)
-                    .SelectMany(b => b.ItemDetails.Select(d => new { Bill = b, Detail = d }));
+                    .SelectMany(b => b.ItemDetails.Select(d => new { Bill = b, Detail = d }))
+                    .ToList();
 
                 // =========================================================================
                 // PASS 1: POSITIVE DEBIT EXPENSE / ITEM LINES (> 0)
@@ -1640,7 +1744,7 @@ namespace VoucherPROVER2.Clients.INT
                     .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
                     .Select(g => new {
                         Particulars = g.Key,
-                        Memo = g.First().Detail.ItemLineMemo ?? "",
+                        Memo = string.Join("; ", g.Select(x => x.Detail.ItemLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalAmount = g.Sum(x => x.Detail.ItemLineAmount)
                     });
 
@@ -1649,7 +1753,7 @@ namespace VoucherPROVER2.Clients.INT
                     .GroupBy(x => x.Detail.ExpenseLineItemRefFullName.Trim())
                     .Select(g => new {
                         Particulars = g.Key,
-                        Memo = g.First().Detail.ExpenseLineMemo ?? "",
+                        Memo = string.Join("; ", g.Select(x => x.Detail.ExpenseLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalAmount = g.Sum(x => x.Detail.ExpenseLineAmount)
                     });
 
@@ -1671,7 +1775,6 @@ namespace VoucherPROVER2.Clients.INT
 
                 // =========================================================================
                 // PASS 2: NEGATIVE EXPENSE/ITEM LINES -> INSERT AS CREDITS (< 0)
-                // (This catches the -2,420.00 Withholding Tax line from the Bill!)
                 // =========================================================================
                 var groupedExpenseCredits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount < 0)
@@ -1681,7 +1784,7 @@ namespace VoucherPROVER2.Clients.INT
                     })
                     .Select(g => new {
                         Particulars = g.Key,
-                        Memo = g.First().Detail.ExpenseLineMemo ?? "",
+                        Memo = string.Join("; ", g.Select(x => x.Detail.ExpenseLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalCreditAmount = Math.Abs(g.Sum(x => x.Detail.ExpenseLineAmount))
                     });
 
@@ -1705,7 +1808,7 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                // Catch payment discounts if any exist
+                // Discounts
                 var groupedDiscounts = bills
                     .Where(b => b.AppliedToTxnDiscountAmount > 0 && !string.IsNullOrEmpty(b.AppliedToTxnDiscountAccountRefFullName))
                     .GroupBy(b => {
@@ -1736,7 +1839,7 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 // =========================================================================
-                // PASS 3: NET ACCOUNTS PAYABLE CREDIT ENTRY
+                // PASS 3: NET ACCOUNTS PAYABLE / NOTES PAYABLE CREDIT ENTRY
                 // =========================================================================
                 if (bills != null && bills.Count > 0)
                 {
@@ -1745,10 +1848,13 @@ namespace VoucherPROVER2.Clients.INT
                         double netPaymentCredit = debitTotalAmount - totalNegativeCredits;
                         creditTotalAmount += netPaymentCredit;
 
-                        var mainBill = bills[0];
+                        string consolidatedMemo = string.Join(" | ", bills
+                            .Select(b => !string.IsNullOrWhiteSpace(b.BillMemo) ? b.BillMemo.Trim() : b.Memo?.Trim())
+                            .Where(m => !string.IsNullOrWhiteSpace(m))
+                            .Distinct());
 
-                        // FIXED: Hardcode Particulars to "Vouchers Payable"
-                        string apAccount = "Vouchers Payable";
+                        // Selected account from dropdown or fallback
+                        string apAccount = string.IsNullOrWhiteSpace(selectedAPAccount) ? "Vouchers Payable" : selectedAPAccount;
 
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
@@ -1757,7 +1863,192 @@ namespace VoucherPROVER2.Clients.INT
                             command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
                             command.Parameters.AddWithValue("@Debit", "");
                             command.Parameters.AddWithValue("@Credit", netPaymentCredit.ToString("N2"));
-                            command.Parameters.AddWithValue("@Memo", SafeTruncate(mainBill.BillMemo ?? mainBill.Memo, 255));
+                            command.Parameters.AddWithValue("@Memo", SafeTruncate(consolidatedMemo, 255));
+                            command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error processing AP Credit entry: {ex.Message}");
+                    }
+                }
+
+                connection.Close();
+            }
+        }
+
+        public static void InsertDataToAPVBillCompiled(string refNumber, List<BillTable> bills, string selectedAPAccount = "Vouchers Payable")
+        {
+            string connectionString = AccessToDatabase_INT.GetAccessConnectionString();
+            double debitTotalAmount = 0;
+            double creditTotalAmount = 0;
+
+            string SafeTruncate(string value, int maxLength)
+            {
+                if (string.IsNullOrEmpty(value)) return "";
+                return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+            }
+
+            using (OleDbConnection connection = new OleDbConnection(connectionString))
+            {
+                connection.Open();
+
+                // 1. Clear old staging data
+                string deleteQuery = "DELETE FROM Bill_Compiled";
+                using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
+                {
+                    try { deleteCommand.ExecuteNonQuery(); }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error deleting data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                }
+
+                string insertQuery = @"
+                        INSERT INTO Bill_Compiled 
+                        (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+                        VALUES 
+                        (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+
+                var allDetails = bills
+                    .Where(b => b.ItemDetails != null)
+                    .SelectMany(b => b.ItemDetails.Select(d => new { Bill = b, Detail = d }))
+                    .ToList();
+
+                // =========================================================================
+                // PASS 1: POSITIVE DEBIT EXPENSE / ITEM LINES (> 0)
+                // =========================================================================
+                var groupedItemDebits = allDetails
+                    .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount > 0)
+                    .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
+                    .Select(g => new {
+                        Particulars = g.Key,
+                        Memo = string.Join("; ", g.Select(x => x.Detail.ItemLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
+                        TotalAmount = g.Sum(x => x.Detail.ItemLineAmount)
+                    });
+
+                var groupedExpenseDebits = allDetails
+                    .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount > 0)
+                    .GroupBy(x => x.Detail.ExpenseLineItemRefFullName.Trim())
+                    .Select(g => new {
+                        Particulars = g.Key,
+                        Memo = string.Join("; ", g.Select(x => x.Detail.ExpenseLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
+                        TotalAmount = g.Sum(x => x.Detail.ExpenseLineAmount)
+                    });
+
+                foreach (var entry in groupedItemDebits.Concat(groupedExpenseDebits))
+                {
+                    debitTotalAmount += entry.TotalAmount;
+                    using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(entry.Particulars, 255));
+                        command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Debit", entry.TotalAmount.ToString("N2"));
+                        command.Parameters.AddWithValue("@Credit", "");
+                        command.Parameters.AddWithValue("@Memo", SafeTruncate(entry.Memo, 255));
+                        command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
+                        command.ExecuteNonQuery();
+                    }
+                }
+
+                // =========================================================================
+                // PASS 2: NEGATIVE EXPENSE/ITEM LINES -> INSERT AS CREDITS (< 0)
+                // =========================================================================
+                var groupedExpenseCredits = allDetails
+                    .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount < 0)
+                    .GroupBy(x => {
+                        string rawAcc = x.Detail.ExpenseLineItemRefFullName.Trim();
+                        return rawAcc.Contains(":") ? rawAcc.Split(':').Last().Trim() : rawAcc;
+                    })
+                    .Select(g => new {
+                        Particulars = g.Key,
+                        Memo = string.Join("; ", g.Select(x => x.Detail.ExpenseLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
+                        TotalCreditAmount = Math.Abs(g.Sum(x => x.Detail.ExpenseLineAmount))
+                    });
+
+                double totalNegativeCredits = 0;
+
+                foreach (var entry in groupedExpenseCredits)
+                {
+                    totalNegativeCredits += entry.TotalCreditAmount;
+                    creditTotalAmount += entry.TotalCreditAmount;
+
+                    using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(entry.Particulars, 255));
+                        command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Debit", "");
+                        command.Parameters.AddWithValue("@Credit", entry.TotalCreditAmount.ToString("N2"));
+                        command.Parameters.AddWithValue("@Memo", SafeTruncate(entry.Memo, 255));
+                        command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
+                        command.ExecuteNonQuery();
+                    }
+                }
+
+                // Discounts
+                var groupedDiscounts = bills
+                    .Where(b => b.AppliedToTxnDiscountAmount > 0 && !string.IsNullOrEmpty(b.AppliedToTxnDiscountAccountRefFullName))
+                    .GroupBy(b => {
+                        string rawAcc = b.AppliedToTxnDiscountAccountRefFullName;
+                        return rawAcc.Contains(":") ? rawAcc.Split(':').Last().Trim() : rawAcc.Trim();
+                    })
+                    .Select(g => new {
+                        AccountName = g.Key,
+                        Memos = string.Join("; ", bills.Select(x => x.Memo ?? x.BillMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
+                        TotalDiscount = g.Sum(b => Math.Abs(b.AppliedToTxnDiscountAmount))
+                    });
+
+                foreach (var disc in groupedDiscounts)
+                {
+                    totalNegativeCredits += disc.TotalDiscount;
+                    creditTotalAmount += disc.TotalDiscount;
+
+                    string discMemo = !string.IsNullOrWhiteSpace(disc.Memos) ? disc.Memos : "Withholding Tax Applied";
+
+                    using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(disc.AccountName, 255));
+                        command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Debit", "");
+                        command.Parameters.AddWithValue("@Credit", disc.TotalDiscount.ToString("N2"));
+                        command.Parameters.AddWithValue("@Memo", SafeTruncate(discMemo, 255));
+                        command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
+                        command.ExecuteNonQuery();
+                    }
+                }
+
+                // =========================================================================
+                // PASS 3: NET ACCOUNTS PAYABLE / NOTES PAYABLE CREDIT ENTRY
+                // =========================================================================
+                if (bills != null && bills.Count > 0)
+                {
+                    try
+                    {
+                        double netPaymentCredit = debitTotalAmount - totalNegativeCredits;
+                        creditTotalAmount += netPaymentCredit;
+
+                        // Combine all header memos for the Accounts/Vouchers/Notes Payable line
+                        string allHeaderMemos = string.Join(" | ", bills
+                            .Select(b => !string.IsNullOrWhiteSpace(b.BillMemo) ? b.BillMemo.Trim() : b.Memo?.Trim())
+                            .Where(m => !string.IsNullOrWhiteSpace(m))
+                            .Distinct());
+
+                        // Use the selected AP Account from dropdown
+                        string apAccount = string.IsNullOrWhiteSpace(selectedAPAccount) ? "Vouchers Payable" : selectedAPAccount;
+
+                        using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
+                        {
+                            command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
+                            command.Parameters.AddWithValue("@Particulars", SafeTruncate(apAccount, 255));
+                            command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
+                            command.Parameters.AddWithValue("@Debit", "");
+                            command.Parameters.AddWithValue("@Credit", netPaymentCredit.ToString("N2"));
+                            command.Parameters.AddWithValue("@Memo", SafeTruncate(allHeaderMemos, 255));
                             command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
                             command.ExecuteNonQuery();
                         }
@@ -2336,12 +2627,11 @@ namespace VoucherPROVER2.Clients.INT
 
             if (GlobalVariables.client == "INT")
             {
-                // 1. Hide Voucher Type controls by default at the start of every change
+                // 1. Reset dynamic dropdowns by default
                 SetVoucherTypeVisibility(false);
+                SetAPAccountVisibility(false);
 
-                // 2. Control panel_Company visibility (Include Online Voucher index if needed)
-                // Adjust these indices to match your combo box order:
-                // (e.g., 1 = CV, 3 = JV, 4 = APV, 5 = Online Voucher)
+                // 2. Control panel_Company visibility
                 if (comboBox_Forms.SelectedIndex == 1 || comboBox_Forms.SelectedIndex == 3 ||
                     comboBox_Forms.SelectedIndex == 4 || comboBox_Forms.SelectedIndex == 5)
                 {
@@ -2375,7 +2665,7 @@ namespace VoucherPROVER2.Clients.INT
 
                 switch (comboBox_Forms.SelectedIndex)
                 {
-                    case 1: // Check Voucher
+                    case 1: // Check Voucher (CV)
                         prefix = "CV";
                         panel_SeriesNumber.Visible = false;
                         panel_RefNumber.Visible = false;
@@ -2385,6 +2675,9 @@ namespace VoucherPROVER2.Clients.INT
 
                         if (label_CurrencyText != null) label_CurrencyText.Visible = true;
                         if (comboBox_Currency != null) comboBox_Currency.Visible = true;
+
+                        // SHOW AP ACCOUNT FOR CV
+                        SetAPAccountVisibility(true);
 
                         panel_Main.Visible = false;
                         panel_Main_CR.Visible = true;
@@ -2401,7 +2694,7 @@ namespace VoucherPROVER2.Clients.INT
                         panel_Main_CR.Visible = false;
                         break;
 
-                    case 3: // Journal Voucher
+                    case 3: // Journal Voucher (JV)
                         prefix = "JV";
                         panel_RefNumber.Visible = false;
                         panel_RefNumberCrystalReport.Visible = true;
@@ -2420,7 +2713,7 @@ namespace VoucherPROVER2.Clients.INT
                         SetVoucherTypeVisibility(true);
                         break;
 
-                    case 4: // Accounts Payable Voucher
+                    case 4: // Accounts Payable Voucher (APV)
                         prefix = "APV";
                         panel_SeriesNumber.Visible = false;
                         panel_RefNumber.Visible = false;
@@ -2432,11 +2725,14 @@ namespace VoucherPROVER2.Clients.INT
                         if (label_CurrencyText != null) label_CurrencyText.Visible = false;
                         if (comboBox_Currency != null) comboBox_Currency.Visible = false;
 
+                        // SHOW AP ACCOUNT FOR APV
+                        SetAPAccountVisibility(true);
+
                         panel_Main.Visible = false;
                         panel_Main_CR.Visible = true;
                         break;
 
-                    case 5: // Online Voucher (Change number to match your actual Index)
+                    case 5: // Online Voucher
                         panel_SeriesNumber.Visible = false;
                         panel_RefNumber.Visible = false;
                         panel_RefNumberCrystalReport.Visible = true;
@@ -2462,16 +2758,16 @@ namespace VoucherPROVER2.Clients.INT
             }
         }
 
-        private void SetVoucherTypeVisibility(bool isVisible)
+        private void SetAPAccountVisibility(bool visible)
         {
-            if (label_VoucherType != null) label_VoucherType.Visible = isVisible;
-            if (comboBox_VoucherType != null) comboBox_VoucherType.Visible = isVisible;
+            if (label_APAccount != null) label_APAccount.Visible = visible;
+            if (comboBox_APAccount != null) comboBox_APAccount.Visible = visible;
+        }
 
-            // Adjust company panel height dynamically based on whether Voucher Type is visible
-            if (panel_Company != null)
-            {
-                panel_Company.Height = isVisible ? 120 : 61;
-            }
+        private void SetVoucherTypeVisibility(bool visible)
+        {
+            if (label_VoucherType != null) label_VoucherType.Visible = visible;
+            if (comboBox_VoucherType != null) comboBox_VoucherType.Visible = visible;
         }
 
         private void SetDatabaseLocation(ReportDocument reportDocument, string databasePath)

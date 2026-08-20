@@ -149,7 +149,7 @@ namespace VoucherPROVER2.Clients.INT
                     return bills;
                 }
 
-                // 2. Loop through results
+                // 2. Loop through all matching results
                 for (int i = 0; i < billList.Count; i++)
                 {
                     IBillRet bill = billList.GetAt(i);
@@ -211,6 +211,7 @@ namespace VoucherPROVER2.Clients.INT
                         RefNumber = bill.RefNumber?.GetValue() ?? "",
                         AppliedRefNumber = bill.RefNumber?.GetValue() ?? "",
                         Memo = Truncate(bill.Memo?.GetValue() ?? "", 500),
+                        BillMemo = Truncate(bill.Memo?.GetValue() ?? "", 500),
                         AmountDue = billAmountDue,
                         Amount = billAmountDue,
                         IsPaid = bill.IsPaid?.GetValue() ?? false,
@@ -224,7 +225,8 @@ namespace VoucherPROVER2.Clients.INT
 
                         Tin = vendorTIN,
                         Currency = bill.CurrencyRef?.FullName?.GetValue() ?? "",
-                        Exchangerate = bill.ExchangeRate?.GetValue() ?? 1.0
+                        Exchangerate = bill.ExchangeRate?.GetValue() ?? 1.0,
+                        ItemDetails = new List<ItemDetail>()
                     };
 
                     // 3. Process Expense Lines
@@ -244,6 +246,7 @@ namespace VoucherPROVER2.Clients.INT
                         }
                     }
 
+                    // 4. Process Item Lines
                     if (bill.ORItemLineRetList != null)
                     {
                         for (int j = 0; j < bill.ORItemLineRetList.Count; j++)
@@ -258,7 +261,7 @@ namespace VoucherPROVER2.Clients.INT
                                     ItemLineAmount = item.Amount?.GetValue() ?? 0,
                                     ItemLineClassRefFullName = item.ClassRef?.FullName?.GetValue() ?? "",
                                     ItemLineCustomerJob = item.CustomerRef?.FullName?.GetValue() ?? "",
-                                    ItemLineMemo = item.Desc?.GetValue() ?? ""
+                                    ItemLineMemo = Truncate(item.Desc?.GetValue() ?? "", 500)
                                 });
                             }
                         }
@@ -283,6 +286,7 @@ namespace VoucherPROVER2.Clients.INT
 
             return bills;
         }
+
 
         public List<BillTable> GetBillData_INT(string refNumber)
         {
