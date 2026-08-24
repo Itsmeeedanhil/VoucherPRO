@@ -42,6 +42,11 @@ namespace VoucherPROVER2.Clients.INT
             // Safety Check
             if (checkTableData == null || checkTableData.Count == 0) return;
 
+            // Enable high quality text and graphics rendering
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+            e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+
             DateTime dateCreated = Convert.ToDateTime(checkTableData[0].DateCreated).Date;
 
             string month = dateCreated.ToString("MM");
