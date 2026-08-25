@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -100,6 +100,34 @@
     </Compile>
     <Compile Include="Clients\DRC\Dataclass_DRC.cs" />
     <Compile Include="Clients\DRC\Layouts_DRC.cs" />
+    <Compile Include="Clients\EURO\AccessQueries_EURO.cs" />
+    <Compile Include="Clients\EURO\AccessToDatabase_EURO.cs" />
+    <Compile Include="Clients\EURO\CRCV_EURO.cs">
+      <DependentUpon>CRCV_EURO.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\EURO\CRCV_EUROBILL.cs">
+      <DependentUpon>CRCV_EUROBILL.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\EURO\CRJV_EURO.cs">
+      <DependentUpon>CRJV_EURO.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Clients\EURO\Dashboard_EURO.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Clients\EURO\Dashboard_EURO.Designer.cs">
+      <DependentUpon>Dashboard_EURO.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Clients\EURO\Dataclass_EURO.cs" />
+    <Compile Include="Clients\EURO\Layouts_EURO.cs" />
     <Compile Include="Clients\INTEGRATED\AccessQueries_INT.cs" />
     <Compile Include="Clients\INTEGRATED\AccessToDatabase_INT.cs" />
     <Compile Include="Clients\INTEGRATED\CRAPV_INTBILL.cs">
@@ -271,6 +299,21 @@
     <EmbeddedResource Include="Clients\DRC\Dashboard_DRC.resx">
       <DependentUpon>Dashboard_DRC.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Clients\EURO\CRCV_EUROBILL.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_EUROBILL.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\EURO\CRCV_EURO.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRCV_EURO.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\EURO\CRJV_EURO.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>CRJV_EURO.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Clients\EURO\Dashboard_EURO.resx">
+      <DependentUpon>Dashboard_EURO.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Clients\INTEGRATED\CRAPV_INTBILL.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>CRAPV_INTBILL.cs</LastGenOutput>
@@ -365,6 +408,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <Content Include="CheckDatabase.accdb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="PROMPTINGLib">
@@ -388,9 +434,6 @@
   </ItemGroup>
   <ItemGroup>
     <Service Include="{C0C07587-41A7-46C8-8FBD-3F9C8EBE2DDC}" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Clients\EURO\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

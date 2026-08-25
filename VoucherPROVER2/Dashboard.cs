@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -12,12 +12,13 @@ using VoucherPROVER2.Clients.ENA;
 using VoucherPROVER2.Clients.INT;
 using VoucherPROVER2.Clients.IVP;
 using VoucherPROVER2.Clients.OWI;
+using VoucherPROVER2.Clients.EURO;
 
 namespace VoucherPROVER2
 {
     public class GlobalVariables
     {
-        public static string client = "INT";
+        public static string client = "EURO";
         public static bool includeImage = true;
         public static bool includeItemReceipt = true;
         public static bool testWithoutData = true;
@@ -108,6 +109,13 @@ namespace VoucherPROVER2
                 // 3. Add that panel into the current panel's controls
                 panel.Controls.Add(mpmContent);
 
+                return panel;
+            }
+            if (GlobalVariables.client == "EURO")
+            {
+                Dashboard_EURO dashboard_EURO = new Dashboard_EURO();
+                Panel euroContent = dashboard_EURO.ContainerPanel();
+                panel.Controls.Add(euroContent);
                 return panel;
             }
             else
