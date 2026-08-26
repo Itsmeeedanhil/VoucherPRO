@@ -374,7 +374,7 @@ namespace VoucherPROVER2.Clients.INT
         public FlowLayoutPanel Panel_SBCompany()
         {
             int cardInnerWidth = sideBarWidth - 44;
-            panel_Company = CreateCardPanel("🏢  COMPANY & ACCOUNTS", sideBarWidth - 24);
+            panel_Company = CreateCardPanel("🏢  COMPANY DETAILS", sideBarWidth - 24);
             panel_Company.Visible = (GlobalVariables.client == "INT");
 
             Label label_CompanyText = new Label
