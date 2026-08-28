@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -1228,18 +1228,19 @@ namespace VoucherPROVER2.Clients.INT
                 // 1. CALCULATE INDIVIDUAL BILL AMOUNTS AND SUMMARY REMARKS
                 // =========================================================================
                 var billSummaryList = bills
-                    .Where(x => !string.IsNullOrWhiteSpace(x.RefNumber) || !string.IsNullOrWhiteSpace(x.AppliedRefNumber))
-                    .GroupBy(x => !string.IsNullOrWhiteSpace(x.AppliedRefNumber) ? x.AppliedRefNumber.Trim() : x.RefNumber.Trim())
-                    .Select(g =>
+                    .Select(b =>
                     {
-                        var firstBill = g.First();
-                        double paidAmount = firstBill.AppliedAmount > 0
-                            ? firstBill.AppliedAmount
-                            : (firstBill.Amount > 0 ? firstBill.Amount : firstBill.AmountDue);
+                        string refNum = !string.IsNullOrWhiteSpace(b.AppliedRefNumber)
+                            ? b.AppliedRefNumber.Trim()
+                            : (!string.IsNullOrWhiteSpace(b.RefNumber) ? b.RefNumber.Trim() : "");
+
+                        double paidAmount = b.AppliedAmount > 0
+                            ? b.AppliedAmount
+                            : (b.Amount > 0 ? b.Amount : b.AmountDue);
 
                         return new
                         {
-                            RefNumber = g.Key,
+                            RefNumber = refNum,
                             Amount = paidAmount
                         };
                     })
@@ -1726,10 +1727,10 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 string insertQuery = @"
-            INSERT INTO Bill_Compiled 
-            (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-            VALUES 
-            (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+                    INSERT INTO Bill_Compiled 
+                    (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+                    VALUES 
+                    (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
 
                 var allDetails = bills
                     .Where(b => b.ItemDetails != null)

@@ -24,9 +24,10 @@ C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\bin\x64\Rele
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\bin\x64\Release\CrystalDecisions.ReportAppServer.CommonControls.dll
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\bin\x64\Release\stdole.dll
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.Form1.resources
-C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.csproj.CopyComplete
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.exe
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\Interop.PROMPTINGLib.dll
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.Clients.ENA.Dashboard_ENA.resources
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.Clients.INT.Dashboard_INT.resources
 C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.Clients.DRC.Dashboard_DRC.resources
+C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherPROVER2.Clients.EURO.Dashboard_EURO.resources
+C:\Users\Tetsuro\Desktop\VoucherPROV2\VoucherPROVER2\VoucherPROVER2\obj\x64\Release\VoucherP.E2684AE6.Up2Date
