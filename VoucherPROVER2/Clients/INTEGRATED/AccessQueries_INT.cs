@@ -303,7 +303,7 @@ namespace VoucherPROVER2.Clients.INT
                 Console.WriteLine("[DEBUG] Session Opened Successfully.");
 
                 // ====================================================
-                // 0. BUILD ACCOUNT NUMBER LOOKUP MAP
+                // 0. BUILD ACCOUNT NUMBER LOOKUP MAP (WITH SUB-ACCOUNT SUPPORT)
                 // ====================================================
                 Dictionary<string, string> accountMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 try
@@ -318,23 +318,66 @@ namespace VoucherPROVER2.Clients.INT
                         IAccountRetList accList = accResp.ResponseList.GetAt(0).Detail as IAccountRetList;
                         if (accList != null)
                         {
+                            // Pass 1: Cache raw account details
+                            var rawAccounts = new Dictionary<string, (string Name, string FullName, string AccNum, string ParentFullName)>(StringComparer.OrdinalIgnoreCase);
+
                             for (int i = 0; i < accList.Count; i++)
                             {
                                 IAccountRet acc = accList.GetAt(i);
                                 string fullName = acc.FullName?.GetValue() ?? "";
                                 string name = acc.Name?.GetValue() ?? "";
                                 string accNum = acc.AccountNumber?.GetValue() ?? "";
+                                string parentFullName = acc.ParentRef?.FullName?.GetValue() ?? "";
 
-                                // e.g. "16410 · Input Tax" or just "Input Tax" if no number exists
-                                string formattedName = !string.IsNullOrWhiteSpace(accNum)
-                                    ? $"{accNum} · {name}"
-                                    : name;
+                                if (!string.IsNullOrEmpty(fullName))
+                                {
+                                    rawAccounts[fullName] = (name, fullName, accNum, parentFullName);
+                                }
+                            }
 
-                                if (!string.IsNullOrEmpty(fullName) && !accountMap.ContainsKey(fullName))
-                                    accountMap[fullName] = formattedName;
+                            // Pass 2: Inherit account numbers from parents if sub-account has no number
+                            foreach (var kvp in rawAccounts)
+                            {
+                                var accData = kvp.Value;
+                                string effectiveAccNum = accData.AccNum;
 
-                                if (!string.IsNullOrEmpty(name) && !accountMap.ContainsKey(name))
-                                    accountMap[name] = formattedName;
+                                string currentParent = accData.ParentFullName;
+                                while (string.IsNullOrWhiteSpace(effectiveAccNum) && !string.IsNullOrWhiteSpace(currentParent))
+                                {
+                                    if (rawAccounts.ContainsKey(currentParent))
+                                    {
+                                        effectiveAccNum = rawAccounts[currentParent].AccNum;
+                                        currentParent = rawAccounts[currentParent].ParentFullName;
+                                    }
+                                    else
+                                    {
+                                        var match = System.Text.RegularExpressions.Regex.Match(currentParent, @"^(\d+)");
+                                        if (match.Success)
+                                        {
+                                            effectiveAccNum = match.Groups[1].Value;
+                                        }
+                                        break;
+                                    }
+                                }
+
+                                if (string.IsNullOrWhiteSpace(effectiveAccNum))
+                                {
+                                    var match = System.Text.RegularExpressions.Regex.Match(accData.FullName, @"^(\d+)");
+                                    if (match.Success)
+                                    {
+                                        effectiveAccNum = match.Groups[1].Value;
+                                    }
+                                }
+
+                                string formattedName = !string.IsNullOrWhiteSpace(effectiveAccNum)
+                                    ? $"{effectiveAccNum} - {accData.Name}"
+                                    : accData.Name;
+
+                                accountMap[accData.FullName] = formattedName;
+                                if (!accountMap.ContainsKey(accData.Name))
+                                {
+                                    accountMap[accData.Name] = formattedName;
+                                }
                             }
                         }
                     }
@@ -396,10 +439,15 @@ namespace VoucherPROVER2.Clients.INT
                         {
                             double appliedAmt = applied.Amount?.GetValue() ?? 0;
                             double discAmt = applied.DiscountAmount?.GetValue() ?? 0;
-                            string discAcc = applied.DiscountAccountRef?.FullName?.GetValue() ?? "";
+                            string rawDiscAcc = applied.DiscountAccountRef?.FullName?.GetValue() ?? "";
 
-                            appliedTxnDetails[tId] = (appliedAmt, discAmt, discAcc);
-                            Console.WriteLine($"[DEBUG] Found Applied Bill TxnID: {tId} | Paid: {appliedAmt} | Discount: {discAmt} | Account: {discAcc}");
+                            // Map Discount / Withholding Tax Account number
+                            string formattedDiscAcc = accountMap.ContainsKey(rawDiscAcc)
+                                ? accountMap[rawDiscAcc]
+                                : rawDiscAcc;
+
+                            appliedTxnDetails[tId] = (appliedAmt, discAmt, formattedDiscAcc);
+                            Console.WriteLine($"[DEBUG] Found Applied Bill TxnID: {tId} | Paid: {appliedAmt} | Discount: {discAmt} | Account: {formattedDiscAcc}");
                         }
                     }
                 }
@@ -436,7 +484,7 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 // ====================================================
-                // 3. LOOP THROUGH RETRIEVED BILLS
+                // 3. LOOP THROUGH RETRIEVED BILLS AND ATTACH DETAILS
                 // ====================================================
                 Console.WriteLine($"[DEBUG] Retrieved {billList.Count} Bill(s). Processing...");
 
@@ -451,6 +499,11 @@ namespace VoucherPROVER2.Clients.INT
                     string billAPAccount = bill.APAccountRef?.FullName?.GetValue() ?? "";
                     string billRefNumber = bill.RefNumber?.GetValue() ?? "";
                     string specificTxnID = bill.TxnID?.GetValue() ?? "";
+
+                    // Map AP Account number if found
+                    string resolvedAPAccount = accountMap.ContainsKey(billAPAccount)
+                        ? accountMap[billAPAccount]
+                        : billAPAccount;
 
                     Console.WriteLine($"[DEBUG] Processing Bill #{bIndex + 1}: Ref {billRefNumber}");
 
@@ -473,7 +526,7 @@ namespace VoucherPROVER2.Clients.INT
                         Address = address1,
                         Address2 = address2,
                         BankAccount = bankAccount,
-                        APAccountRefFullName = billAPAccount,
+                        APAccountRefFullName = resolvedAPAccount,
                         Amount = individualBillPaidAmt,
                         AppliedAmount = individualBillPaidAmt,
                         TotalCheckAmount = totalCheckAmountPaid,
@@ -487,7 +540,7 @@ namespace VoucherPROVER2.Clients.INT
                         AppliedToTxnDiscountAccountRefFullName = discountAcc
                     };
 
-                    // Process Expense Lines with Account Number Resolution
+                    // Process Expense Lines with Resolved Account Numbers
                     if (bill.ExpenseLineRetList != null)
                     {
                         for (int i = 0; i < bill.ExpenseLineRetList.Count; i++)
@@ -495,7 +548,6 @@ namespace VoucherPROVER2.Clients.INT
                             var exp = bill.ExpenseLineRetList.GetAt(i);
                             string rawAccountName = exp.AccountRef?.FullName?.GetValue() ?? "";
 
-                            // Resolves "Input Tax" -> "16410 · Input Tax"
                             string resolvedAccountName = accountMap.ContainsKey(rawAccountName)
                                 ? accountMap[rawAccountName]
                                 : rawAccountName;
