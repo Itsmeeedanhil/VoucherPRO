@@ -201,8 +201,8 @@ namespace VoucherPROVER2.Clients.INT
 
             comboBox_APAccount.Items.AddRange(new string[]
             {
-                "Vouchers Payable",
-                "Notes Payable"
+                "2300 - Vouchers Payable",
+                "2100 - Notes Payable"
             });
             comboBox_APAccount.SelectedIndex = 0;
 
@@ -1174,10 +1174,13 @@ namespace VoucherPROVER2.Clients.INT
                 TextObject textObject_CVBILLCheckDate = null;
                 TextObject textObject_CVBILLBankAccount = null;
                 TextObject textObject_CVBILLAmount = null;
+                TextObject TextObject_CVBILLAmountdetails = null;
                 TextObject textObject_CVBILLPayee = null;
                 TextObject textObject_CVBILLRefnumber = null;
                 TextObject textObject_CVBILLAddress = null;
                 TextObject textObject_CVBILLDate = null;
+                TextObject textObject_TotalDebit = null;
+                TextObject textObject_TotalCredit = null;
                 TextObject textObject_PreparedBy = null;
                 TextObject textObject_PreparedByPos = null;
                 TextObject textObject_CheckedBy = null;
@@ -1196,6 +1199,10 @@ namespace VoucherPROVER2.Clients.INT
                     textObject_CVBILLRefnumber = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
                     textObject_CVBILLBankAccount = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLBankAccount"] as TextObject;
                     textObject_CVBILLAmount = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLLAmount"] as TextObject;
+
+                    textObject_TotalDebit = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLLAmountDebitdetails"] as TextObject;
+                    textObject_TotalCredit = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLLAmountCreditdetails"] as TextObject;
+                    TextObject_CVBILLAmountdetails = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLLAmountdetails"] as TextObject;
 
                     textObject_PreparedBy = cRCV_INTBILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
                     textObject_PreparedByPos = cRCV_INTBILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
@@ -1270,18 +1277,12 @@ namespace VoucherPROVER2.Clients.INT
 
                 var bObj = bills[0];
 
-                // Line 1: Combine Addr1 and Addr2
-                string streetLine = string.Join(", ", new[] {
+                // Single-line Address formatting
+                string fullAddress = string.Join(", ", new[] {
             bObj.Address,
             bObj.Address2,
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
-
-                // Line 2: City
-                string cityLine = string.Join(" ", new[] {
-            bObj.VendorAddressCity,
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
-
-                string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            bObj.VendorAddressCity
+        }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().TrimEnd(',')));
 
                 if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
@@ -1291,9 +1292,10 @@ namespace VoucherPROVER2.Clients.INT
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
                 if (textObject_CVBILLBankAccount != null) textObject_CVBILLBankAccount.Text = bankaccount;
+                if (TextObject_CVBILLAmountdetails != null) TextObject_CVBILLAmountdetails.Text = realCheckTotal.ToString("N2");
 
                 // =========================================================================
-                // GET SELECTED A/P ACCOUNT FROM DROPDOWN
+                // 2. GET SELECTED A/P ACCOUNT AND INSERT DATA
                 // =========================================================================
                 string selectedAP = comboBox_APAccount?.SelectedItem?.ToString();
                 if (string.IsNullOrWhiteSpace(selectedAP))
@@ -1302,12 +1304,23 @@ namespace VoucherPROVER2.Clients.INT
                 }
                 if (string.IsNullOrWhiteSpace(selectedAP))
                 {
-                    selectedAP = "Vouchers Payable";
+                    selectedAP = !string.IsNullOrWhiteSpace(bills[0].APAccountRefFullName)
+                        ? bills[0].APAccountRefFullName
+                        : "Vouchers Payable";
                 }
 
-                // Populate staging database table with the chosen AP account
-                InsertDataToBillCompiled(refNumberCR, bills, selectedAP);
+                // Populate staging database table and retrieve debit/credit totals
+                var (totalDebit, totalCredit) = InsertDataToBillCompiled(refNumberCR, bills, selectedAP);
 
+                if (textObject_TotalDebit != null)
+                    textObject_TotalDebit.Text = totalDebit.ToString("N2");
+
+                if (textObject_TotalCredit != null)
+                    textObject_TotalCredit.Text = totalCredit.ToString("N2");
+
+                // =========================================================================
+                // 3. CONFIGURE SUBREPORTS
+                // =========================================================================
                 // Subreport 1: Debit Details
                 SubreportObject subreportObjectIVP = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                 if (subreportObjectIVP != null)
@@ -1316,7 +1329,7 @@ namespace VoucherPROVER2.Clients.INT
                     SetDatabaseLocation(subDocIVP, databasePathBILL);
                 }
 
-                // Subreport 2: Credit Details (Displays the Vouchers Payable / Notes Payable line)
+                // Subreport 2: Credit Details (Displays Vouchers Payable / Notes Payable)
                 SubreportObject subreportObjectINTCredit = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINTCredit"] as SubreportObject;
                 if (subreportObjectINTCredit != null)
                 {
@@ -1698,7 +1711,7 @@ namespace VoucherPROVER2.Clients.INT
             Console.WriteLine($"Processed. Total Debit: {debitTotalAmount:F2}, Total Credit: {creditTotalAmount:F2}");
         }
 
-        public static void InsertDataToBillCompiled(string refNumber, List<BillTable> bills, string selectedAPAccount = "Vouchers Payable")
+        public static (double TotalDebit, double TotalCredit) InsertDataToBillCompiled(string refNumber, List<BillTable> bills, string selectedAPAccount = "Vouchers Payable")
         {
             string connectionString = AccessToDatabase_INT.GetAccessConnectionString();
             double debitTotalAmount = 0;
@@ -1722,15 +1735,14 @@ namespace VoucherPROVER2.Clients.INT
                     catch (Exception ex)
                     {
                         MessageBox.Show($"Error deleting data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
+                        return (0, 0);
                     }
                 }
 
-                string insertQuery = @"
-                    INSERT INTO Bill_Compiled 
-                    (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-                    VALUES 
-                    (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+                string insertQuery = @"INSERT INTO Bill_Compiled 
+            (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+            VALUES 
+            (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
 
                 var allDetails = bills
                     .Where(b => b.ItemDetails != null)
@@ -1738,7 +1750,7 @@ namespace VoucherPROVER2.Clients.INT
                     .ToList();
 
                 // =========================================================================
-                // PASS 1: POSITIVE DEBIT EXPENSE / ITEM LINES (> 0)
+                // PASS 1: DEBITS
                 // =========================================================================
                 var groupedItemDebits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount > 0)
@@ -1775,7 +1787,7 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 // =========================================================================
-                // PASS 2: NEGATIVE EXPENSE/ITEM LINES -> INSERT AS CREDITS (< 0)
+                // PASS 2: NEGATIVE EXPENSE LINES / DISCOUNTS / WITHHOLDING TAX
                 // =========================================================================
                 var groupedExpenseCredits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount < 0)
@@ -1809,7 +1821,6 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                // Discounts
                 var groupedDiscounts = bills
                     .Where(b => b.AppliedToTxnDiscountAmount > 0 && !string.IsNullOrEmpty(b.AppliedToTxnDiscountAccountRefFullName))
                     .GroupBy(b => {
@@ -1840,7 +1851,7 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 // =========================================================================
-                // PASS 3: NET ACCOUNTS PAYABLE / NOTES PAYABLE CREDIT ENTRY
+                // PASS 3: AP / VOUCHERS PAYABLE CREDIT ENTRY
                 // =========================================================================
                 if (bills != null && bills.Count > 0)
                 {
@@ -1854,7 +1865,6 @@ namespace VoucherPROVER2.Clients.INT
                             .Where(m => !string.IsNullOrWhiteSpace(m))
                             .Distinct());
 
-                        // Selected account from dropdown or fallback
                         string apAccount = string.IsNullOrWhiteSpace(selectedAPAccount) ? "Vouchers Payable" : selectedAPAccount;
 
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
@@ -1877,6 +1887,8 @@ namespace VoucherPROVER2.Clients.INT
 
                 connection.Close();
             }
+
+            return (debitTotalAmount, creditTotalAmount);
         }
 
         public static void InsertDataToAPVBillCompiled(string refNumber, List<BillTable> bills, string selectedAPAccount = "Vouchers Payable")

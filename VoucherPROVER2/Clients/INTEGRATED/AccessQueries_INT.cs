@@ -294,13 +294,55 @@ namespace VoucherPROVER2.Clients.INT
             List<BillTable> bills = new List<BillTable>();
 
             Console.WriteLine("--------------------------------------------------");
-            Console.WriteLine($"[DEBUG] START: GetBillData_IVP for RefNumber: {refNumber}");
+            Console.WriteLine($"[DEBUG] START: GetBillData_INT for RefNumber: {refNumber}");
 
             try
             {
                 sessionManager.OpenConnection2("", "Bill Retrieval", ENConnectionType.ctLocalQBD);
                 sessionManager.BeginSession("", ENOpenMode.omDontCare);
                 Console.WriteLine("[DEBUG] Session Opened Successfully.");
+
+                // ====================================================
+                // 0. BUILD ACCOUNT NUMBER LOOKUP MAP
+                // ====================================================
+                Dictionary<string, string> accountMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                try
+                {
+                    IMsgSetRequest accReq = sessionManager.CreateMsgSetRequest("US", 13, 0);
+                    accReq.Attributes.OnError = ENRqOnError.roeContinue;
+                    accReq.AppendAccountQueryRq();
+
+                    IMsgSetResponse accResp = sessionManager.DoRequests(accReq);
+                    if (accResp.ResponseList != null && accResp.ResponseList.Count > 0)
+                    {
+                        IAccountRetList accList = accResp.ResponseList.GetAt(0).Detail as IAccountRetList;
+                        if (accList != null)
+                        {
+                            for (int i = 0; i < accList.Count; i++)
+                            {
+                                IAccountRet acc = accList.GetAt(i);
+                                string fullName = acc.FullName?.GetValue() ?? "";
+                                string name = acc.Name?.GetValue() ?? "";
+                                string accNum = acc.AccountNumber?.GetValue() ?? "";
+
+                                // e.g. "16410 · Input Tax" or just "Input Tax" if no number exists
+                                string formattedName = !string.IsNullOrWhiteSpace(accNum)
+                                    ? $"{accNum} · {name}"
+                                    : name;
+
+                                if (!string.IsNullOrEmpty(fullName) && !accountMap.ContainsKey(fullName))
+                                    accountMap[fullName] = formattedName;
+
+                                if (!string.IsNullOrEmpty(name) && !accountMap.ContainsKey(name))
+                                    accountMap[name] = formattedName;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DEBUG] Error building account map: {ex.Message}");
+                }
 
                 // ====================================================
                 // 1. QUERY BILL PAYMENT CHECK USING RefNumber
@@ -337,9 +379,6 @@ namespace VoucherPROVER2.Clients.INT
                 string memo = bp.Memo?.GetValue() ?? "";
                 double totalCheckAmountPaid = bp.Amount?.GetValue() ?? 0;
 
-                // ====================================================
-                // *** STORE TxnIDs ALONG WITH APPLIED AMOUNT & DISCOUNT DATA ***
-                // ====================================================
                 // Tuple: (AppliedAmount, DiscountAmount, DiscountAccount)
                 Dictionary<string, (double AppliedAmount, double DiscountAmount, string DiscountAccount)> appliedTxnDetails
                     = new Dictionary<string, (double, double, string)>();
@@ -355,13 +394,11 @@ namespace VoucherPROVER2.Clients.INT
 
                         if (!string.IsNullOrEmpty(tId))
                         {
-                            // EXTRACT INDIVIDUAL APPLIED AMOUNT (e.g. 240.00, 432.00, 1000.00)
                             double appliedAmt = applied.Amount?.GetValue() ?? 0;
                             double discAmt = applied.DiscountAmount?.GetValue() ?? 0;
                             string discAcc = applied.DiscountAccountRef?.FullName?.GetValue() ?? "";
 
                             appliedTxnDetails[tId] = (appliedAmt, discAmt, discAcc);
-
                             Console.WriteLine($"[DEBUG] Found Applied Bill TxnID: {tId} | Paid: {appliedAmt} | Discount: {discAmt} | Account: {discAcc}");
                         }
                     }
@@ -399,7 +436,7 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 // ====================================================
-                // 3. LOOP THROUGH RETRIEVED BILLS AND ATTACH EXACT APPLIED AMOUNTS
+                // 3. LOOP THROUGH RETRIEVED BILLS
                 // ====================================================
                 Console.WriteLine($"[DEBUG] Retrieved {billList.Count} Bill(s). Processing...");
 
@@ -417,7 +454,6 @@ namespace VoucherPROVER2.Clients.INT
 
                     Console.WriteLine($"[DEBUG] Processing Bill #{bIndex + 1}: Ref {billRefNumber}");
 
-                    // Pull specific applied details for THIS bill
                     double individualBillPaidAmt = 0;
                     double discountAmt = 0;
                     string discountAcc = "";
@@ -429,7 +465,6 @@ namespace VoucherPROVER2.Clients.INT
                         discountAcc = appliedTxnDetails[specificTxnID].DiscountAccount;
                     }
 
-                    // Create BillTable object and assign the INDIVIDUAL bill payment amount
                     BillTable bt = new BillTable
                     {
                         DateCreated = payDate,
@@ -439,33 +474,35 @@ namespace VoucherPROVER2.Clients.INT
                         Address2 = address2,
                         BankAccount = bankAccount,
                         APAccountRefFullName = billAPAccount,
-
-                        // *** FIXED: Assign individual bill payment amount (NOT global check total) ***
                         Amount = individualBillPaidAmt,
                         AppliedAmount = individualBillPaidAmt,
-                        TotalCheckAmount = totalCheckAmountPaid, // If you need global check total stored separately
-
+                        TotalCheckAmount = totalCheckAmountPaid,
                         RefNumber = refNumber,
                         AppliedRefNumber = billRefNumber,
                         AppliedToTxnTxnID = specificTxnID,
                         Memo = memo,
                         BillMemo = billMemo,
                         AmountDue = amountDue,
-
-                        // ASSIGN WITHHOLDING TAX / DISCOUNT FIELDS
                         AppliedToTxnDiscountAmount = discountAmt,
                         AppliedToTxnDiscountAccountRefFullName = discountAcc
                     };
 
-                    // Process Expense Lines
+                    // Process Expense Lines with Account Number Resolution
                     if (bill.ExpenseLineRetList != null)
                     {
                         for (int i = 0; i < bill.ExpenseLineRetList.Count; i++)
                         {
                             var exp = bill.ExpenseLineRetList.GetAt(i);
+                            string rawAccountName = exp.AccountRef?.FullName?.GetValue() ?? "";
+
+                            // Resolves "Input Tax" -> "16410 · Input Tax"
+                            string resolvedAccountName = accountMap.ContainsKey(rawAccountName)
+                                ? accountMap[rawAccountName]
+                                : rawAccountName;
+
                             bt.ItemDetails.Add(new ItemDetail
                             {
-                                ItemLineItemRefFullName = exp.AccountRef?.FullName?.GetValue() ?? "",
+                                ItemLineItemRefFullName = resolvedAccountName,
                                 ItemLineAmount = exp.Amount?.GetValue() ?? 0,
                                 ItemLineClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
                                 ItemLineCustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
