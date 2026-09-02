@@ -5,10 +5,11 @@ using System.Data.Odbc;
 using System.Data.OleDb;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using static VoucherPROVER2.Clients.INT.Dataclass_INT;
-using static VoucherPROVER2.Clients.INT.AccessToDatabase_INT;
 using System.Windows.Forms;
+using static VoucherPROVER2.Clients.INT.AccessToDatabase_INT;
+using static VoucherPROVER2.Clients.INT.Dataclass_INT;
 
 namespace VoucherPROVER2.Clients.INT
 {
@@ -303,7 +304,7 @@ namespace VoucherPROVER2.Clients.INT
                 Console.WriteLine("[DEBUG] Session Opened Successfully.");
 
                 // ====================================================
-                // 0. BUILD ACCOUNT NUMBER LOOKUP MAP (WITH SUB-ACCOUNT SUPPORT)
+                // 0. BUILD ACCOUNT NUMBER LOOKUP MAP (RESOLVE TO ROOT PARENT)
                 // ====================================================
                 Dictionary<string, string> accountMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 try
@@ -335,48 +336,41 @@ namespace VoucherPROVER2.Clients.INT
                                 }
                             }
 
-                            // Pass 2: Inherit account numbers from parents if sub-account has no number
+                            // Pass 2: Trace up to topmost parent (root) for consolidation
                             foreach (var kvp in rawAccounts)
                             {
-                                var accData = kvp.Value;
-                                string effectiveAccNum = accData.AccNum;
+                                var current = kvp.Value;
+                                var root = current;
 
-                                string currentParent = accData.ParentFullName;
-                                while (string.IsNullOrWhiteSpace(effectiveAccNum) && !string.IsNullOrWhiteSpace(currentParent))
+                                // Walk the tree until reaching the topmost parent
+                                while (!string.IsNullOrWhiteSpace(root.ParentFullName) && rawAccounts.ContainsKey(root.ParentFullName))
                                 {
-                                    if (rawAccounts.ContainsKey(currentParent))
-                                    {
-                                        effectiveAccNum = rawAccounts[currentParent].AccNum;
-                                        currentParent = rawAccounts[currentParent].ParentFullName;
-                                    }
-                                    else
-                                    {
-                                        var match = System.Text.RegularExpressions.Regex.Match(currentParent, @"^(\d+)");
-                                        if (match.Success)
-                                        {
-                                            effectiveAccNum = match.Groups[1].Value;
-                                        }
-                                        break;
-                                    }
+                                    root = rawAccounts[root.ParentFullName];
                                 }
 
-                                if (string.IsNullOrWhiteSpace(effectiveAccNum))
+                                // Extract the account number from root AccountNumber field or prefix regex
+                                string rootAccNum = root.AccNum;
+                                if (string.IsNullOrWhiteSpace(rootAccNum))
                                 {
-                                    var match = System.Text.RegularExpressions.Regex.Match(accData.FullName, @"^(\d+)");
+                                    var match = Regex.Match(root.FullName, @"^(\d+)");
                                     if (match.Success)
                                     {
-                                        effectiveAccNum = match.Groups[1].Value;
+                                        rootAccNum = match.Groups[1].Value;
                                     }
                                 }
 
-                                string formattedName = !string.IsNullOrWhiteSpace(effectiveAccNum)
-                                    ? $"{effectiveAccNum} - {accData.Name}"
-                                    : accData.Name;
+                                // Strip leading numbers from the root account name if present
+                                string cleanRootName = Regex.Replace(root.Name, @"^\d+\s*[-·:]*\s*", "").Trim();
 
-                                accountMap[accData.FullName] = formattedName;
-                                if (!accountMap.ContainsKey(accData.Name))
+                                string consolidatedDisplayName = !string.IsNullOrWhiteSpace(rootAccNum)
+                                    ? $"{rootAccNum} - {cleanRootName}"
+                                    : cleanRootName;
+
+                                // Map both full and short names so any reference resolves to the root account
+                                accountMap[current.FullName] = consolidatedDisplayName;
+                                if (!accountMap.ContainsKey(current.Name))
                                 {
-                                    accountMap[accData.Name] = formattedName;
+                                    accountMap[current.Name] = consolidatedDisplayName;
                                 }
                             }
                         }
@@ -441,7 +435,7 @@ namespace VoucherPROVER2.Clients.INT
                             double discAmt = applied.DiscountAmount?.GetValue() ?? 0;
                             string rawDiscAcc = applied.DiscountAccountRef?.FullName?.GetValue() ?? "";
 
-                            // Map Discount / Withholding Tax Account number
+                            // Map Discount / Withholding Tax Account number to consolidated root
                             string formattedDiscAcc = accountMap.ContainsKey(rawDiscAcc)
                                 ? accountMap[rawDiscAcc]
                                 : rawDiscAcc;
@@ -500,7 +494,7 @@ namespace VoucherPROVER2.Clients.INT
                     string billRefNumber = bill.RefNumber?.GetValue() ?? "";
                     string specificTxnID = bill.TxnID?.GetValue() ?? "";
 
-                    // Map AP Account number if found
+                    // Map AP Account to consolidated root account
                     string resolvedAPAccount = accountMap.ContainsKey(billAPAccount)
                         ? accountMap[billAPAccount]
                         : billAPAccount;
@@ -540,7 +534,7 @@ namespace VoucherPROVER2.Clients.INT
                         AppliedToTxnDiscountAccountRefFullName = discountAcc
                     };
 
-                    // Process Expense Lines with Resolved Account Numbers
+                    // Process Expense Lines with Consolidated Root Account Numbers
                     if (bill.ExpenseLineRetList != null)
                     {
                         for (int i = 0; i < bill.ExpenseLineRetList.Count; i++)
@@ -548,6 +542,7 @@ namespace VoucherPROVER2.Clients.INT
                             var exp = bill.ExpenseLineRetList.GetAt(i);
                             string rawAccountName = exp.AccountRef?.FullName?.GetValue() ?? "";
 
+                            // Resolves sub-account to its root parent account
                             string resolvedAccountName = accountMap.ContainsKey(rawAccountName)
                                 ? accountMap[rawAccountName]
                                 : rawAccountName;

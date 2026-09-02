@@ -1232,14 +1232,16 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 // =========================================================================
-                // 1. CALCULATE INDIVIDUAL BILL AMOUNTS AND SUMMARY REMARKS
+                // 1. CALCULATE INDIVIDUAL BILL AMOUNTS AND BALANCED REMARKS
                 // =========================================================================
                 var billSummaryList = bills
                     .Select(b =>
                     {
-                        string refNum = !string.IsNullOrWhiteSpace(b.AppliedRefNumber)
-                            ? b.AppliedRefNumber.Trim()
-                            : (!string.IsNullOrWhiteSpace(b.RefNumber) ? b.RefNumber.Trim() : "");
+                        string memoText = !string.IsNullOrWhiteSpace(b.BillMemo)
+                            ? b.BillMemo.Trim()
+                            : (!string.IsNullOrWhiteSpace(b.Memo)
+                                ? b.Memo.Trim()
+                                : (!string.IsNullOrWhiteSpace(b.AppliedRefNumber) ? $"SI#{b.AppliedRefNumber.Trim()}" : ""));
 
                         double paidAmount = b.AppliedAmount > 0
                             ? b.AppliedAmount
@@ -1247,23 +1249,77 @@ namespace VoucherPROVER2.Clients.INT
 
                         return new
                         {
-                            RefNumber = refNum,
+                            Memo = memoText,
                             Amount = paidAmount
                         };
                     })
                     .ToList();
 
-                // Build list of lines with header if there are multiple bills
-                var remarksLines = new List<string>();
+                var memoLines = new List<string>();
+                var amountLines = new List<string>();
 
                 if (billSummaryList.Count > 1)
                 {
-                    remarksLines.Add("Payment for the following:");
+                    memoLines.Add("Payment for the following:");
+                    amountLines.Add(""); // Blank matching header
                 }
 
-                remarksLines.AddRange(billSummaryList.Select(b => $"SI#{b.RefNumber,-20}{b.Amount,45:N2}"));
+                // Approximate character width of TextBILLRemarks before it wraps
+                const int maxMemoCharsPerLine = 32;
 
-                string billRemarksText = string.Join("\r\n", remarksLines);
+                foreach (var item in billSummaryList)
+                {
+                    string rawMemo = item.Memo ?? "";
+                    var wrappedMemoParts = new List<string>();
+
+                    string[] words = rawMemo.Split(' ');
+                    string currentLine = "";
+
+                    foreach (var word in words)
+                    {
+                        if (string.IsNullOrEmpty(currentLine))
+                        {
+                            currentLine = word;
+                        }
+                        else if ((currentLine.Length + 1 + word.Length) <= maxMemoCharsPerLine)
+                        {
+                            currentLine += " " + word;
+                        }
+                        else
+                        {
+                            wrappedMemoParts.Add(currentLine);
+                            currentLine = word;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(currentLine))
+                    {
+                        wrappedMemoParts.Add(currentLine);
+                    }
+
+                    if (wrappedMemoParts.Count == 0)
+                    {
+                        wrappedMemoParts.Add("");
+                    }
+
+                    // Add the text lines and match with exact line breaks on the amount side
+                    for (int i = 0; i < wrappedMemoParts.Count; i++)
+                    {
+                        memoLines.Add(wrappedMemoParts[i]);
+
+                        if (i == 0)
+                        {
+                            amountLines.Add(item.Amount.ToString("N2"));
+                        }
+                        else
+                        {
+                            amountLines.Add(""); // Keeps the right column aligned with the left
+                        }
+                    }
+                }
+
+                string billRemarksMemoText = string.Join("\r\n", memoLines);
+                string billRemarksAmountText = string.Join("\r\n", amountLines);
 
                 // Real total payout
                 double realCheckTotal = billSummaryList.Sum(x => x.Amount);
@@ -1279,10 +1335,10 @@ namespace VoucherPROVER2.Clients.INT
 
                 // Single-line Address formatting
                 string fullAddress = string.Join(", ", new[] {
-            bObj.Address,
-            bObj.Address2,
-            bObj.VendorAddressCity
-        }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().TrimEnd(',')));
+                bObj.Address,
+                bObj.Address2,
+                bObj.VendorAddressCity
+            }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().TrimEnd(',')));
 
                 if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
@@ -1345,9 +1401,13 @@ namespace VoucherPROVER2.Clients.INT
                     SetDatabaseLocation(subReportDocumentINT, databasePathBILL);
 
                     TextObject textObject_BILLSubRemarks = subReportDocumentINT.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
+                    TextObject textObject_BILLSubRemarksAmount = subReportDocumentINT.ReportDefinition.ReportObjects["TextBILLRemarksAmount"] as TextObject;
 
                     if (textObject_BILLSubRemarks != null)
-                        textObject_BILLSubRemarks.Text = billRemarksText;
+                        textObject_BILLSubRemarks.Text = billRemarksMemoText;
+
+                    if (textObject_BILLSubRemarksAmount != null)
+                        textObject_BILLSubRemarksAmount.Text = billRemarksAmountText;
                 }
 
                 cRCV_INTBILL.SetParameterValue("ReferenceNumber", refNumberCR);
@@ -1739,10 +1799,7 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                string insertQuery = @"INSERT INTO Bill_Compiled 
-            (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-            VALUES 
-            (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+                string insertQuery = @"INSERT INTO Bill_Compiled (RefNumber, [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) VALUES (@RefNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
 
                 var allDetails = bills
                     .Where(b => b.ItemDetails != null)
@@ -1750,7 +1807,7 @@ namespace VoucherPROVER2.Clients.INT
                     .ToList();
 
                 // =========================================================================
-                // PASS 1: DEBITS
+                // PASS 1: DEBITS (Consolidated by Parent Account)
                 // =========================================================================
                 var groupedItemDebits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount > 0)
@@ -1791,10 +1848,7 @@ namespace VoucherPROVER2.Clients.INT
                 // =========================================================================
                 var groupedExpenseCredits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount < 0)
-                    .GroupBy(x => {
-                        string rawAcc = x.Detail.ExpenseLineItemRefFullName.Trim();
-                        return rawAcc.Contains(":") ? rawAcc.Split(':').Last().Trim() : rawAcc;
-                    })
+                    .GroupBy(x => x.Detail.ExpenseLineItemRefFullName.Trim())
                     .Select(g => new {
                         Particulars = g.Key,
                         Memo = string.Join("; ", g.Select(x => x.Detail.ExpenseLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
@@ -1823,10 +1877,7 @@ namespace VoucherPROVER2.Clients.INT
 
                 var groupedDiscounts = bills
                     .Where(b => b.AppliedToTxnDiscountAmount > 0 && !string.IsNullOrEmpty(b.AppliedToTxnDiscountAccountRefFullName))
-                    .GroupBy(b => {
-                        string rawAcc = b.AppliedToTxnDiscountAccountRefFullName;
-                        return rawAcc.Contains(":") ? rawAcc.Split(':').Last().Trim() : rawAcc.Trim();
-                    })
+                    .GroupBy(b => b.AppliedToTxnDiscountAccountRefFullName.Trim())
                     .Select(g => new {
                         AccountName = g.Key,
                         TotalDiscount = g.Sum(b => Math.Abs(b.AppliedToTxnDiscountAmount))
