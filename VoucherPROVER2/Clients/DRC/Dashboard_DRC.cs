@@ -150,6 +150,13 @@ namespace VoucherPROVER2.Clients.DRC
 
                 // ---------------- IVP COMPANIES ----------------
                 "DASMARINAS RENAL CARE CENTER INC.",
+                "GRC- HSI  Hemocare Sytem Inc.",
+                "GRC- St.Augustine Dialysis Inc.",
+                "GRC- Dasmarinas Renal Care Center Inc.",
+                "GRC - Kairos",
+                "Nephro Plus Consultancy Inc.",
+                "Golden Renal Care Trading Inc.",
+                "Golden Renal Care Holdings Inc.",
 
             });
 
@@ -2905,16 +2912,6 @@ namespace VoucherPROVER2.Clients.DRC
             textBox_SeriesNumber.Text = $"{prefix}{seriesNumber:000}";
         }
 
-        private string GetCompanyCode(string fullCompanyName)
-        {
-            if (string.IsNullOrEmpty(fullCompanyName)) return "";
-
-            switch (fullCompanyName)
-            {
-                case "DASMARINAS RENAL CARE CENTER INC.": return "DRC";
-                default: return "";
-            }
-        }
 
         private void UpdateSeriesNumberDRC(string formPrefix)
         {

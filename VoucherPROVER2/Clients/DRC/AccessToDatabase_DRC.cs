@@ -1296,13 +1296,38 @@ namespace VoucherPROVER2.Clients.DRC
 
 
         // Helper to map Company Name -> Column Name (e.g. "North Luzon" -> "NL_CV")
+        // Helper to map Company Name -> Column Name (e.g., "DRC_CV", "HSI_CV", "NPC_APV")
         private string GetDRCColumnName(string formType, string companyName)
         {
             string prefix = "";
             switch (companyName)
             {
-                case "DASMARINAS RENAL CARE CENTER INC.": prefix = "DRC"; break;
-                default: return "";
+                case "DASMARINAS RENAL CARE CENTER INC.":
+                    prefix = "DRC";
+                    break;
+                case "GRC- HSI  Hemocare Sytem Inc.":
+                    prefix = "HSI";
+                    break;
+                case "GRC- St.Augustine Dialysis Inc.":
+                    prefix = "SAD";
+                    break;
+                case "GRC- Dasmarinas Renal Care Center Inc.":
+                    prefix = "GRCDRC";
+                    break;
+                case "GRC - Kairos":
+                    prefix = "KAIROS";
+                    break;
+                case "Nephro Plus Consultancy Inc.":
+                    prefix = "NPC";
+                    break;
+                case "Golden Renal Care Trading Inc.":
+                    prefix = "GRCT";
+                    break;
+                case "Golden Renal Care Holdings Inc.":
+                    prefix = "GRCH";
+                    break;
+                default:
+                    return "";
             }
             return $"{prefix}_{formType}";
         }
@@ -1338,6 +1363,7 @@ namespace VoucherPROVER2.Clients.DRC
             }
             return seriesNumber;
         }
+        
 
         public void UpdateManualSeriesNumber(string formType, int seriesNumber, string companyName)
         {
