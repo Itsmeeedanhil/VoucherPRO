@@ -68,17 +68,18 @@ namespace VoucherPROVER2.Clients.DRC
 
         public class ItemDetail
         {
+            // Item Line Fields
             public string ItemLineItemRefFullName { get; set; }
-            public string ItemLineAssetAccountRefFullName { get; set; } = "";
+            public string ItemLineAssetAccountRefFullName { get; set; }
+            public string ItemLineAccountNumber { get; set; }
             public double ItemLineAmount { get; set; }
             public string ItemLineClassRefFullName { get; set; }
-            public string ItemLineMemo { get; set; }
             public string ItemLineCustomerJob { get; set; }
+            public string ItemLineMemo { get; set; }
 
-
+            // Expense Line Fields
             public string ExpenseLineItemRefFullName { get; set; }
             public string ExpenseLineAccountNumber { get; set; }
-
             public double ExpenseLineAmount { get; set; }
             public string ExpenseLineClassRefFullName { get; set; }
             public string ExpenseLineCustomerJob { get; set; }
@@ -230,6 +231,28 @@ namespace VoucherPROVER2.Clients.DRC
             public string RefNumber { get; set; }
             public double Amount { get; set; }
             public string PayeeFullName { get; set; }
+        }
+
+        public class VoucherEntry
+        {
+            public string AccountNumber { get; set; }
+            public string Particulars { get; set; }
+            public string Class { get; set; }
+            public string Debit { get; set; }
+            public string Credit { get; set; }
+            public string Memo { get; set; }
+            public string CustomerJob { get; set; }
+        }
+
+        public class BillEntry
+        {
+            public string AccountNumber { get; set; }
+            public string Particulars { get; set; }
+            public string Class { get; set; }
+            public string Memo { get; set; }
+            public string CustomerJob { get; set; }
+            public string Debit { get; set; }
+            public string Credit { get; set; }
         }
     }
 }

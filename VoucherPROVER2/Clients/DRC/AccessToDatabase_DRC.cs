@@ -1302,9 +1302,6 @@ namespace VoucherPROVER2.Clients.DRC
             string prefix = "";
             switch (companyName)
             {
-                case "DASMARINAS RENAL CARE CENTER INC.":
-                    prefix = "DRC";
-                    break;
                 case "GRC- HSI  Hemocare Sytem Inc.":
                     prefix = "HSI";
                     break;

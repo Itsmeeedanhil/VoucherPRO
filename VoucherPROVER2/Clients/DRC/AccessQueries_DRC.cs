@@ -384,13 +384,14 @@ namespace VoucherPROVER2.Clients.DRC
                 sessionManager.OpenConnection2("", "APV Retrieval", ENConnectionType.ctLocalQBD);
                 sessionManager.BeginSession("", ENOpenMode.omDontCare);
 
-                // Fetch all account numbers from QuickBooks into a lookup dictionary
+                // 1. Preload lookup tables once per session
                 Dictionary<string, string> accountNumbersDict = GetAccountNumbersFromQBAPV(sessionManager);
+                Dictionary<string, (string AccountName, string AccountListID)> itemAccountsDict = GetItemAccountsFromQB(sessionManager);
 
                 IMsgSetRequest request = sessionManager.CreateMsgSetRequest("US", 13, 0);
                 request.Attributes.OnError = ENRqOnError.roeContinue;
 
-                // 1. Query the Bill
+                // 2. Query the Bill
                 IBillQuery billQuery = request.AppendBillQueryRq();
                 billQuery.IncludeLineItems.SetValue(true);
                 billQuery.ORBillQuery.BillFilter.ORRefNumberFilter.RefNumberFilter.MatchCriterion.SetValue(ENMatchCriterion.mcStartsWith);
@@ -409,20 +410,18 @@ namespace VoucherPROVER2.Clients.DRC
                     return bills;
                 }
 
-                // 2. Loop through results
+                // 3. Process the Bills
                 for (int i = 0; i < billList.Count; i++)
                 {
                     IBillRet bill = billList.GetAt(i);
 
-                    // --- ROBUST TIN FETCHING ---
+                    // Fetch Vendor TIN
                     string vendorTIN = "";
-
                     if (bill.VendorRef != null)
                     {
                         try
                         {
                             string vendorListID = bill.VendorRef.ListID?.GetValue();
-
                             if (!string.IsNullOrEmpty(vendorListID))
                             {
                                 IMsgSetRequest vendorReq = sessionManager.CreateMsgSetRequest("US", 13, 0);
@@ -437,7 +436,6 @@ namespace VoucherPROVER2.Clients.DRC
                                 if (vList != null && vList.Count > 0)
                                 {
                                     IVendorRet vendor = vList.GetAt(0);
-
                                     vendorTIN = vendor.VendorTaxIdent?.GetValue() ?? "";
 
                                     if (string.IsNullOrEmpty(vendorTIN) && vendor.DataExtRetList != null)
@@ -461,48 +459,41 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                     }
 
-                    // Lookup Account Number for Header A/P Account Ref
+                    // Header AP Account & Account Number
                     string apAccountName = bill.APAccountRef?.FullName?.GetValue() ?? "";
                     string apListID = bill.APAccountRef?.ListID?.GetValue() ?? "";
                     string billAccNum = "";
 
                     if (!string.IsNullOrEmpty(apListID) && accountNumbersDict.ContainsKey(apListID))
-                    {
                         billAccNum = accountNumbersDict[apListID];
-                    }
                     else if (!string.IsNullOrEmpty(apAccountName) && accountNumbersDict.ContainsKey(apAccountName))
-                    {
                         billAccNum = accountNumbersDict[apAccountName];
-                    }
 
                     BillTable bt = new BillTable
                     {
-                        // Core Fields
                         DateCreated = bill.TxnDate?.GetValue() ?? DateTime.Now,
                         DueDate = bill.DueDate?.GetValue() ?? DateTime.Now,
                         PayeeFullName = bill.VendorRef?.FullName?.GetValue() ?? "",
                         TermsRefFullName = bill.TermsRef?.FullName?.GetValue() ?? "",
                         APAccountRefFullName = apAccountName,
-                        AccountNumber = billAccNum, // Assigned Header AccountNumber
+                        AccountNumber = billAccNum,
                         RefNumber = bill.RefNumber?.GetValue() ?? "",
                         Memo = Truncate(bill.Memo?.GetValue() ?? "", 500),
                         AmountDue = bill.AmountDue?.GetValue() ?? 0,
                         IsPaid = bill.IsPaid?.GetValue() ?? false,
 
-                        // Address Fields
                         VendorAddressAddr1 = bill.VendorAddress?.Addr1?.GetValue() ?? "",
                         VendorAddressAddr2 = bill.VendorAddress?.Addr2?.GetValue() ?? "",
                         VendorAddressAddr3 = bill.VendorAddress?.Addr3?.GetValue() ?? "",
                         VendorAddressAddr4 = bill.VendorAddress?.Addr4?.GetValue() ?? "",
                         VendorAddressCity = bill.VendorAddress?.City?.GetValue() ?? "",
 
-                        // Additional Fields
                         Tin = vendorTIN,
                         Currency = bill.CurrencyRef?.FullName?.GetValue() ?? "",
                         Exchangerate = bill.ExchangeRate?.GetValue() ?? 1.0
                     };
 
-                    // 3. Process Expense Lines
+                    // Process Expense Lines
                     if (bill.ExpenseLineRetList != null)
                     {
                         for (int j = 0; j < bill.ExpenseLineRetList.Count; j++)
@@ -511,21 +502,16 @@ namespace VoucherPROVER2.Clients.DRC
                             string expAccountName = exp.AccountRef?.FullName?.GetValue() ?? "";
                             string expListID = exp.AccountRef?.ListID?.GetValue() ?? "";
 
-                            // Lookup Account Number for Expense Line Account
                             string expAccNumber = "";
                             if (!string.IsNullOrEmpty(expListID) && accountNumbersDict.ContainsKey(expListID))
-                            {
                                 expAccNumber = accountNumbersDict[expListID];
-                            }
                             else if (!string.IsNullOrEmpty(expAccountName) && accountNumbersDict.ContainsKey(expAccountName))
-                            {
                                 expAccNumber = accountNumbersDict[expAccountName];
-                            }
 
                             bt.ItemDetails.Add(new ItemDetail
                             {
                                 ExpenseLineItemRefFullName = expAccountName,
-                                ExpenseLineAccountNumber = expAccNumber, // Assigned Expense Line AccountNumber
+                                ExpenseLineAccountNumber = expAccNumber,
                                 ExpenseLineAmount = exp.Amount?.GetValue() ?? 0,
                                 ExpenseLineClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
                                 ExpenseLineCustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
@@ -534,7 +520,7 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                     }
 
-                    // 4. Process Item Lines
+                    // Process Item Lines (Instant in-memory lookup)
                     if (bill.ORItemLineRetList != null)
                     {
                         for (int j = 0; j < bill.ORItemLineRetList.Count; j++)
@@ -543,40 +529,31 @@ namespace VoucherPROVER2.Clients.DRC
                             if (orItem.ItemLineRet != null)
                             {
                                 var item = orItem.ItemLineRet;
-                                string assetAccountFullName = "";
+                                string itemRefId = item.ItemRef?.ListID?.GetValue() ?? "";
+                                string itemRefName = item.ItemRef?.FullName?.GetValue() ?? "";
 
-                                // Query Item Inventory to get AssetAccountRef
-                                if (item.ItemRef != null && !string.IsNullOrEmpty(item.ItemRef.ListID?.GetValue()))
+                                string targetAccountName = "";
+                                string itemAccountNumber = "";
+
+                                // Lookup linked posting account from cached items
+                                (string AccountName, string AccountListID) accountInfo;
+                                if ((!string.IsNullOrEmpty(itemRefId) && itemAccountsDict.TryGetValue(itemRefId, out accountInfo)) ||
+                                    (!string.IsNullOrEmpty(itemRefName) && itemAccountsDict.TryGetValue(itemRefName, out accountInfo)))
                                 {
-                                    try
-                                    {
-                                        IMsgSetRequest itemReq = sessionManager.CreateMsgSetRequest("US", 13, 0);
-                                        IItemInventoryQuery itemQuery = itemReq.AppendItemInventoryQueryRq();
-                                        itemQuery.ORListQueryWithOwnerIDAndClass.ListIDList.Add(item.ItemRef.ListID.GetValue());
+                                    targetAccountName = accountInfo.AccountName;
 
-                                        IMsgSetResponse itemResp = sessionManager.DoRequests(itemReq);
-                                        IResponse itemResponseRoot = itemResp.ResponseList.GetAt(0);
-                                        IItemInventoryRetList itemRetList = itemResponseRoot.Detail as IItemInventoryRetList;
-
-                                        if (itemRetList != null && itemRetList.Count > 0)
-                                        {
-                                            var invItem = itemRetList.GetAt(0);
-                                            assetAccountFullName = invItem.AssetAccountRef?.FullName?.GetValue() ?? "";
-                                        }
-                                    }
-                                    catch (Exception itemEx)
-                                    {
-                                        Console.WriteLine("Error fetching Asset Account: " + itemEx.Message);
-                                    }
+                                    if (!string.IsNullOrEmpty(accountInfo.AccountListID) && accountNumbersDict.ContainsKey(accountInfo.AccountListID))
+                                        itemAccountNumber = accountNumbersDict[accountInfo.AccountListID];
+                                    else if (!string.IsNullOrEmpty(accountInfo.AccountName) && accountNumbersDict.ContainsKey(accountInfo.AccountName))
+                                        itemAccountNumber = accountNumbersDict[accountInfo.AccountName];
                                 }
 
                                 bt.ItemDetails.Add(new ItemDetail
                                 {
-                                    ItemLineItemRefFullName = item.ItemRef?.FullName?.GetValue() ?? "",
-                                    // Store Asset Account Name (fallback to ItemRef if empty)
-                                    ItemLineAssetAccountRefFullName = !string.IsNullOrEmpty(assetAccountFullName)
-                                        ? assetAccountFullName
-                                        : (item.ItemRef?.FullName?.GetValue() ?? ""),
+                                    ItemLineItemRefFullName = itemRefName,
+                                    // If target account found, use it; otherwise fallback to item name
+                                    ItemLineAssetAccountRefFullName = !string.IsNullOrEmpty(targetAccountName) ? targetAccountName : itemRefName,
+                                    ItemLineAccountNumber = itemAccountNumber,
                                     ItemLineAmount = item.Amount?.GetValue() ?? 0,
                                     ItemLineClassRefFullName = item.ClassRef?.FullName?.GetValue() ?? "",
                                     ItemLineCustomerJob = item.CustomerRef?.FullName?.GetValue() ?? "",
@@ -606,6 +583,89 @@ namespace VoucherPROVER2.Clients.DRC
             return bills;
         }
 
+        private Dictionary<string, (string AccountName, string AccountListID)> GetItemAccountsFromQB(QBSessionManager sessionManager)
+        {
+            var dict = new Dictionary<string, (string AccountName, string AccountListID)>();
+
+            try
+            {
+                IMsgSetRequest request = sessionManager.CreateMsgSetRequest("US", 13, 0);
+                request.Attributes.OnError = ENRqOnError.roeContinue;
+
+                IItemQuery itemQuery = request.AppendItemQueryRq();
+                // Do not add filters so it loads all items into memory once
+
+                IMsgSetResponse response = sessionManager.DoRequests(request);
+                if (response.ResponseList == null || response.ResponseList.Count == 0) return dict;
+
+                IResponse resp = response.ResponseList.GetAt(0);
+                IORItemRetList itemList = resp.Detail as IORItemRetList;
+
+                if (itemList == null) return dict;
+
+                for (int i = 0; i < itemList.Count; i++)
+                {
+                    var itemRet = itemList.GetAt(i);
+                    string listId = "";
+                    string fullName = "";
+                    string accName = "";
+                    string accListId = "";
+
+                    if (itemRet.ItemInventoryRet != null)
+                    {
+                        var inv = itemRet.ItemInventoryRet;
+                        listId = inv.ListID?.GetValue() ?? "";
+                        fullName = inv.FullName?.GetValue() ?? "";
+                        // Asset account or COGS account
+                        accName = inv.AssetAccountRef?.FullName?.GetValue() ?? inv.COGSAccountRef?.FullName?.GetValue() ?? "";
+                        accListId = inv.AssetAccountRef?.ListID?.GetValue() ?? inv.COGSAccountRef?.ListID?.GetValue() ?? "";
+                    }
+                    else if (itemRet.ItemNonInventoryRet != null)
+                    {
+                        var nonInv = itemRet.ItemNonInventoryRet;
+                        listId = nonInv.ListID?.GetValue() ?? "";
+                        fullName = nonInv.FullName?.GetValue() ?? "";
+                        accName = nonInv.ORSalesPurchase?.SalesOrPurchase?.AccountRef?.FullName?.GetValue()
+                                  ?? nonInv.ORSalesPurchase?.SalesAndPurchase?.ExpenseAccountRef?.FullName?.GetValue() ?? "";
+                        accListId = nonInv.ORSalesPurchase?.SalesOrPurchase?.AccountRef?.ListID?.GetValue()
+                                    ?? nonInv.ORSalesPurchase?.SalesAndPurchase?.ExpenseAccountRef?.ListID?.GetValue() ?? "";
+                    }
+                    else if (itemRet.ItemServiceRet != null)
+                    {
+                        var srv = itemRet.ItemServiceRet;
+                        listId = srv.ListID?.GetValue() ?? "";
+                        fullName = srv.FullName?.GetValue() ?? "";
+                        accName = srv.ORSalesPurchase?.SalesOrPurchase?.AccountRef?.FullName?.GetValue()
+                                  ?? srv.ORSalesPurchase?.SalesAndPurchase?.ExpenseAccountRef?.FullName?.GetValue() ?? "";
+                        accListId = srv.ORSalesPurchase?.SalesOrPurchase?.AccountRef?.ListID?.GetValue()
+                                    ?? srv.ORSalesPurchase?.SalesAndPurchase?.ExpenseAccountRef?.ListID?.GetValue() ?? "";
+                    }
+                    else if (itemRet.ItemOtherChargeRet != null)
+                    {
+                        var oth = itemRet.ItemOtherChargeRet;
+                        listId = oth.ListID?.GetValue() ?? "";
+                        fullName = oth.FullName?.GetValue() ?? "";
+                        accName = oth.ORSalesPurchase?.SalesOrPurchase?.AccountRef?.FullName?.GetValue()
+                                  ?? oth.ORSalesPurchase?.SalesAndPurchase?.ExpenseAccountRef?.FullName?.GetValue() ?? "";
+                        accListId = oth.ORSalesPurchase?.SalesOrPurchase?.AccountRef?.ListID?.GetValue()
+                                    ?? oth.ORSalesPurchase?.SalesAndPurchase?.ExpenseAccountRef?.ListID?.GetValue() ?? "";
+                    }
+
+                    // Map both ListID and FullName for reliable lookup
+                    if (!string.IsNullOrEmpty(listId) && !dict.ContainsKey(listId))
+                        dict[listId] = (accName, accListId);
+
+                    if (!string.IsNullOrEmpty(fullName) && !dict.ContainsKey(fullName))
+                        dict[fullName] = (accName, accListId);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error loading Item accounts cache: " + ex.Message);
+            }
+
+            return dict;
+        }
 
 
 
