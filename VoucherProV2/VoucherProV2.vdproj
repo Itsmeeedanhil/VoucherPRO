@@ -58,19 +58,13 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_2308FDC33B8AD30D39A47015D0AF0840"
+        "OwnerKey" = "8:_E8F2E26F1CFB98720DD34A0CA93A0624"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_9509D5496B8B4F22BDCE970F0299B690"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_E8F2E26F1CFB98720DD34A0CA93A0624"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -83,6 +77,12 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_374CE107CCAE15EA7784521D98CB1389"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_2308FDC33B8AD30D39A47015D0AF0840"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -400,14 +400,14 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:VoucherProV2"
-        "ProductCode" = "8:{2772AA88-D77E-4427-9A72-5CDD0516E40A}"
-        "PackageCode" = "8:{33E2A244-B347-4094-8583-8948A18DE7FD}"
+        "ProductCode" = "8:{DC523957-6959-46B8-B7E2-ECBE18952D59}"
+        "PackageCode" = "8:{BB0C71CE-BB6F-4D88-92A7-0C41F14C52B2}"
         "UpgradeCode" = "8:{DB1161FD-DFBB-43FE-91A6-468069DF8231}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:FALSE"
-        "DetectNewerInstalledVersion" = "11:TRUE"
-        "InstallAllUsers" = "11:FALSE"
+        "DetectNewerInstalledVersion" = "11:FALSE"
+        "InstallAllUsers" = "11:TRUE"
         "ProductVersion" = "8:1.0.0"
         "Manufacturer" = "8:Danil Jeus Ampatin"
         "ARPHELPTELEPHONE" = "8:"

@@ -1258,7 +1258,7 @@ namespace VoucherPROVER2.Clients.INT
                 if (billSummaryList.Count > 1)
                 {
                     memoLines.Add("Payment for the following:");
-                    amountLines.Add("");
+                    amountLines.Add("\u00A0");
                 }
 
                 const int maxMemoCharsPerLine = 32;
@@ -1268,29 +1268,49 @@ namespace VoucherPROVER2.Clients.INT
                     string rawMemo = item.Memo ?? "";
                     var wrappedMemoParts = new List<string>();
 
-                    string[] words = rawMemo.Split(' ');
-                    string currentLine = "";
+                    // Handle multi-line memos or strings longer than 255 chars cleanly
+                    string[] lines = rawMemo.Replace("\r\n", "\n").Split('\n');
 
-                    foreach (var word in words)
+                    foreach (var line in lines)
                     {
-                        if (string.IsNullOrEmpty(currentLine))
+                        string[] words = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        string currentLine = "";
+
+                        foreach (var rawWord in words)
                         {
-                            currentLine = word;
+                            string word = rawWord;
+
+                            // Automatically break unbroken tokens longer than 32 chars (e.g., long invoice references)
+                            while (word.Length > maxMemoCharsPerLine)
+                            {
+                                if (!string.IsNullOrEmpty(currentLine))
+                                {
+                                    wrappedMemoParts.Add(currentLine);
+                                    currentLine = "";
+                                }
+                                wrappedMemoParts.Add(word.Substring(0, maxMemoCharsPerLine));
+                                word = word.Substring(maxMemoCharsPerLine);
+                            }
+
+                            if (string.IsNullOrEmpty(currentLine))
+                            {
+                                currentLine = word;
+                            }
+                            else if ((currentLine.Length + 1 + word.Length) <= maxMemoCharsPerLine)
+                            {
+                                currentLine += " " + word;
+                            }
+                            else
+                            {
+                                wrappedMemoParts.Add(currentLine);
+                                currentLine = word;
+                            }
                         }
-                        else if ((currentLine.Length + 1 + word.Length) <= maxMemoCharsPerLine)
-                        {
-                            currentLine += " " + word;
-                        }
-                        else
+
+                        if (!string.IsNullOrEmpty(currentLine))
                         {
                             wrappedMemoParts.Add(currentLine);
-                            currentLine = word;
                         }
-                    }
-
-                    if (!string.IsNullOrEmpty(currentLine))
-                    {
-                        wrappedMemoParts.Add(currentLine);
                     }
 
                     if (wrappedMemoParts.Count == 0)
@@ -1298,17 +1318,14 @@ namespace VoucherPROVER2.Clients.INT
                         wrappedMemoParts.Add("");
                     }
 
+                    // Sync memo lines 1-to-1 with amount lines
                     for (int i = 0; i < wrappedMemoParts.Count; i++)
                     {
                         memoLines.Add(wrappedMemoParts[i]);
-                        if (i == 0)
-                        {
-                            amountLines.Add(item.Amount.ToString("N2"));
-                        }
-                        else
-                        {
-                            amountLines.Add("");
-                        }
+
+                        // First line displays the formatted amount; wrapped/blank lines use a non-breaking space
+                        // to maintain identical line height inside Crystal Reports
+                        amountLines.Add(i == 0 ? item.Amount.ToString("N2") : "\u00A0");
                     }
                 }
 
