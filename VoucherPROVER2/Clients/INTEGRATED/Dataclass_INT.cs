@@ -62,11 +62,24 @@ namespace VoucherPROVER2.Clients.INT
 
             public List<ItemDetail> ItemDetails { get; set; }
 
+            public List<BillCreditDetail> AppliedBillCredits { get; set; } = new List<BillCreditDetail>();
+
             public BillTable()
             {
                 ItemDetails = new List<ItemDetail>();
                 AccountNameParticularsList = new List<string>();
                 AccountNumberParticularsList = new List<string>();
+            }
+
+            public class BillCreditDetail
+            {
+                public string CreditTxnID { get; set; } = "";
+                public string CreditRefNumber { get; set; } = "";
+                public double AppliedAmount { get; set; }
+                public string AccountRefFullName { get; set; } = "";
+                public string ClassRefFullName { get; set; } = "";
+                public string CustomerJob { get; set; } = "";
+                public string Memo { get; set; } = "";
             }
 
             //Increment

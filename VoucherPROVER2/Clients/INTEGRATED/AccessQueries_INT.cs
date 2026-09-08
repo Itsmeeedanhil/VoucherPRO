@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using static VoucherPROVER2.Clients.INT.AccessToDatabase_INT;
 using static VoucherPROVER2.Clients.INT.Dataclass_INT;
+using static VoucherPROVER2.Clients.INT.Dataclass_INT.BillTable;
 
 namespace VoucherPROVER2.Clients.INT
 {
@@ -303,9 +304,7 @@ namespace VoucherPROVER2.Clients.INT
                 sessionManager.BeginSession("", ENOpenMode.omDontCare);
                 Console.WriteLine("[DEBUG] Session Opened Successfully.");
 
-                // ====================================================
-                // 0. BUILD ACCOUNT NUMBER LOOKUP MAP (RESOLVE TO ROOT PARENT)
-                // ====================================================
+                // 0. Build Chart of Accounts Root Map
                 Dictionary<string, string> accountMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 try
                 {
@@ -319,7 +318,6 @@ namespace VoucherPROVER2.Clients.INT
                         IAccountRetList accList = accResp.ResponseList.GetAt(0).Detail as IAccountRetList;
                         if (accList != null)
                         {
-                            // Pass 1: Cache raw account details
                             var rawAccounts = new Dictionary<string, (string Name, string FullName, string AccNum, string ParentFullName)>(StringComparer.OrdinalIgnoreCase);
 
                             for (int i = 0; i < accList.Count; i++)
@@ -336,19 +334,15 @@ namespace VoucherPROVER2.Clients.INT
                                 }
                             }
 
-                            // Pass 2: Trace up to topmost parent (root) for consolidation
                             foreach (var kvp in rawAccounts)
                             {
-                                var current = kvp.Value;
-                                var root = current;
+                                var root = kvp.Value;
 
-                                // Walk the tree until reaching the topmost parent
                                 while (!string.IsNullOrWhiteSpace(root.ParentFullName) && rawAccounts.ContainsKey(root.ParentFullName))
                                 {
                                     root = rawAccounts[root.ParentFullName];
                                 }
 
-                                // Extract the account number from root AccountNumber field or prefix regex
                                 string rootAccNum = root.AccNum;
                                 if (string.IsNullOrWhiteSpace(rootAccNum))
                                 {
@@ -359,18 +353,16 @@ namespace VoucherPROVER2.Clients.INT
                                     }
                                 }
 
-                                // Strip leading numbers from the root account name if present
                                 string cleanRootName = Regex.Replace(root.Name, @"^\d+\s*[-·:]*\s*", "").Trim();
 
                                 string consolidatedDisplayName = !string.IsNullOrWhiteSpace(rootAccNum)
                                     ? $"{rootAccNum} - {cleanRootName}"
                                     : cleanRootName;
 
-                                // Map both full and short names so any reference resolves to the root account
-                                accountMap[current.FullName] = consolidatedDisplayName;
-                                if (!accountMap.ContainsKey(current.Name))
+                                accountMap[kvp.Key] = consolidatedDisplayName;
+                                if (!accountMap.ContainsKey(kvp.Value.Name))
                                 {
-                                    accountMap[current.Name] = consolidatedDisplayName;
+                                    accountMap[kvp.Value.Name] = consolidatedDisplayName;
                                 }
                             }
                         }
@@ -381,15 +373,12 @@ namespace VoucherPROVER2.Clients.INT
                     Console.WriteLine($"[DEBUG] Error building account map: {ex.Message}");
                 }
 
-                // ====================================================
-                // 1. QUERY BILL PAYMENT CHECK USING RefNumber
-                // ====================================================
+                // 1. Query Bill Payment Check
                 IMsgSetRequest req1 = sessionManager.CreateMsgSetRequest("US", 13, 0);
                 req1.Attributes.OnError = ENRqOnError.roeContinue;
 
                 IBillPaymentCheckQuery bpcQuery = req1.AppendBillPaymentCheckQueryRq();
                 bpcQuery.IncludeLineItems.SetValue(true);
-
                 bpcQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.MatchCriterion.SetValue(ENMatchCriterion.mcStartsWith);
                 bpcQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.RefNumber.SetValue(refNumber);
 
@@ -398,7 +387,6 @@ namespace VoucherPROVER2.Clients.INT
                 IResponse r1 = resp1.ResponseList.GetAt(0);
 
                 IBillPaymentCheckRetList bpList = r1.Detail as IBillPaymentCheckRetList;
-
                 if (bpList == null || bpList.Count == 0)
                 {
                     MessageBox.Show("Bill Payment Check not found: " + refNumber);
@@ -407,7 +395,6 @@ namespace VoucherPROVER2.Clients.INT
 
                 IBillPaymentCheckRet bp = bpList.GetAt(0);
 
-                // HEADER FROM BILL PAYMENT CHECK
                 DateTime payDate = bp.TxnDate?.GetValue() ?? DateTime.MinValue;
                 string payee = bp.PayeeEntityRef?.FullName?.GetValue() ?? "";
                 string address1 = bp.Address?.Addr1?.GetValue() ?? "";
@@ -416,14 +403,11 @@ namespace VoucherPROVER2.Clients.INT
                 string memo = bp.Memo?.GetValue() ?? "";
                 double totalCheckAmountPaid = bp.Amount?.GetValue() ?? 0;
 
-                // Tuple: (AppliedAmount, DiscountAmount, DiscountAccount)
                 Dictionary<string, (double AppliedAmount, double DiscountAmount, string DiscountAccount)> appliedTxnDetails
                     = new Dictionary<string, (double, double, string)>();
 
                 if (bp.AppliedToTxnRetList != null && bp.AppliedToTxnRetList.Count > 0)
                 {
-                    Console.WriteLine($"[DEBUG] AppliedToTxn List Count: {bp.AppliedToTxnRetList.Count}");
-
                     for (int k = 0; k < bp.AppliedToTxnRetList.Count; k++)
                     {
                         var applied = bp.AppliedToTxnRetList.GetAt(k);
@@ -435,13 +419,11 @@ namespace VoucherPROVER2.Clients.INT
                             double discAmt = applied.DiscountAmount?.GetValue() ?? 0;
                             string rawDiscAcc = applied.DiscountAccountRef?.FullName?.GetValue() ?? "";
 
-                            // Map Discount / Withholding Tax Account number to consolidated root
                             string formattedDiscAcc = accountMap.ContainsKey(rawDiscAcc)
                                 ? accountMap[rawDiscAcc]
                                 : rawDiscAcc;
 
                             appliedTxnDetails[tId] = (appliedAmt, discAmt, formattedDiscAcc);
-                            Console.WriteLine($"[DEBUG] Found Applied Bill TxnID: {tId} | Paid: {appliedAmt} | Discount: {discAmt} | Account: {formattedDiscAcc}");
                         }
                     }
                 }
@@ -451,42 +433,35 @@ namespace VoucherPROVER2.Clients.INT
                     return bills;
                 }
 
-                // ====================================================
-                // 2. QUERY BILL(S) USING THE COLLECTED TxnIDs
-                // ====================================================
+                // 2. Query Bills
                 IMsgSetRequest req2 = sessionManager.CreateMsgSetRequest("US", 13, 0);
                 req2.Attributes.OnError = ENRqOnError.roeContinue;
 
                 IBillQuery billQuery = req2.AppendBillQueryRq();
                 billQuery.IncludeLineItems.SetValue(true);
+                billQuery.IncludeLinkedTxns.SetValue(true);
 
                 foreach (string id in appliedTxnDetails.Keys)
                 {
                     billQuery.ORBillQuery.TxnIDList.Add(id);
                 }
 
-                Console.WriteLine($"[DEBUG] Sending Bill Query for {appliedTxnDetails.Count} bills...");
                 IMsgSetResponse resp2 = sessionManager.DoRequests(req2);
                 IResponse r2 = resp2.ResponseList.GetAt(0);
 
                 IBillRetList billList = r2.Detail as IBillRetList;
-
                 if (billList == null || billList.Count == 0)
                 {
                     MessageBox.Show("Bills not found for the provided TxnIDs.");
                     return bills;
                 }
 
-                // ====================================================
-                // 3. LOOP THROUGH RETRIEVED BILLS AND ATTACH DETAILS
-                // ====================================================
-                Console.WriteLine($"[DEBUG] Retrieved {billList.Count} Bill(s). Processing...");
+                var linkedCreditTxns = new List<(string BillTxnID, string CreditTxnID, double Amount)>();
 
                 for (int bIndex = 0; bIndex < billList.Count; bIndex++)
                 {
                     IBillRet bill = billList.GetAt(bIndex);
 
-                    DateTime billDate = bill.TxnDate?.GetValue() ?? DateTime.MinValue;
                     DateTime dueDate = bill.DueDate?.GetValue() ?? DateTime.MinValue;
                     double amountDue = bill.AmountDue?.GetValue() ?? 0;
                     string billMemo = bill.Memo?.GetValue() ?? "";
@@ -494,12 +469,9 @@ namespace VoucherPROVER2.Clients.INT
                     string billRefNumber = bill.RefNumber?.GetValue() ?? "";
                     string specificTxnID = bill.TxnID?.GetValue() ?? "";
 
-                    // Map AP Account to consolidated root account
                     string resolvedAPAccount = accountMap.ContainsKey(billAPAccount)
                         ? accountMap[billAPAccount]
                         : billAPAccount;
-
-                    Console.WriteLine($"[DEBUG] Processing Bill #{bIndex + 1}: Ref {billRefNumber}");
 
                     double individualBillPaidAmt = 0;
                     double discountAmt = 0;
@@ -510,6 +482,27 @@ namespace VoucherPROVER2.Clients.INT
                         individualBillPaidAmt = appliedTxnDetails[specificTxnID].AppliedAmount;
                         discountAmt = appliedTxnDetails[specificTxnID].DiscountAmount;
                         discountAcc = appliedTxnDetails[specificTxnID].DiscountAccount;
+                    }
+
+                    // Check Bill lines for linked vendor credits
+                    if (bill.LinkedTxnList != null)
+                    {
+                        for (int l = 0; l < bill.LinkedTxnList.Count; l++)
+                        {
+                            ILinkedTxn linked = bill.LinkedTxnList.GetAt(l);
+                            string txnType = linked.TxnType?.GetValue().ToString() ?? "";
+
+                            if (txnType.IndexOf("Credit", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                string credTxnID = linked.TxnID?.GetValue();
+                                double credAmount = linked.Amount?.GetValue() ?? 0;
+
+                                if (!string.IsNullOrEmpty(credTxnID) && !linkedCreditTxns.Any(x => x.CreditTxnID == credTxnID))
+                                {
+                                    linkedCreditTxns.Add((specificTxnID, credTxnID, Math.Abs(credAmount)));
+                                }
+                            }
+                        }
                     }
 
                     BillTable bt = new BillTable
@@ -534,18 +527,14 @@ namespace VoucherPROVER2.Clients.INT
                         AppliedToTxnDiscountAccountRefFullName = discountAcc
                     };
 
-                    // Process Expense Lines with Consolidated Root Account Numbers
+                    // Expense Lines
                     if (bill.ExpenseLineRetList != null)
                     {
                         for (int i = 0; i < bill.ExpenseLineRetList.Count; i++)
                         {
                             var exp = bill.ExpenseLineRetList.GetAt(i);
                             string rawAccountName = exp.AccountRef?.FullName?.GetValue() ?? "";
-
-                            // Resolves sub-account to its root parent account
-                            string resolvedAccountName = accountMap.ContainsKey(rawAccountName)
-                                ? accountMap[rawAccountName]
-                                : rawAccountName;
+                            string resolvedAccountName = accountMap.ContainsKey(rawAccountName) ? accountMap[rawAccountName] : rawAccountName;
 
                             bt.ItemDetails.Add(new ItemDetail
                             {
@@ -553,12 +542,12 @@ namespace VoucherPROVER2.Clients.INT
                                 ItemLineAmount = exp.Amount?.GetValue() ?? 0,
                                 ItemLineClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
                                 ItemLineCustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
-                                ItemLineMemo = exp.Memo?.GetValue() ?? "",
+                                ItemLineMemo = exp.Memo?.GetValue() ?? ""
                             });
                         }
                     }
 
-                    // Process Item Lines
+                    // Item Lines
                     if (bill.ORItemLineRetList != null)
                     {
                         for (int i = 0; i < bill.ORItemLineRetList.Count; i++)
@@ -573,13 +562,87 @@ namespace VoucherPROVER2.Clients.INT
                                     ItemLineAmount = item.Amount?.GetValue() ?? 0,
                                     ItemLineClassRefFullName = item.ClassRef?.FullName?.GetValue() ?? "",
                                     ItemLineCustomerJob = item.CustomerRef?.FullName?.GetValue() ?? "",
-                                    ItemLineMemo = item.Desc?.GetValue() ?? "",
+                                    ItemLineMemo = item.Desc?.GetValue() ?? ""
                                 });
                             }
                         }
                     }
 
                     bills.Add(bt);
+                }
+
+                // Discrepancy calculation to identify unlinked applied credit balances
+                double calculatedTotalDebits = bills.Sum(b => b.ItemDetails.Sum(d => d.ItemLineAmount));
+                double totalPaidCheck = bp.Amount?.GetValue() ?? 0;
+                double totalDiscounts = bills.Sum(b => b.AppliedToTxnDiscountAmount);
+                double expectedCreditAmount = calculatedTotalDebits - totalPaidCheck - totalDiscounts;
+
+                // 3. Query Vendor Credits via IVendorCreditQuery using ORTxnQuery
+                try
+                {
+                    IMsgSetRequest reqCred = sessionManager.CreateMsgSetRequest("US", 13, 0);
+                    reqCred.Attributes.OnError = ENRqOnError.roeContinue;
+
+                    IVendorCreditQuery vcQuery = reqCred.AppendVendorCreditQueryRq();
+                    vcQuery.IncludeLineItems.SetValue(true);
+
+                    if (linkedCreditTxns.Count > 0)
+                    {
+                        foreach (var c in linkedCreditTxns.Select(x => x.CreditTxnID).Distinct())
+                        {
+                            vcQuery.ORTxnQuery.TxnIDList.Add(c);
+                        }
+                    }
+                    else if (expectedCreditAmount > 0.01)
+                    {
+                        vcQuery.ORTxnQuery.TxnFilter.EntityFilter.OREntityFilter.FullNameList.Add(payee);
+                    }
+
+                    IMsgSetResponse respCred = sessionManager.DoRequests(reqCred);
+                    if (respCred.ResponseList != null && respCred.ResponseList.Count > 0)
+                    {
+                        IVendorCreditRetList vcList = respCred.ResponseList.GetAt(0).Detail as IVendorCreditRetList;
+                        if (vcList != null && vcList.Count > 0)
+                        {
+                            double remainingCreditToAllocate = expectedCreditAmount > 0.01 ? expectedCreditAmount : linkedCreditTxns.Sum(x => x.Amount);
+
+                            for (int c = 0; c < vcList.Count && remainingCreditToAllocate > 0.001; c++)
+                            {
+                                IVendorCreditRet vCredit = vcList.GetAt(c);
+                                string crRefNum = vCredit.RefNumber?.GetValue() ?? "";
+                                string crMemo = vCredit.Memo?.GetValue() ?? "";
+
+                                if (vCredit.ExpenseLineRetList != null)
+                                {
+                                    for (int e = 0; e < vCredit.ExpenseLineRetList.Count && remainingCreditToAllocate > 0.001; e++)
+                                    {
+                                        var exp = vCredit.ExpenseLineRetList.GetAt(e);
+                                        string rawAcc = exp.AccountRef?.FullName?.GetValue() ?? "";
+                                        string resolvedAcc = accountMap.ContainsKey(rawAcc) ? accountMap[rawAcc] : rawAcc;
+                                        double lineAmt = exp.Amount?.GetValue() ?? 0;
+
+                                        double appliedThisLine = Math.Min(lineAmt, remainingCreditToAllocate);
+                                        remainingCreditToAllocate -= appliedThisLine;
+
+                                        bills[0].AppliedBillCredits.Add(new BillCreditDetail
+                                        {
+                                            CreditTxnID = vCredit.TxnID?.GetValue() ?? "",
+                                            CreditRefNumber = crRefNum,
+                                            AppliedAmount = appliedThisLine,
+                                            AccountRefFullName = resolvedAcc,
+                                            ClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
+                                            CustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
+                                            Memo = !string.IsNullOrWhiteSpace(exp.Memo?.GetValue()) ? exp.Memo.GetValue() : crMemo
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception exCred)
+                {
+                    Console.WriteLine($"[DEBUG] Error retrieving Vendor Credits: {exCred.Message}");
                 }
 
                 Console.WriteLine($"[DEBUG] Successfully added {bills.Count} bills to the return list.");

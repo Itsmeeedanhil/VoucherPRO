@@ -1231,9 +1231,6 @@ namespace VoucherPROVER2.Clients.INT
                     throw;
                 }
 
-                // =========================================================================
-                // 1. CALCULATE INDIVIDUAL BILL AMOUNTS AND BALANCED REMARKS
-                // =========================================================================
                 var billSummaryList = bills
                     .Select(b =>
                     {
@@ -1261,10 +1258,9 @@ namespace VoucherPROVER2.Clients.INT
                 if (billSummaryList.Count > 1)
                 {
                     memoLines.Add("Payment for the following:");
-                    amountLines.Add(""); // Blank matching header
+                    amountLines.Add("");
                 }
 
-                // Approximate character width of TextBILLRemarks before it wraps
                 const int maxMemoCharsPerLine = 32;
 
                 foreach (var item in billSummaryList)
@@ -1302,18 +1298,16 @@ namespace VoucherPROVER2.Clients.INT
                         wrappedMemoParts.Add("");
                     }
 
-                    // Add the text lines and match with exact line breaks on the amount side
                     for (int i = 0; i < wrappedMemoParts.Count; i++)
                     {
                         memoLines.Add(wrappedMemoParts[i]);
-
                         if (i == 0)
                         {
                             amountLines.Add(item.Amount.ToString("N2"));
                         }
                         else
                         {
-                            amountLines.Add(""); // Keeps the right column aligned with the left
+                            amountLines.Add("");
                         }
                     }
                 }
@@ -1321,9 +1315,7 @@ namespace VoucherPROVER2.Clients.INT
                 string billRemarksMemoText = string.Join("\r\n", memoLines);
                 string billRemarksAmountText = string.Join("\r\n", amountLines);
 
-                // Real total payout
-                double realCheckTotal = billSummaryList.Sum(x => x.Amount);
-                if (realCheckTotal == 0) realCheckTotal = bills[0].Amount;
+                double realCheckTotal = bills[0].TotalCheckAmount > 0 ? bills[0].TotalCheckAmount : billSummaryList.Sum(x => x.Amount);
 
                 string amountInWords = "          " + AccessToDatabase_INT.AmountToWordsConverter.Convert(realCheckTotal);
                 string refumber2 = refNumberCR.Contains("/") ? refNumberCR.Split('/').Last() : refNumberCR;
@@ -1333,12 +1325,11 @@ namespace VoucherPROVER2.Clients.INT
 
                 var bObj = bills[0];
 
-                // Single-line Address formatting
                 string fullAddress = string.Join(", ", new[] {
-                bObj.Address,
-                bObj.Address2,
-                bObj.VendorAddressCity
-            }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().TrimEnd(',')));
+            bObj.Address,
+            bObj.Address2,
+            bObj.VendorAddressCity
+        }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().TrimEnd(',')));
 
                 if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
@@ -1350,9 +1341,6 @@ namespace VoucherPROVER2.Clients.INT
                 if (textObject_CVBILLBankAccount != null) textObject_CVBILLBankAccount.Text = bankaccount;
                 if (TextObject_CVBILLAmountdetails != null) TextObject_CVBILLAmountdetails.Text = realCheckTotal.ToString("N2");
 
-                // =========================================================================
-                // 2. GET SELECTED A/P ACCOUNT AND INSERT DATA
-                // =========================================================================
                 string selectedAP = comboBox_APAccount?.SelectedItem?.ToString();
                 if (string.IsNullOrWhiteSpace(selectedAP))
                 {
@@ -1365,7 +1353,6 @@ namespace VoucherPROVER2.Clients.INT
                         : "Vouchers Payable";
                 }
 
-                // Populate staging database table and retrieve debit/credit totals
                 var (totalDebit, totalCredit) = InsertDataToBillCompiled(refNumberCR, bills, selectedAP);
 
                 if (textObject_TotalDebit != null)
@@ -1374,10 +1361,6 @@ namespace VoucherPROVER2.Clients.INT
                 if (textObject_TotalCredit != null)
                     textObject_TotalCredit.Text = totalCredit.ToString("N2");
 
-                // =========================================================================
-                // 3. CONFIGURE SUBREPORTS
-                // =========================================================================
-                // Subreport 1: Debit Details
                 SubreportObject subreportObjectIVP = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                 if (subreportObjectIVP != null)
                 {
@@ -1385,7 +1368,6 @@ namespace VoucherPROVER2.Clients.INT
                     SetDatabaseLocation(subDocIVP, databasePathBILL);
                 }
 
-                // Subreport 2: Credit Details (Displays Vouchers Payable / Notes Payable)
                 SubreportObject subreportObjectINTCredit = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINTCredit"] as SubreportObject;
                 if (subreportObjectINTCredit != null)
                 {
@@ -1393,7 +1375,6 @@ namespace VoucherPROVER2.Clients.INT
                     SetDatabaseLocation(subDocCredit, databasePathBILL);
                 }
 
-                // Subreport 3: Remarks and Subtotal
                 SubreportObject subreportObjectINT = cRCV_INTBILL.ReportDefinition.ReportObjects["SubreportCVDetailsINT"] as SubreportObject;
                 if (subreportObjectINT != null)
                 {
@@ -1787,7 +1768,6 @@ namespace VoucherPROVER2.Clients.INT
             {
                 connection.Open();
 
-                // 1. Clear old staging data
                 string deleteQuery = "DELETE FROM Bill_Compiled";
                 using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
                 {
@@ -1806,10 +1786,8 @@ namespace VoucherPROVER2.Clients.INT
                     .SelectMany(b => b.ItemDetails.Select(d => new { Bill = b, Detail = d }))
                     .ToList();
 
-                // =========================================================================
-                // PASS 1: DEBITS (Consolidated by Parent Account)
-                // =========================================================================
-                var groupedItemDebits = allDetails
+                // PASS 1: DEBITS
+                var groupedDebits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount > 0)
                     .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
                     .Select(g => new {
@@ -1818,16 +1796,7 @@ namespace VoucherPROVER2.Clients.INT
                         TotalAmount = g.Sum(x => x.Detail.ItemLineAmount)
                     });
 
-                var groupedExpenseDebits = allDetails
-                    .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount > 0)
-                    .GroupBy(x => x.Detail.ExpenseLineItemRefFullName.Trim())
-                    .Select(g => new {
-                        Particulars = g.Key,
-                        Memo = string.Join("; ", g.Select(x => x.Detail.ExpenseLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
-                        TotalAmount = g.Sum(x => x.Detail.ExpenseLineAmount)
-                    });
-
-                foreach (var entry in groupedItemDebits.Concat(groupedExpenseDebits))
+                foreach (var entry in groupedDebits)
                 {
                     debitTotalAmount += entry.TotalAmount;
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
@@ -1843,23 +1812,21 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                // =========================================================================
-                // PASS 2: NEGATIVE EXPENSE LINES / DISCOUNTS / WITHHOLDING TAX
-                // =========================================================================
+                double totalDeductedCredits = 0;
+
+                // PASS 2: NEGATIVE EXPENSE LINES
                 var groupedExpenseCredits = allDetails
-                    .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount < 0)
-                    .GroupBy(x => x.Detail.ExpenseLineItemRefFullName.Trim())
+                    .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount < 0)
+                    .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
                     .Select(g => new {
                         Particulars = g.Key,
-                        Memo = string.Join("; ", g.Select(x => x.Detail.ExpenseLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
-                        TotalCreditAmount = Math.Abs(g.Sum(x => x.Detail.ExpenseLineAmount))
+                        Memo = string.Join("; ", g.Select(x => x.Detail.ItemLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
+                        TotalCreditAmount = Math.Abs(g.Sum(x => x.Detail.ItemLineAmount))
                     });
-
-                double totalNegativeCredits = 0;
 
                 foreach (var entry in groupedExpenseCredits)
                 {
-                    totalNegativeCredits += entry.TotalCreditAmount;
+                    totalDeductedCredits += entry.TotalCreditAmount;
                     creditTotalAmount += entry.TotalCreditAmount;
 
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
@@ -1875,6 +1842,7 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
+                // PASS 3: DISCOUNTS / WITHHOLDING TAX
                 var groupedDiscounts = bills
                     .Where(b => b.AppliedToTxnDiscountAmount > 0 && !string.IsNullOrEmpty(b.AppliedToTxnDiscountAccountRefFullName))
                     .GroupBy(b => b.AppliedToTxnDiscountAccountRefFullName.Trim())
@@ -1885,7 +1853,7 @@ namespace VoucherPROVER2.Clients.INT
 
                 foreach (var disc in groupedDiscounts)
                 {
-                    totalNegativeCredits += disc.TotalDiscount;
+                    totalDeductedCredits += disc.TotalDiscount;
                     creditTotalAmount += disc.TotalDiscount;
 
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
@@ -1901,14 +1869,41 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                // =========================================================================
-                // PASS 3: AP / VOUCHERS PAYABLE CREDIT ENTRY
-                // =========================================================================
+                // PASS 4: APPLIED BILL CREDITS
+                var groupedBillCredits = bills
+                    .Where(b => b.AppliedBillCredits != null && b.AppliedBillCredits.Count > 0)
+                    .SelectMany(b => b.AppliedBillCredits)
+                    .GroupBy(c => c.AccountRefFullName.Trim())
+                    .Select(g => new {
+                        AccountName = g.Key,
+                        TotalCreditApplied = g.Sum(c => c.AppliedAmount),
+                        Memo = string.Join("; ", g.Select(c => $"Credit #{c.CreditRefNumber} - {c.Memo}".Trim()).Distinct())
+                    });
+
+                foreach (var cred in groupedBillCredits)
+                {
+                    totalDeductedCredits += cred.TotalCreditApplied;
+                    creditTotalAmount += cred.TotalCreditApplied;
+
+                    using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(cred.AccountName, 255));
+                        command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Debit", "");
+                        command.Parameters.AddWithValue("@Credit", cred.TotalCreditApplied.ToString("N2"));
+                        command.Parameters.AddWithValue("@Memo", SafeTruncate(cred.Memo, 255));
+                        command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
+                        command.ExecuteNonQuery();
+                    }
+                }
+
+                // PASS 5: VOUCHERS PAYABLE NET CREDIT ENTRY
                 if (bills != null && bills.Count > 0)
                 {
                     try
                     {
-                        double netPaymentCredit = debitTotalAmount - totalNegativeCredits;
+                        double netPaymentCredit = debitTotalAmount - totalDeductedCredits;
                         creditTotalAmount += netPaymentCredit;
 
                         string consolidatedMemo = string.Join(" | ", bills
