@@ -17,7 +17,6 @@ using System.IO;
 using System.Data.OleDb;
 using VoucherPROVER2.Clients.ENA;
 
-
 namespace VoucherPROVER2.Clients.DRC
 {
     public partial class Dashboard_DRC : Form
@@ -33,7 +32,6 @@ namespace VoucherPROVER2.Clients.DRC
         private PrintPreviewControl printPreviewControl;
         private CrystalReportViewer reportViewer;
         private AccessToDatabase_DRC accessToDatabase;
-
 
         FlowLayoutPanel panel_Company;
 
@@ -112,7 +110,6 @@ namespace VoucherPROVER2.Clients.DRC
             return panel_PayeeOverride;
         }
 
-
         public FlowLayoutPanel Panel_SBCompany()
         {
             panel_Company = new FlowLayoutPanel
@@ -147,7 +144,6 @@ namespace VoucherPROVER2.Clients.DRC
             // ADD YOUR COMPANY NAMES HERE
             comboBox_Company.Items.AddRange(new string[]
             {
-
                 // ---------------- IVP COMPANIES ----------------
                 "GRC- HSI  Hemocare Sytem Inc.",
                 "GRC- St.Augustine Dialysis Inc.",
@@ -156,7 +152,6 @@ namespace VoucherPROVER2.Clients.DRC
                 "Nephro Plus Consultancy Inc.",
                 "Golden Renal Care Trading Inc.",
                 "Golden Renal Care Holdings Inc.",
-
             });
 
             // Set default selection
@@ -171,7 +166,7 @@ namespace VoucherPROVER2.Clients.DRC
                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                 else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
                 else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
-                else if (comboBox_Forms.SelectedIndex == 5) formType = "IR";
+                else if (comboBox_Forms.SelectedIndex == 5) formType = "RR";
 
                 if (formType != "")
                 {
@@ -201,8 +196,6 @@ namespace VoucherPROVER2.Clients.DRC
 
             comboBox_Currency.Items.AddRange(new string[] { "Peso (₱)", "Dollar ($)" });
             comboBox_Currency.SelectedIndex = 0;
-
-
 
             return panel_Company;
         }
@@ -242,7 +235,6 @@ namespace VoucherPROVER2.Clients.DRC
                 Parent = panel_Title,
                 Font = new Font("Microsoft Sans Serif", 12, FontStyle.Regular),
                 Dock = DockStyle.Fill,
-                //Text = "QUICKBOOKS SALES INVOICE",
                 Text = "V o u c h e r P r o",
                 TextAlign = ContentAlignment.MiddleRight,
                 ForeColor = Color.White,
@@ -258,7 +250,6 @@ namespace VoucherPROVER2.Clients.DRC
                 BackColor = Color.LightGray,
                 Dock = DockStyle.Fill,
                 Padding = new Padding(sideBarWidth, 50, 0, 0),
-                //Height = 300,
             };
 
             printPreviewControl = new PrintPreviewControl
@@ -314,7 +305,7 @@ namespace VoucherPROVER2.Clients.DRC
                                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                                 else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
                                 else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
-                                else if (comboBox_Forms.SelectedIndex == 5) formType = "IR";
+                                else if (comboBox_Forms.SelectedIndex == 5) formType = "RR";
 
                                 string selectedCompany = comboBox_Company.SelectedItem?.ToString();
 
@@ -351,7 +342,6 @@ namespace VoucherPROVER2.Clients.DRC
                 Dock = DockStyle.Left,
                 Width = sideBarWidth,
                 Padding = new Padding(2),
-                //BackColor = Color.Green,
                 BackColor = Color.FromArgb(9, 102, 176)
             };
 
@@ -369,10 +359,8 @@ namespace VoucherPROVER2.Clients.DRC
                 FlowLayoutPanel panel_Company = Panel_SBCompany();
                 panel_Company.Parent = panel_SideBar;
 
-                // --- ADD THIS BLOCK ---
                 FlowLayoutPanel panel_Payee = Panel_SBPayeeOverride();
                 panel_Payee.Parent = panel_SideBar;
-                // ----------------------
             }
 
             // - REF NUMBER ---------------------------------------------
@@ -400,8 +388,6 @@ namespace VoucherPROVER2.Clients.DRC
             FlowLayoutPanel panel_Printing = Panel_SBPrinting();
             panel_Printing.Parent = panel_SideBar;
 
-            // ----------------------------------------------------------
-
             return panel_SideBar;
         }
 
@@ -409,7 +395,6 @@ namespace VoucherPROVER2.Clients.DRC
         {
             FlowLayoutPanel panel_Forms = new FlowLayoutPanel
             {
-                //Parent = panel_SideBar,
                 Dock = DockStyle.Top,
                 Height = 61,
                 Width = sideBarWidth - 10,
@@ -434,18 +419,18 @@ namespace VoucherPROVER2.Clients.DRC
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Font = font_Label,
             };
+
             if (GlobalVariables.client == "DRC")
             {
                 comboBox_Forms.Items.AddRange(new string[]
-            {
-                "",
-                "Check Voucher",
-                "Check",
-                "Journal Voucher",
-                "Accounts Payable Voucher",
-                "Receiving Report",
-
-            });
+                {
+                    "",
+                    "Check Voucher",
+                    "Check",
+                    "Journal Voucher",
+                    "Accounts Payable Voucher",
+                    "Receiving Report",
+                });
                 comboBox_Forms.SelectedIndex = 0;
                 comboBox_Forms.SelectedIndexChanged += ComboBox_Forms_SelectedIndexChanged;
             }
@@ -455,9 +440,8 @@ namespace VoucherPROVER2.Clients.DRC
 
         public FlowLayoutPanel Panel_SBSeriesNumber()
         {
-            FlowLayoutPanel panel_SeriesNumber = new FlowLayoutPanel
+            panel_SeriesNumber = new FlowLayoutPanel
             {
-                //Parent = panel_SideBar,
                 Dock = DockStyle.Top,
                 Height = 62,
                 Width = sideBarWidth - 10,
@@ -482,8 +466,6 @@ namespace VoucherPROVER2.Clients.DRC
                 Width = 156,
                 Font = new Font("Microsoft Sans Serif", 10),
             };
-            //textBox_SeriesNumber.TextChanged += TextBox_SeriesNumber_TextChanged;
-            //textBox_SeriesNumber.Leave += TextBox_SeriesNumber_Leave;
 
             Button button_Decrement = new Button
             {
@@ -504,7 +486,7 @@ namespace VoucherPROVER2.Clients.DRC
                     if (comboBox_Forms.SelectedIndex == 1) prefix = "CV";
                     else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
                     else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
-                    else if (comboBox_Forms.SelectedIndex == 5) prefix = "IR";
+                    else if (comboBox_Forms.SelectedIndex == 5) prefix = "RR";
 
                     UpdateSeriesNumberDRC(prefix);
                 }
@@ -529,7 +511,7 @@ namespace VoucherPROVER2.Clients.DRC
                     if (comboBox_Forms.SelectedIndex == 1) prefix = "CV";
                     else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
                     else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
-                    else if (comboBox_Forms.SelectedIndex == 5) prefix = "IR";
+                    else if (comboBox_Forms.SelectedIndex == 5) prefix = "RR";
 
                     UpdateSeriesNumberDRC(prefix);
                 }
@@ -538,19 +520,16 @@ namespace VoucherPROVER2.Clients.DRC
             return panel_SeriesNumber;
         }
 
-
         public FlowLayoutPanel Panel_SBRefNumber_CR()
         {
             FlowLayoutPanel panel_RefNumber_CR = new FlowLayoutPanel
             {
-                //Parent = panel_SideBar,
                 Dock = DockStyle.Top,
                 Height = 90,
                 Width = sideBarWidth - 10,
                 BackColor = Color.LightGray,
                 Padding = new Padding(5, 2, 5, 5),
                 BorderStyle = BorderStyle.FixedSingle,
-                //Visible = false
             };
 
             Label label_RefNumberText = new Label
@@ -565,7 +544,7 @@ namespace VoucherPROVER2.Clients.DRC
             TextBox textBox_ReferenceNumber_CR = new TextBox
             {
                 Parent = panel_RefNumber_CR,
-                Width = sideBarWidth - 30, // 190
+                Width = sideBarWidth - 30,
                 Font = font_Label,
             };
 
@@ -587,10 +566,7 @@ namespace VoucherPROVER2.Clients.DRC
                 {
                     if (GlobalVariables.client == "DRC")
                     {
-                        // -------------------------------------------------------------
-                        // OPTION 1: CHECK VOUCHER
-                        // -------------------------------------------------------------
-                        if (comboBox_Forms.SelectedIndex == 1)
+                        if (comboBox_Forms.SelectedIndex == 1) // Check Voucher
                         {
                             bool cvDataExists = false;
                             try
@@ -647,23 +623,19 @@ namespace VoucherPROVER2.Clients.DRC
 
                                     var b = cvData[0];
 
-                                    // Line 1: Combine Addr1, Addr2, Addr3, Addr4 into one string separated by commas
                                     string streetLine = string.Join(", ", new[] {
-                         b.AddressBlockAddr1,
-                         b.AddressBlockAddr2,
-                         b.AddressBlockAddr3,
-                         b.AddressBlockAddr4
-                     }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                                         b.AddressBlockAddr1,
+                                         b.AddressBlockAddr2,
+                                         b.AddressBlockAddr3,
+                                         b.AddressBlockAddr4
+                                     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                                    // Line 2: City
                                     string cityLine = string.Join(" ", new[] {
-                         b.AddressCity,
-                     }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                                         b.AddressCity,
+                                     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                                    // Final: Join the two lines with a single NewLine
                                     string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                                    // Actual check amount paid from bank
                                     double checkAmount = cvData[0].TotalAmount;
                                     string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(checkAmount);
 
@@ -687,7 +659,6 @@ namespace VoucherPROVER2.Clients.DRC
                                     textObject_ReceivedBy.Text = signatories.ReceivedByName;
                                     textObject_ReceivedByPos.Text = signatories.ReceivedByPosition;
 
-                                    // Compute line totals
                                     double debitTotalAmount = 0;
                                     double lineCreditTotal = 0;
 
@@ -709,7 +680,6 @@ namespace VoucherPROVER2.Clients.DRC
                                         catch (Exception ex) { MessageBox.Show($"Error computing totals: {ex.Message}"); }
                                     }
 
-                                    // Total credit balances line credits (e.g. 84.00) with the bank credit line (10,349.25)
                                     double totalBalancedCredit = lineCreditTotal + checkAmount;
 
                                     textObject_CVTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
@@ -733,8 +703,6 @@ namespace VoucherPROVER2.Clients.DRC
 
                                         textObject_Remarks.Text = cvData[0].Memo;
                                         textObject_SubAccountPayable.Text = subfinalbank;
-
-                                        // Fix: Output actual net check payment (10,349.25) instead of debitTotalAmount (10,433.25)
                                         textObject_SubAmountPayable.Text = checkAmount.ToString("N2");
                                         textObject_SubAccountCode.Text = accountcode;
 
@@ -765,7 +733,6 @@ namespace VoucherPROVER2.Clients.DRC
                                 GenerateBillPaymentReport_DRC(refNumberCR);
                             }
                         }
-
                         else if (comboBox_Forms.SelectedIndex == 3)
                         {
                             CRJV_DRC cRJV_DRC = new CRJV_DRC();
@@ -775,31 +742,40 @@ namespace VoucherPROVER2.Clients.DRC
                             AccessQueries_DRC accessQueries = new AccessQueries_DRC();
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
 
-                            // 1. Get the correct data
                             journal = accessQueries.GetJournalEntryForGrid(refNumberCR);
 
                             if (journal != null && journal.Count > 0)
                             {
-                                // 2. Set Header Text Objects
-                                TextObject textObject_JVRefNumber = cRJV_DRC.ReportDefinition.ReportObjects["TextJVRefNumber"] as TextObject;
-                                TextObject textObject_JVCheckDate = cRJV_DRC.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
-                                TextObject textObject_JVTransactDate = cRJV_DRC.ReportDefinition.ReportObjects["TextJVTransactDate"] as TextObject;
-                                TextObject textObject_JVTotalDebitAmount = cRJV_DRC.ReportDefinition.ReportObjects["TextJVTotalDebitAmount"] as TextObject;
-                                TextObject textObject_JVTotalCreditAmount = cRJV_DRC.ReportDefinition.ReportObjects["TextJVTotalCreditAmount"] as TextObject;
+                                // Safe TextObject retriever
+                                TextObject GetReportTextObject(ReportDocument doc, string name)
+                                {
+                                    foreach (ReportObject ro in doc.ReportDefinition.ReportObjects)
+                                    {
+                                        if (ro.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                                            return ro as TextObject;
+                                    }
+                                    return null;
+                                }
 
-                                TextObject textObject_CompanyName = cRJV_DRC.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
-                                if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                                TextObject textObject_JVRefNumber = GetReportTextObject(cRJV_DRC, "TextJVRefNumber");
+                                TextObject textObject_JVCheckDate = GetReportTextObject(cRJV_DRC, "TextJVCheckDate");
+                                TextObject textObject_JVTransactDate = GetReportTextObject(cRJV_DRC, "TextJVTransactDate");
+                                TextObject textObject_JVTotalDebitAmount = GetReportTextObject(cRJV_DRC, "TextJVTotalDebitAmount");
+                                TextObject textObject_JVTotalCreditAmount = GetReportTextObject(cRJV_DRC, "TextJVTotalCreditAmount");
+                                TextObject textObject_JVAmountInWords = GetReportTextObject(cRJV_DRC, "TextJVAmountInWords");
+
+                                TextObject textObject_CompanyName = GetReportTextObject(cRJV_DRC, "TextCompanyName");
+                                if (textObject_CompanyName != null && comboBox_Company?.SelectedItem != null)
                                 {
                                     textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                                 }
 
-
-                                TextObject textObject_PreparedBy = cRJV_DRC.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                                TextObject textObject_PreparedByPos = cRJV_DRC.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
-                                TextObject textObject_CheckedBy = cRJV_DRC.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                                TextObject textObject_CheckedByPos = cRJV_DRC.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
-                                TextObject textObject_ApprovedBy = cRJV_DRC.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                                TextObject textObject_ApprovedByPos = cRJV_DRC.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+                                TextObject textObject_PreparedBy = GetReportTextObject(cRJV_DRC, "TextPreparedBy");
+                                TextObject textObject_PreparedByPos = GetReportTextObject(cRJV_DRC, "TextPreparedByPosition");
+                                TextObject textObject_CheckedBy = GetReportTextObject(cRJV_DRC, "TextCheckedBy");
+                                TextObject textObject_CheckedByPos = GetReportTextObject(cRJV_DRC, "TextCheckedByPosition");
+                                TextObject textObject_ApprovedBy = GetReportTextObject(cRJV_DRC, "TextApprovedBy");
+                                TextObject textObject_ApprovedByPos = GetReportTextObject(cRJV_DRC, "TextApprovedByPosition");
 
                                 if (textObject_JVRefNumber != null) textObject_JVRefNumber.Text = textBox_SeriesNumber.Text;
                                 if (textObject_JVCheckDate != null) textObject_JVCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
@@ -813,25 +789,30 @@ namespace VoucherPROVER2.Clients.DRC
                                     debitTotalAmount += line.Debit;
                                     creditTotalAmount += line.Credit;
                                 }
+
                                 if (textObject_JVTotalDebitAmount != null)
                                     textObject_JVTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
 
                                 if (textObject_JVTotalCreditAmount != null)
                                     textObject_JVTotalCreditAmount.Text = $"PHP {creditTotalAmount:N2}";
 
+                                // ---> POPULATE AMOUNT IN WORDS FOR JV <---
+                                string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(debitTotalAmount);
+                                if (textObject_JVAmountInWords != null)
+                                {
+                                    textObject_JVAmountInWords.Text = amountInWords;
+                                }
 
                                 AccessToDatabase_DRC accessToDatabase = new AccessToDatabase_DRC();
                                 var signatories = accessToDatabase.RetrieveAllSignatoryData();
 
+                                if (textObject_PreparedBy != null) textObject_PreparedBy.Text = signatories.PreparedByName;
+                                if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = signatories.PreparedByPosition;
+                                if (textObject_CheckedBy != null) textObject_CheckedBy.Text = signatories.ReviewedByName;
+                                if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
+                                if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = signatories.ApprovedByName;
+                                if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
 
-                                textObject_PreparedBy.Text = signatories.PreparedByName;
-                                textObject_PreparedByPos.Text = signatories.PreparedByPosition;
-                                textObject_CheckedBy.Text = signatories.ReviewedByName;
-                                textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
-                                textObject_ApprovedBy.Text = signatories.ApprovedByName;
-                                textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
-
-                                // 4. Handle Subreport
                                 SubreportObject subreportObject = cRJV_DRC.ReportDefinition.ReportObjects["SubreportJVDetailsIVP"] as SubreportObject;
                                 if (subreportObject != null)
                                 {
@@ -839,7 +820,6 @@ namespace VoucherPROVER2.Clients.DRC
 
                                     TextObject textObject_SubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextJVSUBAccountsPayable"] as TextObject;
                                     TextObject textObject_SubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextJVSUBAmountPayable"] as TextObject;
-
 
                                     if (textObject_SubAccountPayable != null) textObject_SubAccountPayable.Text = journal[0].AccountName;
 
@@ -849,7 +829,6 @@ namespace VoucherPROVER2.Clients.DRC
 
                                 InsertDataToJournalCompiled(refNumberCR, journal);
 
-                                // 6. Final Report Settings
                                 cRJV_DRC.SetParameterValue("ReferenceNumber", refNumberCR);
 
                                 panel_Printing.Visible = false;
@@ -860,25 +839,18 @@ namespace VoucherPROVER2.Clients.DRC
                                 reportViewer.ReportSource = cRJV_DRC;
                                 reportViewer.RefreshReport();
                             }
-                            else
-                            {
-                                MessageBox.Show("No Journal Entry found for this Reference Number.");
-                            }
                         }
                         else if (comboBox_Forms.SelectedIndex == 4) // APV
                         {
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
-                            // You can reuse GenerateBillPaymentReport_IVP or create a specific APV one:
                             GenerateAPVReport_DRC(refNumberCR);
                         }
-                        // 5. ITEM RECEIPT (IR) - NEW MODULE ENTRY
-                        else if (comboBox_Forms.SelectedIndex == 5)
+                        else if (comboBox_Forms.SelectedIndex == 5) // Receiving Report (RR)
                         {
                             string refNumberCR = textBox_ReferenceNumber_CR.Text;
                             GenerateItemReceiptReport_DRC(refNumberCR);
                         }
                     }
-
                 }
                 else
                 {
@@ -981,15 +953,15 @@ namespace VoucherPROVER2.Clients.DRC
 
                 var c = bills[0];
                 string streetLine = string.Join(", ", new[] {
-            c.VendorAddressAddr1,
-            c.VendorAddressAddr2,
-            c.VendorAddressAddr3,
-            c.VendorAddressAddr4
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                    c.VendorAddressAddr1,
+                    c.VendorAddressAddr2,
+                    c.VendorAddressAddr3,
+                    c.VendorAddressAddr4
+                }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string cityLine = string.Join(" ", new[] {
-            c.VendorAddressCity
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                    c.VendorAddressCity
+                }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
@@ -1051,201 +1023,156 @@ namespace VoucherPROVER2.Clients.DRC
                 if (receipts == null || receipts.Count == 0)
                     return false;
 
-                TextObject textObject_IRSeriesNumber = null;
-                TextObject textObject_IRDate = null;
-                TextObject textObject_IRVendor = null;
-                TextObject textObject_IRAddress = null;
-                TextObject textObject_IRTotalDebitAmount = null;
-                TextObject textObject_IRTotalCreditAmount = null;
-                TextObject textObject_IRBank = null;
-                TextObject textObject_IRRefnumber = null;
-                TextObject textObject_IRCheckDate = null;
-                TextObject textObject_IRDueAmount = null;
-
-                TextObject textObject_CompanyName = null;
-                TextObject textObject_PreparedBy = null;
-                TextObject textObject_PreparedByPos = null;
-                TextObject textObject_CheckedBy = null;
-                TextObject textObject_CheckedByPos = null;
-                TextObject textObject_ApprovedBy = null;
-                TextObject textObject_ApprovedByPos = null;
-                TextObject textObject_ReceivedBy = null;
-                TextObject textObject_ReceivedByPos = null;
-
-                try
+                TextObject GetReportTextObject(ReportDocument doc, string name)
                 {
-                    textObject_IRSeriesNumber = cRIR_DRC.ReportDefinition.ReportObjects["TextIRSeriesNumber"] as TextObject;
-                    textObject_IRDate = cRIR_DRC.ReportDefinition.ReportObjects["TextIRDate"] as TextObject;
-                    textObject_IRVendor = cRIR_DRC.ReportDefinition.ReportObjects["TextIRVendor"] as TextObject;
-                    textObject_IRAddress = cRIR_DRC.ReportDefinition.ReportObjects["TextIRAddress"] as TextObject;
-                    textObject_IRTotalDebitAmount = cRIR_DRC.ReportDefinition.ReportObjects["TextIRTotalDebitAmount"] as TextObject;
-                    textObject_IRTotalCreditAmount = cRIR_DRC.ReportDefinition.ReportObjects["TextIRTotalCreditAmount"] as TextObject;
-                    textObject_IRBank = cRIR_DRC.ReportDefinition.ReportObjects["TextIRBank"] as TextObject;
-                    textObject_IRRefnumber = cRIR_DRC.ReportDefinition.ReportObjects["TextIRRefnumber"] as TextObject;
-                    textObject_IRCheckDate = cRIR_DRC.ReportDefinition.ReportObjects["TextIRCheckDate"] as TextObject;
-                    textObject_IRDueAmount = cRIR_DRC.ReportDefinition.ReportObjects["TextIRDueAmoount"] as TextObject; 
-                    textObject_CompanyName = cRIR_DRC.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
-                    if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                    foreach (ReportObject ro in doc.ReportDefinition.ReportObjects)
                     {
-                        textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
-                    }
-
-                    textObject_PreparedBy = cRIR_DRC.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                    textObject_PreparedByPos = cRIR_DRC.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
-                    textObject_CheckedBy = cRIR_DRC.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                    textObject_CheckedByPos = cRIR_DRC.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
-                    textObject_ApprovedBy = cRIR_DRC.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                    textObject_ApprovedByPos = cRIR_DRC.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
-                    textObject_ReceivedBy = cRIR_DRC.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
-                    textObject_ReceivedByPos = cRIR_DRC.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
-
-                    AccessToDatabase_DRC accessToDatabase = new AccessToDatabase_DRC();
-
-                    var (PreparedByName, PreparedByPosition,
-                         ReviewedByName, ReviewedByPosition,
-                         RecommendingApprovalName, RecommendingApprovalPosition,
-                         ApprovedByName, ApprovedByPosition,
-                         ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
-
-
-                    double debitTotalAmount = 0;
-                    double creditTotalAmount = 0;
-
-                    foreach (var receipt in receipts) // 'receipts' is List<ItemReciept>
-                    {
-                        try
+                        if (ro.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
                         {
-                            double lineAmount = 0;
-
-                            // Extract amount based on line type
-                            if (receipt.ReceiptItemType == ReceiptItemType.ReceiptItem)
-                            {
-                                lineAmount = receipt.ItemAmount;
-                            }
-                            else if (receipt.ReceiptItemType == ReceiptItemType.RecieptExpense)
-                            {
-                                lineAmount = receipt.ExpensesAmount;
-                            }
-
-                            // Accumulate Debit and Credit
-                            if (lineAmount != 0)
-                            {
-                                if (lineAmount > 0)
-                                {
-                                    debitTotalAmount += lineAmount;
-                                }
-                                else
-                                {
-                                    creditTotalAmount += Math.Abs(lineAmount);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"Error processing item receipt detail: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return ro as TextObject;
                         }
                     }
+                    return null;
+                }
 
+                TextObject textObject_IRSeriesNumber = GetReportTextObject(cRIR_DRC, "TextIRSeriesNumber");
+                TextObject textObject_IRDate = GetReportTextObject(cRIR_DRC, "TextIRDate");
+                TextObject textObject_IRVendor = GetReportTextObject(cRIR_DRC, "TextIRVendor");
+                TextObject textObject_IRAddress = GetReportTextObject(cRIR_DRC, "TextIRAddress");
+                TextObject textObject_IRTotalDebitAmount = GetReportTextObject(cRIR_DRC, "TextIRTotalDebitAmount");
+                TextObject textObject_IRTotalCreditAmount = GetReportTextObject(cRIR_DRC, "TextIRTotalCreditAmount");
+                TextObject textObject_IRRefnumber = GetReportTextObject(cRIR_DRC, "TextIRRefnumber");
+                TextObject textObject_CompanyName = GetReportTextObject(cRIR_DRC, "TextCompanyName");
 
-                    textObject_PreparedBy.Text = PreparedByName;
-                    textObject_PreparedByPos.Text = PreparedByPosition;
-                    textObject_CheckedBy.Text = ReviewedByName;
-                    textObject_CheckedByPos.Text = ReviewedByPosition;
-                    textObject_ApprovedBy.Text = ApprovedByName;
-                    textObject_ApprovedByPos.Text = ApprovedByPosition;
-                    textObject_ReceivedBy.Text = ReceivedByName;
-                    textObject_ReceivedByPos.Text = ReceivedByPosition;
+                if (textObject_CompanyName != null && comboBox_Company?.SelectedItem != null)
+                {
+                    textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
+                }
 
+                TextObject textObject_PreparedBy = GetReportTextObject(cRIR_DRC, "TextPreparedBy");
+                TextObject textObject_PreparedByPos = GetReportTextObject(cRIR_DRC, "TextPreparedByPosition");
+                TextObject textObject_CheckedBy = GetReportTextObject(cRIR_DRC, "TextCheckedBy");
+                TextObject textObject_CheckedByPos = GetReportTextObject(cRIR_DRC, "TextCheckedByPosition");
+                TextObject textObject_ApprovedBy = GetReportTextObject(cRIR_DRC, "TextApprovedBy");
+                TextObject textObject_ApprovedByPos = GetReportTextObject(cRIR_DRC, "TextApprovedByPosition");
+                TextObject textObject_ReceivedBy = GetReportTextObject(cRIR_DRC, "TextReceivedBy");
+                TextObject textObject_ReceivedByPos = GetReportTextObject(cRIR_DRC, "TextReceivedByPosition");
 
-                    if (textObject_IRTotalDebitAmount != null)
-                        textObject_IRTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
+                AccessToDatabase_DRC accessToDatabase = new AccessToDatabase_DRC();
+                var (PreparedByName, PreparedByPosition,
+                     ReviewedByName, ReviewedByPosition,
+                     RecommendingApprovalName, RecommendingApprovalPosition,
+                     ApprovedByName, ApprovedByPosition,
+                     ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
 
-                    if (textObject_IRTotalCreditAmount != null)
-                        textObject_IRTotalCreditAmount.Text = $"PHP {debitTotalAmount:N2}";
+                if (textObject_PreparedBy != null) textObject_PreparedBy.Text = PreparedByName;
+                if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = PreparedByPosition;
+                if (textObject_CheckedBy != null) textObject_CheckedBy.Text = ReviewedByName;
+                if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = ReviewedByPosition;
+                if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = ApprovedByName;
+                if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = ApprovedByPosition;
+                if (textObject_ReceivedBy != null) textObject_ReceivedBy.Text = ReceivedByName;
+                if (textObject_ReceivedByPos != null) textObject_ReceivedByPos.Text = ReceivedByPosition;
 
-                    var firstReceipt = receipts.FirstOrDefault();
-                    if (firstReceipt != null)
+                double debitTotalAmount = 0;
+                double creditTotalAmount = 0;
+
+                foreach (var receipt in receipts)
+                {
+                    double lineAmount = receipt.ReceiptItemType == ReceiptItemType.ReceiptItem
+                        ? receipt.ItemAmount
+                        : receipt.ExpensesAmount;
+
+                    if (lineAmount > 0)
                     {
-                        // Format Multi-line Address
-                        string streetLine = string.Join(", ", new[] {
-                            firstReceipt.Addr1,
-                            firstReceipt.Addr2,
-                            firstReceipt.Addr3,
-                            firstReceipt.Addr4
-                        }.Where(s => !string.IsNullOrWhiteSpace(s)));
-
-                        string cityLine = firstReceipt.AddrCity ?? "";
-                        string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
-
-                        // Clean Bank / AP Account Name (Strip parent hierarchy if colon exists)
-                        string rawBank = firstReceipt.BankAccount ?? "";
-                        string bank = rawBank.Contains(":") ? rawBank.Split(':').Last().Trim() : rawBank;
-
-                        // Assign Text Objects
-                        if (textObject_IRSeriesNumber != null) textObject_IRSeriesNumber.Text = textBox_SeriesNumber.Text;
-                        if (textObject_IRDate != null) textObject_IRDate.Text = firstReceipt.TxnDate.ToString("MMMM dd, yyyy");
-                        if (textObject_IRCheckDate != null) textObject_IRCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
-                        if (textObject_IRVendor != null) textObject_IRVendor.Text = firstReceipt.VendorFullName ?? "";
-                        if (textObject_IRAddress != null) textObject_IRAddress.Text = fullAddress;
-                        if (textObject_IRBank != null) textObject_IRBank.Text = bank;
-                        if (textObject_IRRefnumber != null) textObject_IRRefnumber.Text = firstReceipt.RefNumber ?? "";
-                        if (textObject_IRDueAmount != null) textObject_IRDueAmount.Text = firstReceipt.TotalAmount.ToString("N2");
+                        debitTotalAmount += lineAmount;
+                    }
+                    else if (lineAmount < 0)
+                    {
+                        creditTotalAmount += Math.Abs(lineAmount);
                     }
                 }
-                catch
+
+                if (textObject_IRTotalDebitAmount != null)
+                    textObject_IRTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
+
+                if (textObject_IRTotalCreditAmount != null)
+                    textObject_IRTotalCreditAmount.Text = $"PHP {debitTotalAmount:N2}";
+
+                var firstReceipt = receipts.FirstOrDefault();
+                if (firstReceipt != null)
                 {
-                    throw;
+                    string streetLine = string.Join(", ", new[] {
+                        firstReceipt.Addr1,
+                        firstReceipt.Addr2,
+                        firstReceipt.Addr3,
+                        firstReceipt.Addr4
+                    }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                    string cityLine = firstReceipt.AddrCity ?? "";
+                    string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                    if (textObject_IRSeriesNumber != null) textObject_IRSeriesNumber.Text = textBox_SeriesNumber.Text;
+                    if (textObject_IRDate != null) textObject_IRDate.Text = firstReceipt.TxnDate.ToString("MMMM dd, yyyy");
+                    if (textObject_IRVendor != null) textObject_IRVendor.Text = firstReceipt.VendorFullName ?? "";
+                    if (textObject_IRAddress != null) textObject_IRAddress.Text = fullAddress;
+                    if (textObject_IRRefnumber != null) textObject_IRRefnumber.Text = firstReceipt.RefNumber ?? "";
                 }
 
-                // Handle Subreport
+                // Subreport Handling (Accounts Payable - Credit Entry)
                 SubreportObject subreportObject = null;
-                try
+                foreach (ReportObject ro in cRIR_DRC.ReportDefinition.ReportObjects)
                 {
-                    subreportObject = cRIR_DRC.ReportDefinition.ReportObjects["SubreportIRDetails"] as SubreportObject;
-                }
-                catch
-                {
-                    throw;
+                    if (ro is SubreportObject sro && ro.Name.Equals("SubreportIRDetails", StringComparison.OrdinalIgnoreCase))
+                    {
+                        subreportObject = sro;
+                        break;
+                    }
                 }
 
                 if (subreportObject != null)
                 {
-                    ReportDocument subReportDocument = null;
-                    try
-                    {
-                        subReportDocument = cRIR_DRC.OpenSubreport(subreportObject.SubreportName);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                    ReportDocument subReportDocument = cRIR_DRC.OpenSubreport(subreportObject.SubreportName);
 
-                    try
-                    {
-                        TextObject textObject_IRSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextIRRemarks"] as TextObject;
-                        TextObject textObject_IRSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextIRSubAccountPayable"] as TextObject;
-                        TextObject textObject_IRSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextIRSubAmountPayable"] as TextObject;
-                        TextObject textObject_IRSubAccountCode = subReportDocument.ReportDefinition.ReportObjects["TextIRSubAccountCode"] as TextObject;
+                    TextObject textObject_IRSubRemarks = GetReportTextObject(subReportDocument, "TextIRRemarks");
+                    TextObject textObject_IRSubAccountPayable = GetReportTextObject(subReportDocument, "TextIRSubAccountPayable");
+                    TextObject textObject_IRSubAmountPayable = GetReportTextObject(subReportDocument, "TextIRSubAmountPayable");
+                    TextObject textObject_IRSubAccountCode = GetReportTextObject(subReportDocument, "TextIRSubAccountCode");
 
-                        if (receipts.Count > 0)
+                    if (receipts.Count > 0)
+                    {
+                        var r0 = receipts[0];
+
+                        // 1. Get AP Title from BankAccount across lines
+                        string rawApTitle = receipts.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.BankAccount))?.BankAccount ?? "";
+                        if (rawApTitle.Contains(":"))
                         {
-                            if (textObject_IRSubRemarks != null) textObject_IRSubRemarks.Text = receipts[0].Memo ?? "";
-                            if (textObject_IRSubAccountPayable != null) textObject_IRSubAccountPayable.Text = receipts[0].BankAccount ?? "";
-                            if (textObject_IRSubAccountCode != null) textObject_IRSubAccountCode.Text = receipts[0].AccountNumber ?? "";
-                            if (textObject_IRSubAmountPayable != null) textObject_IRSubAmountPayable.Text = receipts[0].TotalAmount.ToString("N2");
+                            rawApTitle = rawApTitle.Substring(rawApTitle.LastIndexOf(':') + 1).Trim();
                         }
 
-                        // Populate database compiled table before rendering subreport
-                        InsertDataToItemReceiptCompiled(refNumberCR, receipts);
+                        // 2. Get AP Code from the Item line
+                        var itemLine = receipts.FirstOrDefault(r => r.ReceiptItemType == ReceiptItemType.ReceiptItem && !string.IsNullOrWhiteSpace(r.AccountNumber));
+                        string apCode = itemLine?.AccountNumber
+                                     ?? receipts.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.AccountNumber))?.AccountNumber
+                                     ?? "";
+
+                        if (textObject_IRSubRemarks != null)
+                            textObject_IRSubRemarks.Text = r0.Memo ?? "";
+
+                        if (textObject_IRSubAccountPayable != null)
+                            textObject_IRSubAccountPayable.Text = rawApTitle;
+
+                        if (textObject_IRSubAccountCode != null)
+                            textObject_IRSubAccountCode.Text = apCode;
+
+                        if (textObject_IRSubAmountPayable != null)
+                            textObject_IRSubAmountPayable.Text = r0.TotalAmount.ToString("N2");
                     }
-                    catch
-                    {
-                        throw;
-                    }
+
+                    InsertDataToItemReceiptCompiled(refNumberCR, receipts);
                 }
                 else
                 {
-                    // Fallback: execute insertion even if subreport object isn't isolated by name
                     InsertDataToItemReceiptCompiled(refNumberCR, receipts);
                 }
 
@@ -1263,7 +1190,7 @@ namespace VoucherPROVER2.Clients.DRC
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"KAYAK ERROR HEHEHE:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error generating Item Receipt report:\n{ex.Message}", "Report Generation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
@@ -1282,7 +1209,7 @@ namespace VoucherPROVER2.Clients.DRC
                 if (bills == null || bills.Count == 0)
                     return false;
 
-                // Stage the single debit bank line into Access DB
+                // Stage the single DEBIT Accounts Payable line into Access DB (prints first)
                 InsertDataToBillCompiled(refNumberCR, bills);
 
                 // Safe TextObject retrieval helper to prevent IndexOutOfRangeException
@@ -1357,20 +1284,29 @@ namespace VoucherPROVER2.Clients.DRC
 
                 string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(totalCheckAmount);
 
+                // Parse Bank Name & Code
                 string rawBank = bills[0].BankAccount ?? "";
-                string bank = rawBank.Contains(":") ? rawBank.Split(':').Last().Trim() : rawBank;
+                string bankName = rawBank.Contains(":") ? rawBank.Split(':').Last().Trim() : rawBank;
+
+                string bankCode = bills[0].BankAccountNumber ?? "";
+                if (string.IsNullOrWhiteSpace(bankCode) && bankName.Contains("·"))
+                {
+                    var parts = bankName.Split('·');
+                    bankCode = parts[0].Trim();
+                    bankName = parts.Length > 1 ? parts[1].Trim() : bankName;
+                }
 
                 var c = bills[0];
                 string streetLine = string.Join(", ", new[] {
-            c.VendorAddressAddr1,
-            c.VendorAddressAddr2,
-            c.VendorAddressAddr3,
-            c.VendorAddressAddr4
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                    c.VendorAddressAddr1,
+                    c.VendorAddressAddr2,
+                    c.VendorAddressAddr3,
+                    c.VendorAddressAddr4
+                }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string cityLine = string.Join(" ", new[] {
-            c.VendorAddressCity,
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                    c.VendorAddressCity,
+                }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
@@ -1379,12 +1315,12 @@ namespace VoucherPROVER2.Clients.DRC
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DateCreated.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
-                if (textObject_CVBILLBank != null) textObject_CVBILLBank.Text = bank;
+                if (textObject_CVBILLBank != null) textObject_CVBILLBank.Text = bankName;
                 if (textObject_CVBILLNumber != null) textObject_CVBILLNumber.Text = bills[0].RefNumber ?? "";
                 if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLDue != null) textObject_CVBILLDue.Text = totalCheckAmount.ToString("N2");
 
-                // Subreport Handling (Configures Accounts Payable as single Credit entry)
+                // Subreport Handling (Populates Bank Account as CREDIT row)
                 SubreportObject subreportObject = null;
                 foreach (ReportObject ro in cRCV_DRCBILL.ReportDefinition.ReportObjects)
                 {
@@ -1404,26 +1340,17 @@ namespace VoucherPROVER2.Clients.DRC
                     TextObject textObject_BILLSubAmountPayable = GetReportTextObject(subReportDocument, "TextBILLSubAmountPayable");
                     TextObject textObject_BILLSubAccountCode = GetReportTextObject(subReportDocument, "TextBILLSubAccountCode");
 
-                    // Clean AP Account name & dynamic code
-                    string apName = bills[0].APAccountRefFullName ?? "Accounts Payable";
-                    if (apName.Contains(":"))
-                    {
-                        apName = apName.Substring(apName.LastIndexOf(':') + 1).Trim();
-                    }
-
-                    string apCode = !string.IsNullOrWhiteSpace(bills[0].AccountNumber)
-                        ? bills[0].AccountNumber
-                        : "";
-
                     if (textObject_BILLSubRemarks != null)
                         textObject_BILLSubRemarks.Text = bills[0].BillMemo ?? "";
 
+                    // Bank Account title and code mapped to the subreport line
                     if (textObject_BILLSubAccountPayable != null)
-                        textObject_BILLSubAccountPayable.Text = apName;
+                        textObject_BILLSubAccountPayable.Text = bankName;
 
                     if (textObject_BILLSubAccountCode != null)
-                        textObject_BILLSubAccountCode.Text = apCode;
+                        textObject_BILLSubAccountCode.Text = bankCode;
 
+                    // Places amount in the CREDIT position
                     if (textObject_BILLSubAmountPayable != null)
                         textObject_BILLSubAmountPayable.Text = totalCheckAmount.ToString("N2");
                 }
@@ -1447,7 +1374,6 @@ namespace VoucherPROVER2.Clients.DRC
             }
         }
 
-
         public static void InsertDataToItemReceiptCompiled(string refNumber, List<ItemReciept> itemReceipts)
         {
             string connectionString = AccessToDatabase_DRC.GetAccessConnectionString();
@@ -1460,20 +1386,19 @@ namespace VoucherPROVER2.Clients.DRC
                 {
                     connection.Open();
 
-                    // 1. Clear old data
+                    // Clear old data
                     string deleteQuery = "DELETE FROM IR_Compiled";
                     using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
                     {
                         deleteCommand.ExecuteNonQuery();
                     }
 
-                    // 2. Prepare Insert Query (Replaced Amount with Debit & Credit)
                     // Order: RefNumber, AccountNumber, Item, Description, Quantity, Cost, Debit, Credit
                     string insertQuery = @"INSERT INTO IR_Compiled 
-                                   (RefNumber, [AccountNumber], [Item], [Description], [Quantity], [Cost], [Debit], [Credit]) 
-                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                                          (RefNumber, [AccountNumber], [Item], [Description], [Quantity], [Cost], [Debit], [Credit]) 
+                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-                    // 3. Sort: Debits first (amount > 0), Credits second
+                    // Sort: Debits first (amount > 0), Credits second
                     var sortedReceipts = itemReceipts
                         .OrderByDescending(d => (d.ReceiptItemType == ReceiptItemType.ReceiptItem ? d.ItemAmount : d.ExpensesAmount) > 0)
                         .ToList();
@@ -1487,10 +1412,9 @@ namespace VoucherPROVER2.Clients.DRC
                         double cost = 0;
                         double amount = 0;
 
-                        // Handle Item Lines vs Expense Lines
                         if (detail.ReceiptItemType == ReceiptItemType.ReceiptItem)
                         {
-                            accountNumber = ""; // Items usually do not have an AccountNumber
+                            accountNumber = "";
                             particulars = detail.Item ?? "";
                             description = detail.ItemDescription ?? "";
                             quantity = detail.ItemQuantity;
@@ -1499,7 +1423,7 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                         else if (detail.ReceiptItemType == ReceiptItemType.RecieptExpense)
                         {
-                            accountNumber = detail.AccountNumber ?? ""; // Extract account number populated from QB
+                            accountNumber = detail.AccountNumber ?? "";
                             particulars = detail.Account ?? "";
                             description = detail.ExpensesMemo ?? "";
                             quantity = 0;
@@ -1507,30 +1431,22 @@ namespace VoucherPROVER2.Clients.DRC
                             amount = detail.ExpensesAmount;
                         }
 
-                        // Clean particulars: Extract string after colon if sub-account/sub-item format exists (e.g. "Parent:Child")
+                        // Strip parent hierarchy if colon exists
                         if (!string.IsNullOrEmpty(particulars) && particulars.Contains(":"))
                         {
                             particulars = particulars.Substring(particulars.LastIndexOf(':') + 1).Trim();
                         }
 
-                        // Calculate Debit / Credit strings and totals
                         string debitStr = amount > 0 ? amount.ToString("N2") : "";
                         string creditStr = amount < 0 ? Math.Abs(amount).ToString("N2") : "";
 
                         if (amount > 0) debitTotalAmount += amount;
                         else if (amount < 0) creditTotalAmount += Math.Abs(amount);
 
-                        // 4. Execute Insert Command
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
-                            // OleDb parameter ordering MUST match the SQL query order exactly
                             command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrEmpty(refNumber) ? (object)DBNull.Value : refNumber;
-
-                            // ACCOUNT NUMBER PARAMETER
-                            command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrWhiteSpace(accountNumber)
-                                ? (object)DBNull.Value
-                                : accountNumber;
-
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrWhiteSpace(accountNumber) ? (object)DBNull.Value : accountNumber;
                             command.Parameters.Add("?", OleDbType.VarWChar).Value = particulars;
                             command.Parameters.Add("?", OleDbType.VarWChar).Value = description;
                             command.Parameters.Add("?", OleDbType.Double).Value = quantity;
@@ -1546,12 +1462,10 @@ namespace VoucherPROVER2.Clients.DRC
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error compiling Item Receipt data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Error compiling Item Receipt data: {ex.Message}", "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
-
-
 
         public static void InsertDataToCheckVoucherCompiledDRC(string refNumber, List<CheckTableExpensesAndItems> checkData)
         {
@@ -1643,7 +1557,6 @@ namespace VoucherPROVER2.Clients.DRC
                         g.Key.Particulars,
                         g.Key.Class,
                         TotalNet = g.Sum(x => x.Amount),
-                        // Pick first non-empty memo and customer/job
                         Memo = g.Select(x => x.Memo).FirstOrDefault(m => !string.IsNullOrWhiteSpace(m)) ?? "",
                         CustomerJob = g.Select(x => x.CustomerJob).FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? ""
                     })
@@ -1684,9 +1597,9 @@ namespace VoucherPROVER2.Clients.DRC
 
                 // 4. Batch insert into MS Access
                 string insertQuery = @"INSERT INTO CheckVoucherCompiled 
-                              (RefNumber, [AccountNumber], [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-                              VALUES 
-                              (@RefNumber, @AccountNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+                                      (RefNumber, [AccountNumber], [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+                                      VALUES 
+                                      (@RefNumber, @AccountNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
 
                 using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                 {
@@ -1734,7 +1647,6 @@ namespace VoucherPROVER2.Clients.DRC
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
 
-            // Local helper function to safely truncate text to database limits
             string SafeTruncate(string value, int maxLength)
             {
                 if (string.IsNullOrEmpty(value)) return "";
@@ -1762,10 +1674,10 @@ namespace VoucherPROVER2.Clients.DRC
 
                 // 2. Prepare Insert Query
                 string insertQuery = @"
-            INSERT INTO JV_Compiled 
-            (RefNumber, [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
-            VALUES 
-            (@RefNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
+                    INSERT INTO JV_Compiled 
+                    (RefNumber, [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
+                    VALUES 
+                    (@RefNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
 
                 // 3. Sort lines: Debits first (Debit != 0), Credits second
                 var sortedJournalData = journalData
@@ -1776,7 +1688,6 @@ namespace VoucherPROVER2.Clients.DRC
                 {
                     try
                     {
-                        // MAPPING VARIABLES (With Safe Truncation to prevent DB overflow)
                         string particulars = SafeTruncate(line.AccountName, 255);
                         string className = line.Class;
                         string nameValue = SafeTruncate(line.Name, 255);
@@ -1785,9 +1696,6 @@ namespace VoucherPROVER2.Clients.DRC
                         string debitStr = "";
                         string creditStr = "";
 
-                        // ---------------------------------------------------------
-                        // SEPARATE DEBIT / CREDIT LOGIC
-                        // ---------------------------------------------------------
                         if (line.Debit != 0)
                         {
                             debitTotalAmount += line.Debit;
@@ -1799,10 +1707,8 @@ namespace VoucherPROVER2.Clients.DRC
                             creditStr = line.Credit.ToString("N2");
                         }
 
-                        // EXECUTE INSERT
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
-                            // Parameter order matches the INSERT statement
                             command.Parameters.AddWithValue("@RefNumber", refNumber);
                             command.Parameters.AddWithValue("@Particulars", particulars);
                             command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(className) ? (object)DBNull.Value : className);
@@ -1823,7 +1729,6 @@ namespace VoucherPROVER2.Clients.DRC
                 connection.Close();
             }
 
-            // Console Log for verification
             Console.WriteLine($"Processed. Total Debit: {debitTotalAmount:F2}, Total Credit: {creditTotalAmount:F2}");
         }
 
@@ -1839,7 +1744,6 @@ namespace VoucherPROVER2.Clients.DRC
                 {
                     connection.Open();
 
-                    // Clear old records
                     using (OleDbCommand deleteCommand = new OleDbCommand("DELETE FROM Bill_Compiled", connection))
                     {
                         deleteCommand.ExecuteNonQuery();
@@ -1850,32 +1754,27 @@ namespace VoucherPROVER2.Clients.DRC
                         ? primaryBill.Amount
                         : bills.Sum(b => b.AmountDue);
 
-                    // Dynamic Bank Name Parsing
-                    string rawBank = primaryBill.BankAccount ?? "";
-                    string bankName = rawBank.Contains(":")
-                        ? rawBank.Substring(rawBank.LastIndexOf(':') + 1).Trim()
-                        : rawBank;
-
-                    // Prioritize fetched account number, fallback to inline parsing if stored as "11200 · Name"
-                    string bankCode = primaryBill.BankAccountNumber ?? "";
-                    if (string.IsNullOrWhiteSpace(bankCode) && bankName.Contains("·"))
+                    string apName = primaryBill.APAccountRefFullName ?? "Accounts Payable";
+                    if (apName.Contains(":"))
                     {
-                        var parts = bankName.Split('·');
-                        bankCode = parts[0].Trim();
-                        bankName = parts.Length > 1 ? parts[1].Trim() : bankName;
+                        apName = apName.Substring(apName.LastIndexOf(':') + 1).Trim();
                     }
 
+                    string apCode = !string.IsNullOrWhiteSpace(primaryBill.AccountNumber)
+                        ? primaryBill.AccountNumber
+                        : "";
+
                     string insertQuery = @"INSERT INTO Bill_Compiled 
-                (RefNumber, [AccountNumber], Particulars, Debit, Credit) 
-                VALUES (?, ?, ?, ?, ?)";
+                                          (RefNumber, [AccountNumber], Particulars, Debit, Credit) 
+                                          VALUES (?, ?, ?, ?, ?)";
 
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                     {
                         command.Parameters.Add("?", OleDbType.VarWChar).Value = refNumber ?? (object)DBNull.Value;
-                        command.Parameters.Add("?", OleDbType.VarWChar).Value = !string.IsNullOrWhiteSpace(bankCode) ? bankCode : (object)DBNull.Value;
-                        command.Parameters.Add("?", OleDbType.VarWChar).Value = bankName;
+                        command.Parameters.Add("?", OleDbType.VarWChar).Value = apCode;
+                        command.Parameters.Add("?", OleDbType.VarWChar).Value = apName;
                         command.Parameters.Add("?", OleDbType.VarWChar).Value = totalDisbursement.ToString("N2");
-                        command.Parameters.Add("?", OleDbType.VarWChar).Value = ""; // No Credit here; handled by subreport
+                        command.Parameters.Add("?", OleDbType.VarWChar).Value = "";
 
                         command.ExecuteNonQuery();
                     }
@@ -1897,7 +1796,6 @@ namespace VoucherPROVER2.Clients.DRC
                 {
                     connection.Open();
 
-                    // 1. Clear old data
                     string deleteQuery = "DELETE FROM Bill_Compiled";
                     using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
                     {
@@ -1905,10 +1803,9 @@ namespace VoucherPROVER2.Clients.DRC
                     }
 
                     string insertQuery = @"INSERT INTO Bill_Compiled 
-                                  (RefNumber, [AccountNumber], Particulars, [Class], [Memo], [CustomerJob], Debit, Credit) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                                          (RefNumber, [AccountNumber], Particulars, [Class], [Memo], [CustomerJob], Debit, Credit) 
+                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-                    // 2. Flatten entries (Uses resolved Asset Account and Account Code)
                     var allLines = bills.SelectMany(bill => bill.ItemDetails.Select(detail =>
                     {
                         string accountNumber = "";
@@ -1922,7 +1819,6 @@ namespace VoucherPROVER2.Clients.DRC
                         {
                             accountNumber = detail.ItemLineAccountNumber ?? "";
 
-                            // Uses resolved Asset Account; falls back to item name if unmapped
                             rawParticulars = !string.IsNullOrWhiteSpace(detail.ItemLineAssetAccountRefFullName)
                                 ? detail.ItemLineAssetAccountRefFullName
                                 : detail.ItemLineItemRefFullName;
@@ -1946,7 +1842,6 @@ namespace VoucherPROVER2.Clients.DRC
                             return null;
                         }
 
-                        // Strip parent prefix (e.g. "Inventories:Food" -> "Food")
                         string particulars = rawParticulars;
                         if (!string.IsNullOrEmpty(particulars) && particulars.Contains(":"))
                         {
@@ -1965,7 +1860,6 @@ namespace VoucherPROVER2.Clients.DRC
                     }))
                     .Where(x => x != null && !string.IsNullOrEmpty(x.Particulars));
 
-                    // 3. Consolidate matching accounts
                     var consolidatedLines = allLines
                         .GroupBy(x => new { x.Particulars, x.AccountNumber, x.Class })
                         .Select(g => new
@@ -1978,11 +1872,10 @@ namespace VoucherPROVER2.Clients.DRC
                             TotalAmount = g.Sum(x => x.Amount)
                         })
                         .Where(x => Math.Abs(x.TotalAmount) > 0.0001)
-                        .OrderByDescending(x => x.TotalAmount > 0) // Debits first, then Credits
+                        .OrderByDescending(x => x.TotalAmount > 0)
                         .ThenBy(x => x.AccountNumber)
                         .ToList();
 
-                    // 4. Batch Insert
                     foreach (var item in consolidatedLines)
                     {
                         string debitStr = item.TotalAmount > 0 ? item.TotalAmount.ToString("N2") : "";
@@ -2018,14 +1911,12 @@ namespace VoucherPROVER2.Clients.DRC
         {
             FlowLayoutPanel panel_RefNumber = new FlowLayoutPanel
             {
-                //Parent = panel_SideBar,
                 Dock = DockStyle.Top,
                 Height = 90,
                 Width = sideBarWidth - 10,
                 BackColor = Color.LightGray,
                 Padding = new Padding(5, 2, 5, 5),
                 BorderStyle = BorderStyle.FixedSingle,
-                //Visible = false
             };
 
             Label label_RefNumberText = new Label
@@ -2040,7 +1931,7 @@ namespace VoucherPROVER2.Clients.DRC
             TextBox textBox_ReferenceNumber = new TextBox
             {
                 Parent = panel_RefNumber,
-                Width = sideBarWidth - 30, // 190
+                Width = sideBarWidth - 30,
                 Font = font_Label,
             };
 
@@ -2072,7 +1963,7 @@ namespace VoucherPROVER2.Clients.DRC
                     checkivp = new List<CheckTableGrid>();
 
                     object data = null;
-                    
+
                     if (GlobalVariables.client == "DRC")
                     {
                         if (comboBox_Forms.SelectedIndex == 2) // Check
@@ -2082,7 +1973,6 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                     }
 
-                    //if (checks.Count > 0 || bills.Count > 0 || receipts.Count > 0)
                     if (data is System.Collections.ICollection colletion && colletion.Count > 0)
                     {
                         if (GlobalVariables.client == "DRC")
@@ -2096,7 +1986,6 @@ namespace VoucherPROVER2.Clients.DRC
                             int selectedIndex = comboBox_Forms.SelectedIndex;
                             string seriesNumber = textBox_SeriesNumber.Text;
 
-                            // Capture the override text
                             string payeeOverride = textBox_PayeeOverride.Text;
 
                             itemCounter = 0;
@@ -2105,7 +1994,6 @@ namespace VoucherPROVER2.Clients.DRC
 
                             printDocument.PrintPage += (s, ev) =>
                             {
-                                // Pass payeeOverride to the layout function
                                 layouts_DRC.PrintPage_DRC(s, ev, selectedIndex, seriesNumber, data, payeeOverride);
                             };
                         }
@@ -2118,7 +2006,6 @@ namespace VoucherPROVER2.Clients.DRC
                     {
                         MessageBox.Show("No data found for the provided reference number.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
-
                 }
                 else
                 {
@@ -2132,12 +2019,9 @@ namespace VoucherPROVER2.Clients.DRC
         {
             FlowLayoutPanel panel_Signatory = new FlowLayoutPanel
             {
-                //Parent = groupBox_Signatory,
-                //Parent = panel_SideBar,
                 Dock = DockStyle.Top,
                 Height = 141,
                 Width = sideBarWidth - 10,
-                //BackColor = Color.Transparent,
                 BackColor = Color.LightGray,
                 Padding = new Padding(5, 2, 5, 0),
                 BorderStyle = BorderStyle.FixedSingle,
@@ -2149,7 +2033,6 @@ namespace VoucherPROVER2.Clients.DRC
                 Width = sideBarWidth - 30,
                 Text = "SIGNATORY",
                 TextAlign = ContentAlignment.MiddleCenter,
-                //Font = new Font("Microsoft Sans Serif", 8, FontStyle.Bold),
                 Font = font_Label,
             };
 
@@ -2172,8 +2055,6 @@ namespace VoucherPROVER2.Clients.DRC
                     "Released By:",
                 });
             }
-
-
             else
             {
                 comboBox_Signatory.Items.AddRange(new string[]
@@ -2200,7 +2081,7 @@ namespace VoucherPROVER2.Clients.DRC
             TextBox textBox_SignatoryName = new TextBox
             {
                 Parent = panel_Signatory,
-                Width = 165, // 250
+                Width = 165,
                 Font = new Font("Microsoft Sans Serif", 8),
             };
 
@@ -2216,7 +2097,7 @@ namespace VoucherPROVER2.Clients.DRC
             TextBox textBox_SignatoryPosition = new TextBox
             {
                 Parent = panel_Signatory,
-                Width = 165, // 250
+                Width = 165,
                 Font = new Font("Microsoft Sans Serif", 8),
             };
 
@@ -2236,7 +2117,6 @@ namespace VoucherPROVER2.Clients.DRC
                 Parent = panel_Signatory,
                 Height = 22,
                 Width = 110,
-                //Text = "Saved!",
                 TextAlign = ContentAlignment.MiddleCenter,
                 Font = new Font("Microsoft Sans Serif", 8),
                 Margin = new Padding(0, 3, 0, 0),
@@ -2285,16 +2165,12 @@ namespace VoucherPROVER2.Clients.DRC
         {
             FlowLayoutPanel panel_RRSignatory = new FlowLayoutPanel
             {
-                //Parent = groupBox_Signatory,
-                //Parent = panel_SideBar,
                 Dock = DockStyle.Top,
                 Height = 106,
                 Width = sideBarWidth - 10,
-                //BackColor = Color.Transparent,
                 BackColor = Color.LightGray,
                 Padding = new Padding(5, 2, 5, 0),
                 BorderStyle = BorderStyle.FixedSingle,
-                //Visible = false
             };
 
             Label panel_Title = new Label
@@ -2303,7 +2179,6 @@ namespace VoucherPROVER2.Clients.DRC
                 Dock = DockStyle.Top,
                 Text = "SIGNATORY (RR)",
                 Width = sideBarWidth - 30,
-                //BackColor = Color.SandyBrown,
                 TextAlign = ContentAlignment.MiddleCenter,
             };
 
@@ -2314,7 +2189,6 @@ namespace VoucherPROVER2.Clients.DRC
                 Text = "Received By:",
                 TextAlign = ContentAlignment.MiddleLeft,
                 Width = 71,
-                //BackColor = Color.ForestGreen,
             };
 
             textBox_ReceivedByRR = new TextBox
@@ -2332,7 +2206,6 @@ namespace VoucherPROVER2.Clients.DRC
                 Text = "Checked By:",
                 TextAlign = ContentAlignment.MiddleLeft,
                 Width = 71,
-                //BackColor = Color.ForestGreen,
             };
 
             textBox_CheckedByRR = new TextBox
@@ -2359,7 +2232,6 @@ namespace VoucherPROVER2.Clients.DRC
                 Parent = panel_RRSignatory,
                 Height = 22,
                 Width = 110,
-                //Text = "Saved!",
                 TextAlign = ContentAlignment.MiddleCenter,
                 Font = new Font("Microsoft Sans Serif", 8),
                 Margin = new Padding(0, 3, 0, 0),
@@ -2369,8 +2241,6 @@ namespace VoucherPROVER2.Clients.DRC
             {
                 string signatoryName = textBox_ReceivedByRR.Text;
                 string signatoryPosition = textBox_CheckedByRR.Text;
-
-                //int choice = comboBox_Signatory.SelectedIndex;
 
                 accessToDatabase.SaveSignatoryRRData(signatoryName, signatoryPosition);
                 label_SignatoryRRStatus.Text = "Saved";
@@ -2383,7 +2253,6 @@ namespace VoucherPROVER2.Clients.DRC
         {
             panel_Printing = new FlowLayoutPanel
             {
-                //Parent = panel_SideBar,
                 Dock = DockStyle.Top,
                 Height = 110,
                 Width = sideBarWidth - 10,
@@ -2498,7 +2367,7 @@ namespace VoucherPROVER2.Clients.DRC
                             if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                             else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
                             else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
-                            else if (comboBox_Forms.SelectedIndex == 5) formType = "IR";
+                            else if (comboBox_Forms.SelectedIndex == 5) formType = "RR";
 
                             if (formType != "")
                             {
@@ -2553,7 +2422,7 @@ namespace VoucherPROVER2.Clients.DRC
                 if (comboBox_Forms.SelectedIndex == 1) prefix = "CV";
                 else if (comboBox_Forms.SelectedIndex == 3) prefix = "JV";
                 else if (comboBox_Forms.SelectedIndex == 4) prefix = "APV";
-                else if (comboBox_Forms.SelectedIndex == 5) prefix = "IR";
+                else if (comboBox_Forms.SelectedIndex == 5) prefix = "RR";
 
                 if (prefix != "")
                 {
@@ -2628,14 +2497,14 @@ namespace VoucherPROVER2.Clients.DRC
                         panel_Main_CR.Visible = true;
                         break;
 
-                    case 5: // Item Receipt
-                        prefix = "IR";
+                    case 5: // Receiving Report (RR)
+                        prefix = "RR";
                         panel_SeriesNumber.Visible = true;
                         panel_RefNumber.Visible = false;
                         panel_RefNumberCrystalReport.Visible = true;
                         panel_Signatory.Visible = true;
 
-                        label_SeriesNumberText.Text = "Current Series Number: IR";
+                        label_SeriesNumberText.Text = "Current Series Number: RR";
 
                         panel_Main.Visible = false;
                         panel_Main_CR.Visible = true;
@@ -2665,22 +2534,18 @@ namespace VoucherPROVER2.Clients.DRC
 
         private void SetDatabaseLocation(ReportDocument reportDocument, string databasePath)
         {
-            // Iterate through each table in the report
             foreach (Table table in reportDocument.Database.Tables)
             {
                 TableLogOnInfo tableLogOnInfo = table.LogOnInfo;
 
-                // Update the connection information
                 tableLogOnInfo.ConnectionInfo.ServerName = databasePath;
-                tableLogOnInfo.ConnectionInfo.DatabaseName = ""; //or databasePath
-                tableLogOnInfo.ConnectionInfo.UserID = ""; // Leave blank for Access
-                tableLogOnInfo.ConnectionInfo.Password = ""; // Leave blank for Access
+                tableLogOnInfo.ConnectionInfo.DatabaseName = "";
+                tableLogOnInfo.ConnectionInfo.UserID = "";
+                tableLogOnInfo.ConnectionInfo.Password = "";
 
-                // Apply the updated information to the table
                 table.ApplyLogOnInfo(tableLogOnInfo);
             }
 
-            // Update subreports if any
             foreach (Section section in reportDocument.ReportDefinition.Sections)
             {
                 foreach (ReportObject reportObject in section.ReportObjects)
@@ -2705,7 +2570,7 @@ namespace VoucherPROVER2.Clients.DRC
                     if (comboBox_Forms.SelectedIndex == 1) formPrefix = "CV";
                     else if (comboBox_Forms.SelectedIndex == 3) formPrefix = "JV";
                     else if (comboBox_Forms.SelectedIndex == 4) formPrefix = "APV";
-                    else if (comboBox_Forms.SelectedIndex == 5) formPrefix = "IR";
+                    else if (comboBox_Forms.SelectedIndex == 5) formPrefix = "RR";
 
                     if (!string.IsNullOrEmpty(formPrefix))
                     {
@@ -2731,7 +2596,7 @@ namespace VoucherPROVER2.Clients.DRC
                 if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
                 else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
                 else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
-                else if (comboBox_Forms.SelectedIndex == 5) formType = "IR";
+                else if (comboBox_Forms.SelectedIndex == 5) formType = "RR";
 
                 if (!string.IsNullOrEmpty(formType) && comboBox_Company.SelectedItem != null)
                 {
@@ -2751,7 +2616,6 @@ namespace VoucherPROVER2.Clients.DRC
             string prefix = comboBox_Forms.SelectedIndex == 2 ? "CV" : "APV";
             textBox_SeriesNumber.Text = $"{prefix}{seriesNumber:000}";
         }
-
 
         private void UpdateSeriesNumberDRC(string formPrefix)
         {

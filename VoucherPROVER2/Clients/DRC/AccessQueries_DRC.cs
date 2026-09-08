@@ -130,14 +130,14 @@ namespace VoucherPROVER2.Clients.DRC
                 sessionManager.OpenConnection2("", "Item Receipt Retrieval", ENConnectionType.ctLocalQBD);
                 sessionManager.BeginSession("", ENOpenMode.omDontCare);
 
-                // Build MsgSet Request
+                // Fetch Accounts Mapping & Dynamic AP Account (Accounts Payable- CAPEX)
+                var (accountNumbersDict, detectedApName, detectedApCode) = GetAccountNumbersFromQB2(sessionManager);
+
                 IMsgSetRequest request = sessionManager.CreateMsgSetRequest("US", 13, 0);
                 request.Attributes.OnError = ENRqOnError.roeContinue;
 
-                // Query Item Receipt
                 IItemReceiptQuery irQuery = request.AppendItemReceiptQueryRq();
                 irQuery.IncludeLineItems.SetValue(true);
-
                 irQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.MatchCriterion.SetValue(ENMatchCriterion.mcStartsWith);
                 irQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.RefNumber.SetValue(refNumber);
 
@@ -155,24 +155,56 @@ namespace VoucherPROVER2.Clients.DRC
                     return receipts;
                 }
 
-                // -------------------------------------------------------------
-                // FETCH ACCOUNT NUMBERS FROM QUICKBOOKS
-                // -------------------------------------------------------------
-                Dictionary<string, string> accountNumbersDict = GetAccountNumbersFromQBIR(sessionManager);
-
                 for (int i = 0; i < irList.Count; i++)
                 {
                     IItemReceiptRet ir = irList.GetAt(i);
 
-                    // HEADER DATA
                     DateTime txnDate = ir.TxnDate?.GetValue() ?? DateTime.Now;
                     string vendorName = ir.VendorRef?.FullName?.GetValue() ?? "";
                     string currentRef = ir.RefNumber?.GetValue() ?? "";
                     string memo = ir.Memo?.GetValue() ?? "";
                     double totalAmount = ir.TotalAmount?.GetValue() ?? 0;
-                    string apAccount = ir.ORAccountRef?.FullName?.GetValue() ?? "";
 
-                    // FETCH VENDOR ADDRESS
+                    // -------------------------------------------------------------
+                    // DYNAMIC RESOLUTION OF EXACT AP ACCOUNT
+                    // -------------------------------------------------------------
+                    string apAccount = ir.ORAccountRef?.FullName?.GetValue() ?? "";
+                    string apListID = ir.ORAccountRef?.ListID?.GetValue() ?? "";
+                    string apAccountCode = "";
+
+                    if (!string.IsNullOrEmpty(apListID) && accountNumbersDict.ContainsKey(apListID))
+                    {
+                        apAccountCode = accountNumbersDict[apListID];
+                    }
+                    else if (!string.IsNullOrEmpty(apAccount) && accountNumbersDict.ContainsKey(apAccount))
+                    {
+                        apAccountCode = accountNumbersDict[apAccount];
+                    }
+
+                    // Fallback to the detected QB AP Account (e.g. Accounts Payable- CAPEX)
+                    if (string.IsNullOrWhiteSpace(apAccount))
+                    {
+                        apAccount = detectedApName;
+                        apAccountCode = detectedApCode;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(apAccountCode) && !string.IsNullOrEmpty(apAccount))
+                    {
+                        if (accountNumbersDict.ContainsKey(apAccount))
+                        {
+                            apAccountCode = accountNumbersDict[apAccount];
+                        }
+                        else if (apAccount.Contains(":"))
+                        {
+                            string leaf = apAccount.Substring(apAccount.LastIndexOf(':') + 1).Trim();
+                            if (accountNumbersDict.ContainsKey(leaf))
+                            {
+                                apAccountCode = accountNumbersDict[leaf];
+                            }
+                        }
+                    }
+
+                    // Vendor Address Resolution
                     string addr1 = "";
                     string addr2 = "";
                     string addr3 = "";
@@ -199,7 +231,6 @@ namespace VoucherPROVER2.Clients.DRC
                                 if (vList != null && vList.Count > 0)
                                 {
                                     IVendorRet vendor = vList.GetAt(0);
-
                                     if (vendor.VendorAddress != null)
                                     {
                                         addr1 = vendor.VendorAddress.Addr1?.GetValue() ?? "";
@@ -217,7 +248,7 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                     }
 
-                    // A. PROCESS ITEM LINES
+                    // 1. Process Item Lines
                     if (ir.ORItemLineRetList != null)
                     {
                         for (int j = 0; j < ir.ORItemLineRetList.Count; j++)
@@ -238,13 +269,13 @@ namespace VoucherPROVER2.Clients.DRC
                                     Memo = memo,
                                     TotalAmount = totalAmount,
                                     BankAccount = apAccount,
+                                    AccountNumber = apAccountCode,
                                     Addr1 = addr1,
                                     Addr2 = addr2,
                                     Addr3 = addr3,
                                     Addr4 = addr4,
                                     AddrCity = city,
 
-                                    // Item Fields
                                     Item = item.ItemRef?.FullName?.GetValue() ?? "",
                                     ItemDescription = item.Desc?.GetValue() ?? "",
                                     ItemQuantity = item.Quantity?.GetValue() ?? 0,
@@ -259,7 +290,7 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                     }
 
-                    // B. PROCESS EXPENSE LINES (WITH ACCOUNT NUMBER LOOKUP)
+                    // 2. Process Expense Lines
                     if (ir.ExpenseLineRetList != null)
                     {
                         for (int j = 0; j < ir.ExpenseLineRetList.Count; j++)
@@ -269,7 +300,6 @@ namespace VoucherPROVER2.Clients.DRC
                             string expAccount = exp.AccountRef?.FullName?.GetValue() ?? "";
                             string expListID = exp.AccountRef?.ListID?.GetValue() ?? "";
 
-                            // Match AccountNumber from dictionary lookup using ListID or FullName
                             string accNumber = "";
                             if (!string.IsNullOrEmpty(expListID) && accountNumbersDict.ContainsKey(expListID))
                             {
@@ -296,9 +326,8 @@ namespace VoucherPROVER2.Clients.DRC
                                 Addr4 = addr4,
                                 AddrCity = city,
 
-                                // Expense Fields
                                 Account = expAccount,
-                                AccountNumber = accNumber, // Assigned AccountNumber
+                                AccountNumber = accNumber,
                                 ExpensesMemo = exp.Memo?.GetValue() ?? "",
                                 ExpensesAmount = exp.Amount?.GetValue() ?? 0,
                                 ItemClass = exp.ClassRef?.FullName?.GetValue() ?? "",
@@ -317,18 +346,22 @@ namespace VoucherPROVER2.Clients.DRC
             }
             finally
             {
-                try { sessionManager.EndSession(); sessionManager.CloseConnection(); } catch { }
+                try
+                {
+                    sessionManager.EndSession();
+                    sessionManager.CloseConnection();
+                }
+                catch { }
             }
 
             return receipts;
         }
 
-        // -----------------------------------------------------------------
-        // HELPER METHOD TO QUERY QUICKBOOKS FOR ACCOUNT NUMBERS
-        // -----------------------------------------------------------------
-        private Dictionary<string, string> GetAccountNumbersFromQBIR(QBSessionManager sessionManager)
+        private (Dictionary<string, string> accountDict, string apAccountName, string apAccountCode) GetAccountNumbersFromQB2(QBSessionManager sessionManager)
         {
-            Dictionary<string, string> accountDict = new Dictionary<string, string>();
+            Dictionary<string, string> accountDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            string apAccountName = "";
+            string apAccountCode = "";
 
             try
             {
@@ -336,30 +369,52 @@ namespace VoucherPROVER2.Clients.DRC
                 req.Attributes.OnError = ENRqOnError.roeContinue;
 
                 IAccountQuery accQuery = req.AppendAccountQueryRq();
-
                 IMsgSetResponse res = sessionManager.DoRequests(req);
-                IResponse qbRes = res.ResponseList.GetAt(0);
 
-                IAccountRetList accList = qbRes.Detail as IAccountRetList;
-
-                if (accList != null)
+                if (res.ResponseList != null && res.ResponseList.Count > 0)
                 {
-                    for (int i = 0; i < accList.Count; i++)
-                    {
-                        IAccountRet acc = accList.GetAt(i);
-                        string listID = acc.ListID?.GetValue() ?? "";
-                        string fullName = acc.FullName?.GetValue() ?? "";
-                        string accountNumber = acc.AccountNumber?.GetValue() ?? "";
+                    IResponse qbRes = res.ResponseList.GetAt(0);
+                    IAccountRetList accList = qbRes.Detail as IAccountRetList;
 
-                        if (!string.IsNullOrEmpty(accountNumber))
+                    if (accList != null)
+                    {
+                        for (int i = 0; i < accList.Count; i++)
                         {
-                            if (!string.IsNullOrEmpty(listID) && !accountDict.ContainsKey(listID))
+                            IAccountRet acc = accList.GetAt(i);
+                            string listID = acc.ListID?.GetValue() ?? "";
+                            string fullName = acc.FullName?.GetValue() ?? "";
+                            string name = acc.Name?.GetValue() ?? "";
+                            string accountNumber = acc.AccountNumber?.GetValue() ?? "";
+                            string accType = acc.AccountType != null ? acc.AccountType.GetValue().ToString() : "";
+
+                            if (!string.IsNullOrEmpty(accountNumber))
                             {
-                                accountDict.Add(listID, accountNumber);
+                                if (!string.IsNullOrEmpty(listID) && !accountDict.ContainsKey(listID))
+                                    accountDict[listID] = accountNumber;
+
+                                if (!string.IsNullOrEmpty(fullName) && !accountDict.ContainsKey(fullName))
+                                    accountDict[fullName] = accountNumber;
+
+                                if (!string.IsNullOrEmpty(name) && !accountDict.ContainsKey(name))
+                                    accountDict[name] = accountNumber;
+
+                                if (fullName.Contains(":"))
+                                {
+                                    string leaf = fullName.Substring(fullName.LastIndexOf(':') + 1).Trim();
+                                    if (!accountDict.ContainsKey(leaf))
+                                        accountDict[leaf] = accountNumber;
+                                }
                             }
-                            if (!string.IsNullOrEmpty(fullName) && !accountDict.ContainsKey(fullName))
+
+                            // Dynamically detect Accounts Payable (priority to CAPEX)
+                            if (accType.Equals("AccountsPayable", StringComparison.OrdinalIgnoreCase) ||
+                                fullName.IndexOf("Payable", StringComparison.OrdinalIgnoreCase) >= 0)
                             {
-                                accountDict.Add(fullName, accountNumber);
+                                if (fullName.IndexOf("CAPEX", StringComparison.OrdinalIgnoreCase) >= 0 || string.IsNullOrEmpty(apAccountName))
+                                {
+                                    apAccountName = fullName;
+                                    apAccountCode = accountNumber;
+                                }
                             }
                         }
                     }
@@ -367,12 +422,11 @@ namespace VoucherPROVER2.Clients.DRC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error fetching Account Numbers: {ex.Message}");
+                Console.WriteLine($"[DEBUG] Error fetching Accounts: {ex.Message}");
             }
 
-            return accountDict;
+            return (accountDict, apAccountName, apAccountCode);
         }
-
 
         public List<BillTable> GetBillData_DRC_DirectBill(string billRefNumber)
         {
