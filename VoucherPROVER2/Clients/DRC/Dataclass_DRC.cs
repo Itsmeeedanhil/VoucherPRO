@@ -20,6 +20,7 @@ namespace VoucherPROVER2.Clients.DRC
             public string RefNumber { get; set; }
             public string Address { get; set; } //AddressAddr
             public string Address2 { get; set; } //AddressAddr2
+            public string BankAccountNumber { get; set; }
 
             public string AppliedRefNumber { get; set; } //AppliedToTxnRefNumber
             public string AppliedToTxnTxnID { get; set; } //AppliedToTxnTxnID
@@ -254,5 +255,11 @@ namespace VoucherPROVER2.Clients.DRC
             public string Debit { get; set; }
             public string Credit { get; set; }
         }
+        public class ItemAccountInfo
+        {
+            public string AssetAccountFullName { get; set; } = "";
+            public string AssetAccountListID { get; set; } = "";
+        }
+
     }
 }

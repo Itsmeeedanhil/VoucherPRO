@@ -631,7 +631,6 @@ namespace VoucherPROVER2.Clients.DRC
                                     TextObject textObject_ReceivedBy = cRCV_DRC.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
                                     TextObject textObject_ReceivedByPos = cRCV_DRC.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
 
-
                                     TextObject textObject_CVCheckNumber = cRCV_DRC.ReportDefinition.ReportObjects["TextCVCheckNum"] as TextObject;
                                     TextObject textObject_CVCheckBank = cRCV_DRC.ReportDefinition.ReportObjects["TextCVCheckBank"] as TextObject;
                                     TextObject textObject_CVCheckDate = cRCV_DRC.ReportDefinition.ReportObjects["TextCVCheckDate"] as TextObject;
@@ -650,23 +649,23 @@ namespace VoucherPROVER2.Clients.DRC
 
                                     // Line 1: Combine Addr1, Addr2, Addr3, Addr4 into one string separated by commas
                                     string streetLine = string.Join(", ", new[] {
-                                                 b.AddressBlockAddr1,
-                                                 b.AddressBlockAddr2,
-                                                 b.AddressBlockAddr3,
-                                                 b.AddressBlockAddr4
-                                             }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                         b.AddressBlockAddr1,
+                         b.AddressBlockAddr2,
+                         b.AddressBlockAddr3,
+                         b.AddressBlockAddr4
+                     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                                    // Line 2: City (Add State/Zip here if you have them in your BillTable)
+                                    // Line 2: City
                                     string cityLine = string.Join(" ", new[] {
-                                                 b.AddressCity,
-                                             }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                         b.AddressCity,
+                     }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                                     // Final: Join the two lines with a single NewLine
                                     string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-
-                                    double amount = cvData[0].TotalAmount;
-                                    string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(amount);
+                                    // Actual check amount paid from bank
+                                    double checkAmount = cvData[0].TotalAmount;
+                                    string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(checkAmount);
 
                                     textObject_CVRefNumber.Text = textBox_SeriesNumber.Text;
                                     textObject_CVDateTime.Text = DateTime.Now.ToString("MMMM dd, yyyy");
@@ -677,10 +676,7 @@ namespace VoucherPROVER2.Clients.DRC
                                     textObject_CVCheckNumber.Text = cvData[0].RefNumber;
                                     textObject_CVCheckBank.Text = bank;
                                     textObject_CVCheckDate.Text = cvData[0].DueDate.ToString("MMMM dd, yyyy");
-                                    textObject_CVDuePayment.Text = amount.ToString();
-
-
-
+                                    textObject_CVDuePayment.Text = checkAmount.ToString("N2");
 
                                     textObject_PreparedBy.Text = signatories.PreparedByName;
                                     textObject_PreparedByPos.Text = signatories.PreparedByPosition;
@@ -691,8 +687,9 @@ namespace VoucherPROVER2.Clients.DRC
                                     textObject_ReceivedBy.Text = signatories.ReceivedByName;
                                     textObject_ReceivedByPos.Text = signatories.ReceivedByPosition;
 
+                                    // Compute line totals
                                     double debitTotalAmount = 0;
-                                    double creditTotalAmount = 0;
+                                    double lineCreditTotal = 0;
 
                                     foreach (var data in cvData)
                                     {
@@ -700,21 +697,23 @@ namespace VoucherPROVER2.Clients.DRC
                                         {
                                             double itemAmount = data.ItemAmount;
                                             if (itemAmount > 0) debitTotalAmount += itemAmount;
-                                            else if (itemAmount < 0) creditTotalAmount += Math.Abs(itemAmount);
+                                            else if (itemAmount < 0) lineCreditTotal += Math.Abs(itemAmount);
 
                                             if (!string.IsNullOrEmpty(data.Account))
                                             {
                                                 double expenseAmount = data.ExpensesAmount;
                                                 if (expenseAmount > 0) debitTotalAmount += expenseAmount;
-                                                else if (expenseAmount < 0) creditTotalAmount += Math.Abs(expenseAmount);
+                                                else if (expenseAmount < 0) lineCreditTotal += Math.Abs(expenseAmount);
                                             }
                                         }
                                         catch (Exception ex) { MessageBox.Show($"Error computing totals: {ex.Message}"); }
                                     }
 
-                                    textObject_CVTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
-                                    textObject_CVTotalCreditAmount.Text = $"PHP {debitTotalAmount:N2}";
+                                    // Total credit balances line credits (e.g. 84.00) with the bank credit line (10,349.25)
+                                    double totalBalancedCredit = lineCreditTotal + checkAmount;
 
+                                    textObject_CVTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
+                                    textObject_CVTotalCreditAmount.Text = $"PHP {totalBalancedCredit:N2}";
 
                                     SubreportObject subreportObject = cRCV_DRC.ReportDefinition.ReportObjects["SubreportCVDetailsIVP"] as SubreportObject;
                                     if (subreportObject != null)
@@ -725,7 +724,6 @@ namespace VoucherPROVER2.Clients.DRC
                                         TextObject textObject_SubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextSubAmountPayable"] as TextObject;
                                         TextObject textObject_SubAccountCode = subReportDocument.ReportDefinition.ReportObjects["TextSubAccountCode"] as TextObject;
 
-
                                         string subbank = cvData[0].BankAccount ?? "";
                                         string accountcode = cvData[0].AccountNumber ?? "";
 
@@ -735,11 +733,12 @@ namespace VoucherPROVER2.Clients.DRC
 
                                         textObject_Remarks.Text = cvData[0].Memo;
                                         textObject_SubAccountPayable.Text = subfinalbank;
-                                        textObject_SubAmountPayable.Text = debitTotalAmount.ToString("N2");
+
+                                        // Fix: Output actual net check payment (10,349.25) instead of debitTotalAmount (10,433.25)
+                                        textObject_SubAmountPayable.Text = checkAmount.ToString("N2");
                                         textObject_SubAccountCode.Text = accountcode;
 
                                         Console.WriteLine($"Subreport Bank: {subfinalbank}, Account Code: {accountcode}");
-
 
                                         InsertDataToCheckVoucherCompiledDRC(refNumberCR, cvData);
                                     }
@@ -904,140 +903,93 @@ namespace VoucherPROVER2.Clients.DRC
                 if (bills == null || bills.Count == 0)
                     return false;
 
-                TextObject textObject_CVBILLCheckNumber = null;
-                TextObject textObject_CVBILLCheckDate = null;
-                TextObject textObject_CVBILLPayee = null;
-                TextObject textObject_CVBILLTerms = null;
-                TextObject textObject_CVBILLAddress = null;
-                TextObject textObject_CVBILLAmountInWords = null;
-                TextObject textObject_CVBILLTotalDebitAmount = null;
-                TextObject textObject_CVBILLTotalCreditAmount = null;
-                TextObject textObject_PreparedBy = null;
-                TextObject textObject_PreparedByPos = null;
-                TextObject textObject_CheckedBy = null;
-                TextObject textObject_CheckedByPos = null;
-                TextObject textObject_ApprovedBy = null;
-                TextObject textObject_ApprovedByPos = null;
-                TextObject textObject_ReceivedBy = null;
-                TextObject textObject_ReceivedByPos = null;
-                TextObject textObject_CVBILLBank = null;
-                TextObject textObject_CVBILLNumber = null;
-                TextObject textObject_CVBILLDate = null;
-                TextObject textObject_CVBILLDue = null;
+                TextObject textObject_CVBILLCheckNumber = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
+                TextObject textObject_CVBILLCheckDate = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
+                TextObject textObject_CVBILLPayee = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
+                TextObject textObject_CVBILLAddress = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
+                TextObject textObject_CVBILLTerms = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTerms"] as TextObject;
+                TextObject textObject_CVBILLAmountInWords = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextAmountInWords"] as TextObject;
+                TextObject textObject_CVBILLTotalDebitAmount = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
+                TextObject textObject_CVBILLTotalCreditAmount = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
 
-                try
+                TextObject textObject_CompanyName = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
+                if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
                 {
-                    textObject_CVBILLCheckNumber = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
-                    textObject_CVBILLCheckDate = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
-                    textObject_CVBILLPayee = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
-                    textObject_CVBILLAddress = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
-                    textObject_CVBILLTerms = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTerms"] as TextObject;
-                    textObject_CVBILLAmountInWords = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextAmountInWords"] as TextObject;
-                    textObject_CVBILLTotalDebitAmount = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
-                    textObject_CVBILLTotalCreditAmount = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
+                    textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
+                }
 
-                    TextObject textObject_CompanyName = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
-                    if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                TextObject textObject_PreparedBy = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
+                TextObject textObject_PreparedByPos = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
+                TextObject textObject_CheckedBy = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
+                TextObject textObject_CheckedByPos = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
+                TextObject textObject_ApprovedBy = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
+                TextObject textObject_ApprovedByPos = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
+
+                AccessToDatabase_DRC accessToDatabase = new AccessToDatabase_DRC();
+                var (PreparedByName, PreparedByPosition,
+                     ReviewedByName, ReviewedByPosition,
+                     RecommendingApprovalName, RecommendingApprovalPosition,
+                     ApprovedByName, ApprovedByPosition,
+                     ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
+
+                if (textObject_PreparedBy != null) textObject_PreparedBy.Text = PreparedByName;
+                if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = PreparedByPosition;
+                if (textObject_CheckedBy != null) textObject_CheckedBy.Text = ReviewedByName;
+                if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = ReviewedByPosition;
+                if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = ApprovedByName;
+                if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = ApprovedByPosition;
+
+                double lineDebitTotal = 0;
+                double lineCreditTotal = 0;
+
+                foreach (var bill in bills)
+                {
+                    foreach (var item in bill.ItemDetails)
                     {
-                        textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
-                    }
-
-                    textObject_CVBILLBank = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLBank"] as TextObject;
-                    textObject_CVBILLNumber = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLNumber"] as TextObject;
-                    textObject_CVBILLDate = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLDate"] as TextObject;
-                    textObject_CVBILLDue = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLDue"] as TextObject;
-
-                    textObject_PreparedBy = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                    textObject_PreparedByPos = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
-                    textObject_CheckedBy = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                    textObject_CheckedByPos = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
-                    textObject_ApprovedBy = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                    textObject_ApprovedByPos = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
-                    textObject_ReceivedBy = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
-                    textObject_ReceivedByPos = cRAPV_DRCBILL.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
-
-                    AccessToDatabase_DRC accessToDatabase = new AccessToDatabase_DRC();
-
-                    var (PreparedByName, PreparedByPosition,
-                         ReviewedByName, ReviewedByPosition,
-                         RecommendingApprovalName, RecommendingApprovalPosition,
-                         ApprovedByName, ApprovedByPosition,
-                         ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
-
-                    double debitTotalAmount = 0;
-                    double creditTotalAmount = 0;
-
-                    textObject_PreparedBy.Text = PreparedByName;
-                    textObject_PreparedByPos.Text = PreparedByPosition;
-                    textObject_CheckedBy.Text = ReviewedByName;
-                    textObject_CheckedByPos.Text = ReviewedByPosition;
-                    textObject_ApprovedBy.Text = ApprovedByName;
-                    textObject_ApprovedByPos.Text = ApprovedByPosition;
-                    textObject_ReceivedBy.Text = ReceivedByName;
-                    textObject_ReceivedByPos.Text = ReceivedByPosition;
-
-                    foreach (var bill in bills)
-                    {
-                        foreach (var item in bill.ItemDetails)
+                        try
                         {
-                            try
+                            if (item.ItemLineAmount != 0)
                             {
-                                // Handle ItemLineAmount
-                                if (item.ItemLineAmount != 0)
-                                {
-                                    if (item.ItemLineAmount > 0)
-                                        debitTotalAmount += item.ItemLineAmount;
-                                    else
-                                        creditTotalAmount += Math.Abs(item.ItemLineAmount);
-                                }
-
-                                // Handle ExpenseLineAmount
-                                if (item.ExpenseLineAmount != 0)
-                                {
-                                    if (item.ExpenseLineAmount > 0)
-                                        debitTotalAmount += item.ExpenseLineAmount;
-                                    else
-                                        creditTotalAmount += Math.Abs(item.ExpenseLineAmount);
-                                }
+                                if (item.ItemLineAmount > 0) lineDebitTotal += item.ItemLineAmount;
+                                else lineCreditTotal += Math.Abs(item.ItemLineAmount);
                             }
-                            catch (Exception ex)
+
+                            if (item.ExpenseLineAmount != 0)
                             {
-                                MessageBox.Show($"Error processing item detail: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                if (item.ExpenseLineAmount > 0) lineDebitTotal += item.ExpenseLineAmount;
+                                else lineCreditTotal += Math.Abs(item.ExpenseLineAmount);
                             }
                         }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error processing item detail: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
                     }
-
-                    if (textObject_CVBILLTotalDebitAmount != null)
-                        textObject_CVBILLTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
-
-                    if (textObject_CVBILLTotalCreditAmount != null)
-                        textObject_CVBILLTotalCreditAmount.Text = $"PHP {debitTotalAmount:N2}";
                 }
-                catch
-                {
-                    throw;
-                }
+
+                double totalAmountDue = bills.Sum(b => b.AmountDue);
+                double balancedCreditTotal = lineCreditTotal + totalAmountDue;
+
+                if (textObject_CVBILLTotalDebitAmount != null)
+                    textObject_CVBILLTotalDebitAmount.Text = $"PHP {lineDebitTotal:N2}";
+
+                if (textObject_CVBILLTotalCreditAmount != null)
+                    textObject_CVBILLTotalCreditAmount.Text = $"PHP {balancedCreditTotal:N2}";
 
                 double amount = bills[0].AmountDue;
                 string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(amount);
 
-                string rawBank = bills[0].BankAccount ?? "";
-                string bank = rawBank.Contains(":")
-                    ? rawBank.Split(':').Last().Trim()
-                    : rawBank;
-
                 var c = bills[0];
-
                 string streetLine = string.Join(", ", new[] {
-                c.VendorAddressAddr1,
-                c.VendorAddressAddr2,
-                c.VendorAddressAddr3,
-                c.VendorAddressAddr4
-            }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            c.VendorAddressAddr1,
+            c.VendorAddressAddr2,
+            c.VendorAddressAddr3,
+            c.VendorAddressAddr4
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string cityLine = string.Join(" ", new[] {
-                c.VendorAddressCity
-            }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            c.VendorAddressCity
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
@@ -1046,58 +998,24 @@ namespace VoucherPROVER2.Clients.DRC
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
                 if (textObject_CVBILLTerms != null) textObject_CVBILLTerms.Text = bills[0].TermsRefFullName ?? "";
-
-                if (textObject_CVBILLBank != null) textObject_CVBILLBank.Text = bank;
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
-                if (textObject_CVBILLNumber != null) textObject_CVBILLNumber.Text = bills[0].RefNumber ?? "";
-                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy") ?? "";
-                if (textObject_CVBILLDue != null)
-                    textObject_CVBILLDue.Text = amount.ToString("N2");
 
-                SubreportObject subreportObject = null;
-                try
-                {
-                    subreportObject = cRAPV_DRCBILL.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as SubreportObject;
-                }
-                catch
-                {
-                    throw;
-                }
-
+                SubreportObject subreportObject = cRAPV_DRCBILL.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as SubreportObject;
                 if (subreportObject != null)
                 {
-                    ReportDocument subReportDocument = null;
-                    try
-                    {
-                        subReportDocument = cRAPV_DRCBILL.OpenSubreport(subreportObject.SubreportName);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                    ReportDocument subReportDocument = cRAPV_DRCBILL.OpenSubreport(subreportObject.SubreportName);
 
-                    try
-                    {
-                        TextObject textObject_BILLSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
-                        TextObject textObject_BILLSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountPayable"] as TextObject;
-                        TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
-                        TextObject textObject_BILLSubAccountCode = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountCode"] as TextObject;
+                    TextObject textObject_BILLSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
+                    TextObject textObject_BILLSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountPayable"] as TextObject;
+                    TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
+                    TextObject textObject_BILLSubAccountCode = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountCode"] as TextObject;
 
-                        if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].Memo ?? "";
-                        if (textObject_BILLSubAccountPayable != null) textObject_BILLSubAccountPayable.Text = bills[0].APAccountRefFullName ?? "";
-                        if (textObject_BILLSubAccountCode != null) textObject_BILLSubAccountCode.Text = bills[0].AccountNumber ?? "";
-                        if (textObject_BILLSubAmountPayable != null)
-                        {
-                            double totalAmountDue = bills.Sum(b => b.AmountDue);
-                            textObject_BILLSubAmountPayable.Text = totalAmountDue.ToString("N2");
-                        }
+                    if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].Memo ?? "";
+                    if (textObject_BILLSubAccountPayable != null) textObject_BILLSubAccountPayable.Text = bills[0].APAccountRefFullName ?? "";
+                    if (textObject_BILLSubAccountCode != null) textObject_BILLSubAccountCode.Text = bills[0].AccountNumber ?? "";
+                    if (textObject_BILLSubAmountPayable != null) textObject_BILLSubAmountPayable.Text = totalAmountDue.ToString("N2");
 
-                        InsertDataToBillAPVCompiled(refNumberCR, bills);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                    InsertDataToBillAPVCompiled(refNumberCR, bills);
                 }
 
                 cRAPV_DRCBILL.SetParameterValue("ReferenceNumber", refNumberCR);
@@ -1114,7 +1032,7 @@ namespace VoucherPROVER2.Clients.DRC
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"KAYAK ERROR HEHEHE:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"APV ERROR:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
@@ -1364,210 +1282,150 @@ namespace VoucherPROVER2.Clients.DRC
                 if (bills == null || bills.Count == 0)
                     return false;
 
-                TextObject textObject_CVBILLCheckNumber = null;
-                TextObject textObject_CVBILLCheckDate = null;
-                TextObject textObject_CVBILLPayee = null;
-                TextObject textObject_CVBILLAddress = null;
-                TextObject textObject_CVBILLAmountInWords = null;
-                TextObject textObject_CVBILLTotalDebitAmount = null;
-                TextObject textObject_CVBILLTotalCreditAmount = null;
-                TextObject textObject_PreparedBy = null;
-                TextObject textObject_PreparedByPos = null;
-                TextObject textObject_CheckedBy = null;
-                TextObject textObject_CheckedByPos = null;
-                TextObject textObject_ApprovedBy = null;
-                TextObject textObject_ApprovedByPos = null;
-                TextObject textObject_ReceivedBy = null;
-                TextObject textObject_ReceivedByPos = null;
-                TextObject textObject_CVBILLBank = null;
-                TextObject textObject_CVBILLNumber = null;
-                TextObject textObject_CVBILLDate = null;
-                TextObject textObject_CVBILLDue = null;
+                // Stage the single debit bank line into Access DB
+                InsertDataToBillCompiled(refNumberCR, bills);
 
-                try
+                // Safe TextObject retrieval helper to prevent IndexOutOfRangeException
+                TextObject GetReportTextObject(ReportDocument doc, string name)
                 {
-                    textObject_CVBILLCheckNumber = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLSeriesnumber"] as TextObject;
-                    textObject_CVBILLCheckDate = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
-                    textObject_CVBILLPayee = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLPayee"] as TextObject;
-                    textObject_CVBILLAddress = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
-                    textObject_CVBILLAmountInWords = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLAmountInWords"] as TextObject;
-                    textObject_CVBILLTotalDebitAmount = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTotalDebitAmount"] as TextObject;
-                    textObject_CVBILLTotalCreditAmount = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLTotalCreditAmount"] as TextObject;
-
-                    TextObject textObject_CompanyName = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
-                    if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                    foreach (ReportObject ro in doc.ReportDefinition.ReportObjects)
                     {
-                        textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
-                    }
-
-
-                    textObject_CVBILLBank = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLBank"] as TextObject;
-                    textObject_CVBILLNumber = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLNumber"] as TextObject;
-                    textObject_CVBILLDate = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLDate"] as TextObject;
-                    textObject_CVBILLDue = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCVBILLDue"] as TextObject;
-
-
-
-                    textObject_PreparedBy = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                    textObject_PreparedByPos = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
-                    textObject_CheckedBy = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                    textObject_CheckedByPos = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
-                    textObject_ApprovedBy = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                    textObject_ApprovedByPos = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
-                    textObject_ReceivedBy = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextReceivedBy"] as TextObject;
-                    textObject_ReceivedByPos = cRCV_DRCBILL.ReportDefinition.ReportObjects["TextReceivedByPosition"] as TextObject;
-
-                    AccessToDatabase_DRC accessToDatabase = new AccessToDatabase_DRC();
-
-                    var (PreparedByName, PreparedByPosition,
-                       ReviewedByName, ReviewedByPosition,
-                       RecommendingApprovalName, RecommendingApprovalPosition,
-                       ApprovedByName, ApprovedByPosition,
-                       ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
-
-
-                    double debitTotalAmount = 0;
-                    double creditTotalAmount = 0;
-
-                    textObject_PreparedBy.Text = PreparedByName;
-                    textObject_PreparedByPos.Text = PreparedByPosition;
-                    textObject_CheckedBy.Text = ReviewedByName;
-                    textObject_CheckedByPos.Text = ReviewedByPosition;
-                    textObject_ApprovedBy.Text = ApprovedByName;
-                    textObject_ApprovedByPos.Text = ApprovedByPosition;
-                    textObject_ReceivedBy.Text = ReceivedByName;
-                    textObject_ReceivedByPos.Text = ReceivedByPosition;
-
-                    foreach (var bill in bills) // 'bills' is List<BillTable>
-                    {
-                        foreach (var item in bill.ItemDetails)
+                        if (ro.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
                         {
-                            try
-                            {
-                                // Handle ItemLineAmount
-                                if (item.ItemLineAmount != 0)
-                                {
-                                    if (item.ItemLineAmount > 0)
-                                        debitTotalAmount += item.ItemLineAmount;
-                                    else
-                                        creditTotalAmount += Math.Abs(item.ItemLineAmount);
-                                }
-
-                                // Handle ExpenseLineAmount
-                                if (item.ExpenseLineAmount != 0)
-                                {
-                                    if (item.ExpenseLineAmount > 0)
-                                        debitTotalAmount += item.ExpenseLineAmount;
-                                    else
-                                        creditTotalAmount += Math.Abs(item.ExpenseLineAmount);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show($"Error processing item detail: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            }
+                            return ro as TextObject;
                         }
                     }
-
-                    if (textObject_CVBILLTotalDebitAmount != null)
-                        textObject_CVBILLTotalDebitAmount.Text = $"PHP {debitTotalAmount:N2}";
-
-                    if (textObject_CVBILLTotalCreditAmount != null)
-                        textObject_CVBILLTotalCreditAmount.Text = $"PHP {debitTotalAmount:N2}";
-
+                    return null;
                 }
-                catch
+
+                // Header & Summary fields
+                TextObject textObject_CVBILLCheckNumber = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLSeriesnumber");
+                TextObject textObject_CVBILLCheckDate = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLCheckDate");
+                TextObject textObject_CVBILLPayee = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLPayee");
+                TextObject textObject_CVBILLAddress = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLAddress");
+                TextObject textObject_CVBILLAmountInWords = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLAmountInWords");
+                TextObject textObject_CVBILLTotalDebitAmount = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLTotalDebitAmount");
+                TextObject textObject_CVBILLTotalCreditAmount = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLTotalCreditAmount");
+
+                TextObject textObject_CompanyName = GetReportTextObject(cRCV_DRCBILL, "TextCompanyName");
+                if (textObject_CompanyName != null && comboBox_Company?.SelectedItem != null)
                 {
-                    throw;
+                    textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                 }
 
+                TextObject textObject_CVBILLBank = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLBank");
+                TextObject textObject_CVBILLNumber = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLNumber");
+                TextObject textObject_CVBILLDate = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLDate");
+                TextObject textObject_CVBILLDue = GetReportTextObject(cRCV_DRCBILL, "TextCVBILLDue");
 
-                double amount = bills[0].AmountDue;
-                string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(amount);
+                TextObject textObject_PreparedBy = GetReportTextObject(cRCV_DRCBILL, "TextPreparedBy");
+                TextObject textObject_PreparedByPos = GetReportTextObject(cRCV_DRCBILL, "TextPreparedByPosition");
+                TextObject textObject_CheckedBy = GetReportTextObject(cRCV_DRCBILL, "TextCheckedBy");
+                TextObject textObject_CheckedByPos = GetReportTextObject(cRCV_DRCBILL, "TextCheckedByPosition");
+                TextObject textObject_ApprovedBy = GetReportTextObject(cRCV_DRCBILL, "TextApprovedBy");
+                TextObject textObject_ApprovedByPos = GetReportTextObject(cRCV_DRCBILL, "TextApprovedByPosition");
+                TextObject textObject_ReceivedBy = GetReportTextObject(cRCV_DRCBILL, "TextReceivedBy");
+                TextObject textObject_ReceivedByPos = GetReportTextObject(cRCV_DRCBILL, "TextReceivedByPosition");
+
+                // Signatories
+                AccessToDatabase_DRC accessToDatabase = new AccessToDatabase_DRC();
+                var (PreparedByName, PreparedByPosition,
+                     ReviewedByName, ReviewedByPosition,
+                     RecommendingApprovalName, RecommendingApprovalPosition,
+                     ApprovedByName, ApprovedByPosition,
+                     ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
+
+                if (textObject_PreparedBy != null) textObject_PreparedBy.Text = PreparedByName;
+                if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = PreparedByPosition;
+                if (textObject_CheckedBy != null) textObject_CheckedBy.Text = ReviewedByName;
+                if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = ReviewedByPosition;
+                if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = ApprovedByName;
+                if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = ApprovedByPosition;
+                if (textObject_ReceivedBy != null) textObject_ReceivedBy.Text = ReceivedByName;
+                if (textObject_ReceivedByPos != null) textObject_ReceivedByPos.Text = ReceivedByPosition;
+
+                // Check Payment Amount calculations
+                double totalCheckAmount = bills[0].Amount > 0
+                    ? bills[0].Amount
+                    : bills.Sum(b => b.AmountDue);
+
+                if (textObject_CVBILLTotalDebitAmount != null)
+                    textObject_CVBILLTotalDebitAmount.Text = $"PHP {totalCheckAmount:N2}";
+
+                if (textObject_CVBILLTotalCreditAmount != null)
+                    textObject_CVBILLTotalCreditAmount.Text = $"PHP {totalCheckAmount:N2}";
+
+                string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(totalCheckAmount);
 
                 string rawBank = bills[0].BankAccount ?? "";
-
-                string bank = rawBank.Contains(":")
-                    ? rawBank.Split(':').Last().Trim()
-                    : rawBank;
+                string bank = rawBank.Contains(":") ? rawBank.Split(':').Last().Trim() : rawBank;
 
                 var c = bills[0];
-
-                // Line 1: Combine Addr1, Addr2, Addr3, Addr4 into one string separated by commas
                 string streetLine = string.Join(", ", new[] {
-                                                 c.VendorAddressAddr1,
-                                                 c.VendorAddressAddr2,
-                                                 c.VendorAddressAddr3,
-                                                 c.VendorAddressAddr4
-                                             }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            c.VendorAddressAddr1,
+            c.VendorAddressAddr2,
+            c.VendorAddressAddr3,
+            c.VendorAddressAddr4
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                // Line 2: City (Add State/Zip here if you have them in your BillTable)
                 string cityLine = string.Join(" ", new[] {
-                                                 c.VendorAddressCity,
-                                             }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            c.VendorAddressCity,
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                // Final: Join the two lines with a single NewLine
                 string fullAddress = string.Join(Environment.NewLine, new[] { streetLine, cityLine }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
                 if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
-                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DateCreated.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
-                
-                
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
                 if (textObject_CVBILLBank != null) textObject_CVBILLBank.Text = bank;
                 if (textObject_CVBILLNumber != null) textObject_CVBILLNumber.Text = bills[0].RefNumber ?? "";
-                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy") ?? "";
-                if (textObject_CVBILLDue != null)
-                    textObject_CVBILLDue.Text = amount.ToString("N2");
+                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLDue != null) textObject_CVBILLDue.Text = totalCheckAmount.ToString("N2");
 
+                // Subreport Handling (Configures Accounts Payable as single Credit entry)
                 SubreportObject subreportObject = null;
-                try
+                foreach (ReportObject ro in cRCV_DRCBILL.ReportDefinition.ReportObjects)
                 {
-                    subreportObject = cRCV_DRCBILL.ReportDefinition.ReportObjects["SubreportCVBILLDetailsIVP"] as SubreportObject;
-                }
-                catch
-                {
-                    throw;
+                    if (ro is SubreportObject sro && ro.Name.Equals("SubreportCVBILLDetailsIVP", StringComparison.OrdinalIgnoreCase))
+                    {
+                        subreportObject = sro;
+                        break;
+                    }
                 }
 
                 if (subreportObject != null)
                 {
-                    ReportDocument subReportDocument = null;
-                    try
+                    ReportDocument subReportDocument = cRCV_DRCBILL.OpenSubreport(subreportObject.SubreportName);
+
+                    TextObject textObject_BILLSubRemarks = GetReportTextObject(subReportDocument, "TextBILLRemarks");
+                    TextObject textObject_BILLSubAccountPayable = GetReportTextObject(subReportDocument, "TextBILLSubAccountPayable");
+                    TextObject textObject_BILLSubAmountPayable = GetReportTextObject(subReportDocument, "TextBILLSubAmountPayable");
+                    TextObject textObject_BILLSubAccountCode = GetReportTextObject(subReportDocument, "TextBILLSubAccountCode");
+
+                    // Clean AP Account name & dynamic code
+                    string apName = bills[0].APAccountRefFullName ?? "Accounts Payable";
+                    if (apName.Contains(":"))
                     {
-                        subReportDocument = cRCV_DRCBILL.OpenSubreport(subreportObject.SubreportName);
-                    }
-                    catch
-                    {
-                        throw;
+                        apName = apName.Substring(apName.LastIndexOf(':') + 1).Trim();
                     }
 
-                    try
-                    {
-                        TextObject textObject_BILLSubRemarks = subReportDocument.ReportDefinition.ReportObjects["TextBILLRemarks"] as TextObject;
-                        TextObject textObject_BILLSubAccountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountPayable"] as TextObject;
-                        TextObject textObject_BILLSubAmountPayable = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAmountPayable"] as TextObject;
-                        TextObject textObject_BILLSubAccountCode = subReportDocument.ReportDefinition.ReportObjects["TextBILLSubAccountCode"] as TextObject;
-                        
+                    string apCode = !string.IsNullOrWhiteSpace(bills[0].AccountNumber)
+                        ? bills[0].AccountNumber
+                        : "";
 
-                        if (textObject_BILLSubRemarks != null) textObject_BILLSubRemarks.Text = bills[0].BillMemo ?? "";
-                        if (textObject_BILLSubAccountPayable != null) textObject_BILLSubAccountPayable.Text = bills[0].BankAccount ?? "";
-                        if (textObject_BILLSubAccountCode != null) textObject_BILLSubAccountCode.Text = bills[0].AccountNumber ?? "";
-                        if (textObject_BILLSubAmountPayable != null)
-                        {
-                            // Sums the AmountDue of all items in the bills list
-                            double totalAmountDue = bills.Sum(b => b.AmountDue);
-                            textObject_BILLSubAmountPayable.Text = totalAmountDue.ToString("N2");
-                        }
+                    if (textObject_BILLSubRemarks != null)
+                        textObject_BILLSubRemarks.Text = bills[0].BillMemo ?? "";
 
-                        InsertDataToBillCompiled(refNumberCR, bills);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
+                    if (textObject_BILLSubAccountPayable != null)
+                        textObject_BILLSubAccountPayable.Text = apName;
+
+                    if (textObject_BILLSubAccountCode != null)
+                        textObject_BILLSubAccountCode.Text = apCode;
+
+                    if (textObject_BILLSubAmountPayable != null)
+                        textObject_BILLSubAmountPayable.Text = totalCheckAmount.ToString("N2");
                 }
 
                 cRCV_DRCBILL.SetParameterValue("ReferenceNumber", refNumberCR);
@@ -1584,7 +1442,7 @@ namespace VoucherPROVER2.Clients.DRC
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"KAYAK ERROR HEHEHE:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error generating report:\n{ex.Message}", "Report Generation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
@@ -1692,7 +1550,7 @@ namespace VoucherPROVER2.Clients.DRC
                 }
             }
         }
-        
+
 
 
         public static void InsertDataToCheckVoucherCompiledDRC(string refNumber, List<CheckTableExpensesAndItems> checkData)
@@ -1712,7 +1570,6 @@ namespace VoucherPROVER2.Clients.DRC
                     try
                     {
                         deleteCommand.ExecuteNonQuery();
-                        Console.WriteLine("Old data has been deleted from CheckVoucherCompiled.");
                     }
                     catch (Exception ex)
                     {
@@ -1721,9 +1578,8 @@ namespace VoucherPROVER2.Clients.DRC
                     }
                 }
 
-                // 2. Flatten entries into temporary lists
-                var debitEntries = new List<VoucherEntry>();
-                var creditEntries = new List<VoucherEntry>();
+                // Temporary helper structure for raw aggregation
+                var rawEntries = new List<(string AccountNumber, string Particulars, string Class, double Amount, string Memo, string CustomerJob)>();
                 var descriptionOnlyEntries = new List<VoucherEntry>();
 
                 foreach (var check in checkData)
@@ -1731,58 +1587,30 @@ namespace VoucherPROVER2.Clients.DRC
                     string memoValue = check.ExpensesMemo ?? "";
                     string customerJob = check.ExpensesCustomerJob ?? "";
 
-                    // ITEM ENTRY
+                    // ITEM ENTRY (Now holds Asset Account in check.Item)
                     if (!string.IsNullOrEmpty(check.Item))
                     {
-                        double amount = check.ItemAmount;
-                        var entry = new VoucherEntry
-                        {
-                            AccountNumber = null,
-                            Particulars = check.Item,
-                            Class = check.ItemClass,
-                            Debit = amount > 0 ? amount.ToString("N2") : "",
-                            Credit = amount < 0 ? Math.Abs(amount).ToString("N2") : "",
-                            Memo = memoValue,
-                            CustomerJob = customerJob
-                        };
-
-                        if (amount > 0)
-                        {
-                            debitTotalAmount += amount;
-                            debitEntries.Add(entry);
-                        }
-                        else if (amount < 0)
-                        {
-                            creditTotalAmount += Math.Abs(amount);
-                            creditEntries.Add(entry);
-                        }
+                        rawEntries.Add((
+                            AccountNumber: check.AccountNumber ?? "",
+                            Particulars: check.Item,
+                            Class: check.ItemClass ?? "",
+                            Amount: check.ItemAmount,
+                            Memo: memoValue,
+                            CustomerJob: customerJob
+                        ));
                     }
 
                     // EXPENSE ENTRY
                     if (!string.IsNullOrEmpty(check.Account))
                     {
-                        double amount = check.ExpensesAmount;
-                        var entry = new VoucherEntry
-                        {
-                            AccountNumber = string.IsNullOrEmpty(check.AccountNumber) ? null : check.AccountNumber,
-                            Particulars = check.Account,
-                            Class = check.ExpenseClass,
-                            Debit = amount > 0 ? amount.ToString("N2") : "",
-                            Credit = amount < 0 ? Math.Abs(amount).ToString("N2") : "",
-                            Memo = memoValue,
-                            CustomerJob = customerJob
-                        };
-
-                        if (amount > 0)
-                        {
-                            debitTotalAmount += amount;
-                            debitEntries.Add(entry);
-                        }
-                        else if (amount < 0)
-                        {
-                            creditTotalAmount += Math.Abs(amount);
-                            creditEntries.Add(entry);
-                        }
+                        rawEntries.Add((
+                            AccountNumber: check.AccountNumber ?? "",
+                            Particulars: check.Account,
+                            Class: check.ExpenseClass ?? "",
+                            Amount: check.ExpensesAmount,
+                            Memo: memoValue,
+                            CustomerJob: customerJob
+                        ));
                     }
 
                     // DESCRIPTION ONLY ENTRY
@@ -1801,20 +1629,67 @@ namespace VoucherPROVER2.Clients.DRC
                     }
                 }
 
-                // 3. Combine in order: Debits first, then Credits, then Zero/Description rows
+                // 2. Consolidate/Group by AccountNumber, Particulars, and Class
+                var consolidatedGroups = rawEntries
+                    .GroupBy(x => new
+                    {
+                        AccountNumber = x.AccountNumber.Trim(),
+                        Particulars = x.Particulars.Trim(),
+                        Class = x.Class.Trim()
+                    })
+                    .Select(g => new
+                    {
+                        g.Key.AccountNumber,
+                        g.Key.Particulars,
+                        g.Key.Class,
+                        TotalNet = g.Sum(x => x.Amount),
+                        // Pick first non-empty memo and customer/job
+                        Memo = g.Select(x => x.Memo).FirstOrDefault(m => !string.IsNullOrWhiteSpace(m)) ?? "",
+                        CustomerJob = g.Select(x => x.CustomerJob).FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? ""
+                    })
+                    .Where(x => Math.Abs(x.TotalNet) > 0.0001); // Exclude zeroed out entries
+
+                var debitEntries = new List<VoucherEntry>();
+                var creditEntries = new List<VoucherEntry>();
+
+                foreach (var item in consolidatedGroups)
+                {
+                    var entry = new VoucherEntry
+                    {
+                        AccountNumber = string.IsNullOrEmpty(item.AccountNumber) ? null : item.AccountNumber,
+                        Particulars = item.Particulars,
+                        Class = string.IsNullOrEmpty(item.Class) ? null : item.Class,
+                        Debit = item.TotalNet > 0 ? item.TotalNet.ToString("N2") : "",
+                        Credit = item.TotalNet < 0 ? Math.Abs(item.TotalNet).ToString("N2") : "",
+                        Memo = item.Memo,
+                        CustomerJob = item.CustomerJob
+                    };
+
+                    if (item.TotalNet > 0)
+                    {
+                        debitTotalAmount += item.TotalNet;
+                        debitEntries.Add(entry);
+                    }
+                    else
+                    {
+                        creditTotalAmount += Math.Abs(item.TotalNet);
+                        creditEntries.Add(entry);
+                    }
+                }
+
+                // 3. Combine in order: Debits first, Credits next, then Description rows
                 var sortedEntries = debitEntries
                     .Concat(creditEntries)
                     .Concat(descriptionOnlyEntries);
 
                 // 4. Batch insert into MS Access
                 string insertQuery = @"INSERT INTO CheckVoucherCompiled 
-                            (RefNumber, [AccountNumber], [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
-                            VALUES 
-                            (@RefNumber, @AccountNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
+                              (RefNumber, [AccountNumber], [Particulars], [Class], [Debit], [Credit], [Memo], [CustomerJob]) 
+                              VALUES 
+                              (@RefNumber, @AccountNumber, @Particulars, @Class, @Debit, @Credit, @Memo, @CustomerJob)";
 
                 using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                 {
-                    // Set up parameterized command
                     command.Parameters.Add("@RefNumber", OleDbType.VarWChar);
                     command.Parameters.Add("@AccountNumber", OleDbType.VarWChar);
                     command.Parameters.Add("@Particulars", OleDbType.VarWChar);
@@ -1954,9 +1829,9 @@ namespace VoucherPROVER2.Clients.DRC
 
         public static void InsertDataToBillCompiled(string refNumber, List<BillTable> bills)
         {
+            if (bills == null || bills.Count == 0) return;
+
             string connectionString = AccessToDatabase_DRC.GetAccessConnectionString();
-            double debitTotalAmount = 0;
-            double creditTotalAmount = 0;
 
             using (OleDbConnection connection = new OleDbConnection(connectionString))
             {
@@ -1964,132 +1839,50 @@ namespace VoucherPROVER2.Clients.DRC
                 {
                     connection.Open();
 
-                    // 1. CLEAR OLD DATA
-                    string deleteQuery = "DELETE FROM Bill_Compiled";
-                    using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
+                    // Clear old records
+                    using (OleDbCommand deleteCommand = new OleDbCommand("DELETE FROM Bill_Compiled", connection))
                     {
                         deleteCommand.ExecuteNonQuery();
                     }
 
-                    // Staging lists to separate debits, credits, and zero-amount lines
-                    var debitEntries = new List<BillEntry>();
-                    var creditEntries = new List<BillEntry>();
-                    var otherEntries = new List<BillEntry>();
+                    var primaryBill = bills[0];
+                    double totalDisbursement = primaryBill.Amount > 0
+                        ? primaryBill.Amount
+                        : bills.Sum(b => b.AmountDue);
 
-                    // 2. PARSE AND CATEGORIZE ENTRIES
-                    foreach (var bill in bills)
+                    // Dynamic Bank Name Parsing
+                    string rawBank = primaryBill.BankAccount ?? "";
+                    string bankName = rawBank.Contains(":")
+                        ? rawBank.Substring(rawBank.LastIndexOf(':') + 1).Trim()
+                        : rawBank;
+
+                    // Prioritize fetched account number, fallback to inline parsing if stored as "11200 · Name"
+                    string bankCode = primaryBill.BankAccountNumber ?? "";
+                    if (string.IsNullOrWhiteSpace(bankCode) && bankName.Contains("·"))
                     {
-                        foreach (var detail in bill.ItemDetails)
-                        {
-                            string accountNumber = "";
-                            string rawParticulars = "";
-                            string classVal = "";
-                            string memo = "";
-                            string customerJob = "";
-                            double amount = 0;
-
-                            // Determine if this is an Item Line or an Expense Line
-                            if (!string.IsNullOrEmpty(detail.ItemLineItemRefFullName))
-                            {
-                                accountNumber = "";
-                                rawParticulars = detail.ItemLineItemRefFullName;
-                                classVal = detail.ItemLineClassRefFullName ?? "";
-                                memo = detail.ItemLineMemo ?? "";
-                                customerJob = detail.ItemLineCustomerJob ?? "";
-                                amount = detail.ItemLineAmount;
-                            }
-                            else if (!string.IsNullOrEmpty(detail.ExpenseLineItemRefFullName))
-                            {
-                                accountNumber = detail.ExpenseLineAccountNumber ?? bill.AccountNumber ?? "";
-                                rawParticulars = detail.ExpenseLineItemRefFullName;
-                                classVal = detail.ExpenseLineClassRefFullName ?? "";
-                                memo = detail.ExpenseLineMemo ?? "";
-                                customerJob = detail.ExpenseLineCustomerJob ?? "";
-                                amount = detail.ExpenseLineAmount;
-                            }
-                            else
-                            {
-                                // Skip empty lines
-                                continue;
-                            }
-
-                            // Extract text after the last colon (":") for Particulars
-                            string particulars = rawParticulars;
-                            if (!string.IsNullOrEmpty(particulars) && particulars.Contains(":"))
-                            {
-                                particulars = particulars.Substring(particulars.LastIndexOf(':') + 1).Trim();
-                            }
-
-                            var entry = new BillEntry
-                            {
-                                AccountNumber = string.IsNullOrWhiteSpace(accountNumber) ? null : accountNumber,
-                                Particulars = particulars ?? "",
-                                Class = string.IsNullOrWhiteSpace(classVal) ? null : classVal,
-                                Memo = memo,
-                                CustomerJob = customerJob,
-                                Debit = amount > 0 ? amount.ToString("N2") : "",
-                                Credit = amount < 0 ? Math.Abs(amount).ToString("N2") : ""
-                            };
-
-                            if (amount > 0)
-                            {
-                                debitTotalAmount += amount;
-                                debitEntries.Add(entry);
-                            }
-                            else if (amount < 0)
-                            {
-                                creditTotalAmount += Math.Abs(amount);
-                                creditEntries.Add(entry);
-                            }
-                            else
-                            {
-                                otherEntries.Add(entry);
-                            }
-                        }
+                        var parts = bankName.Split('·');
+                        bankCode = parts[0].Trim();
+                        bankName = parts.Length > 1 ? parts[1].Trim() : bankName;
                     }
 
-                    // 3. COMBINE: Debits first, then Credits, then zero/info rows
-                    var sortedEntries = debitEntries
-                        .Concat(creditEntries)
-                        .Concat(otherEntries);
-
-                    // 4. INSERT INTO DATABASE
                     string insertQuery = @"INSERT INTO Bill_Compiled 
-                (RefNumber, [AccountNumber], Particulars, [Class], [Memo], [CustomerJob], Debit, Credit) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                (RefNumber, [AccountNumber], Particulars, Debit, Credit) 
+                VALUES (?, ?, ?, ?, ?)";
 
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                     {
-                        // Prepare parameter types once for better performance
-                        var pRefNumber = command.Parameters.Add("?", OleDbType.VarWChar);
-                        var pAccount = command.Parameters.Add("?", OleDbType.VarWChar);
-                        var pParticulars = command.Parameters.Add("?", OleDbType.VarWChar);
-                        var pClass = command.Parameters.Add("?", OleDbType.VarWChar);
-                        var pMemo = command.Parameters.Add("?", OleDbType.VarWChar);
-                        var pCustomerJob = command.Parameters.Add("?", OleDbType.VarWChar);
-                        var pDebit = command.Parameters.Add("?", OleDbType.VarWChar);
-                        var pCredit = command.Parameters.Add("?", OleDbType.VarWChar);
+                        command.Parameters.Add("?", OleDbType.VarWChar).Value = refNumber ?? (object)DBNull.Value;
+                        command.Parameters.Add("?", OleDbType.VarWChar).Value = !string.IsNullOrWhiteSpace(bankCode) ? bankCode : (object)DBNull.Value;
+                        command.Parameters.Add("?", OleDbType.VarWChar).Value = bankName;
+                        command.Parameters.Add("?", OleDbType.VarWChar).Value = totalDisbursement.ToString("N2");
+                        command.Parameters.Add("?", OleDbType.VarWChar).Value = ""; // No Credit here; handled by subreport
 
-                        foreach (var entry in sortedEntries)
-                        {
-                            pRefNumber.Value = refNumber ?? (object)DBNull.Value;
-                            pAccount.Value = (object)entry.AccountNumber ?? DBNull.Value;
-                            pParticulars.Value = entry.Particulars;
-                            pClass.Value = (object)entry.Class ?? DBNull.Value;
-                            pMemo.Value = string.IsNullOrEmpty(entry.Memo) ? (object)DBNull.Value : entry.Memo;
-                            pCustomerJob.Value = string.IsNullOrEmpty(entry.CustomerJob) ? (object)DBNull.Value : entry.CustomerJob;
-                            pDebit.Value = entry.Debit;
-                            pCredit.Value = entry.Credit;
-
-                            command.ExecuteNonQuery();
-                        }
+                        command.ExecuteNonQuery();
                     }
-
-                    connection.Close();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error: {ex.Message}");
+                    MessageBox.Show($"Error inserting into Bill_Compiled: {ex.Message}", "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
@@ -2104,19 +1897,18 @@ namespace VoucherPROVER2.Clients.DRC
                 {
                     connection.Open();
 
-                    // 1. CLEAR OLD DATA
+                    // 1. Clear old data
                     string deleteQuery = "DELETE FROM Bill_Compiled";
                     using (OleDbCommand deleteCommand = new OleDbCommand(deleteQuery, connection))
                     {
                         deleteCommand.ExecuteNonQuery();
                     }
 
-                    // 2. PREPARE INSERT QUERY
                     string insertQuery = @"INSERT INTO Bill_Compiled 
-                                   (RefNumber, [AccountNumber], Particulars, [Class], [Memo], [CustomerJob], Debit, Credit) 
-                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                                  (RefNumber, [AccountNumber], Particulars, [Class], [Memo], [CustomerJob], Debit, Credit) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-                    // 3. FLATTEN ALL ITEM & EXPENSE LINES
+                    // 2. Flatten entries (Uses resolved Asset Account and Account Code)
                     var allLines = bills.SelectMany(bill => bill.ItemDetails.Select(detail =>
                     {
                         string accountNumber = "";
@@ -2129,6 +1921,8 @@ namespace VoucherPROVER2.Clients.DRC
                         if (!string.IsNullOrEmpty(detail.ItemLineItemRefFullName))
                         {
                             accountNumber = detail.ItemLineAccountNumber ?? "";
+
+                            // Uses resolved Asset Account; falls back to item name if unmapped
                             rawParticulars = !string.IsNullOrWhiteSpace(detail.ItemLineAssetAccountRefFullName)
                                 ? detail.ItemLineAssetAccountRefFullName
                                 : detail.ItemLineItemRefFullName;
@@ -2149,10 +1943,10 @@ namespace VoucherPROVER2.Clients.DRC
                         }
                         else
                         {
-                            return null; // Ignore empty lines
+                            return null;
                         }
 
-                        // Extract name after colon (e.g., "Inventories:Food" -> "Food")
+                        // Strip parent prefix (e.g. "Inventories:Food" -> "Food")
                         string particulars = rawParticulars;
                         if (!string.IsNullOrEmpty(particulars) && particulars.Contains(":"))
                         {
@@ -2161,9 +1955,9 @@ namespace VoucherPROVER2.Clients.DRC
 
                         return new
                         {
-                            AccountNumber = accountNumber,
-                            Particulars = particulars,
-                            Class = classVal,
+                            AccountNumber = accountNumber.Trim(),
+                            Particulars = particulars.Trim(),
+                            Class = classVal.Trim(),
                             Memo = memo,
                             CustomerJob = customerJob,
                             Amount = amount
@@ -2171,23 +1965,24 @@ namespace VoucherPROVER2.Clients.DRC
                     }))
                     .Where(x => x != null && !string.IsNullOrEmpty(x.Particulars));
 
-                    // 4. GROUP, CONSOLIDATE, AND SORT (DEBIT FIRST, THEN CREDIT)
+                    // 3. Consolidate matching accounts
                     var consolidatedLines = allLines
-                        .GroupBy(x => new { x.Particulars, x.AccountNumber })
+                        .GroupBy(x => new { x.Particulars, x.AccountNumber, x.Class })
                         .Select(g => new
                         {
                             Particulars = g.Key.Particulars,
                             AccountNumber = g.Key.AccountNumber,
-                            Class = g.First().Class,
-                            Memo = g.First().Memo,
-                            CustomerJob = g.First().CustomerJob,
+                            Class = g.Key.Class,
+                            Memo = g.Select(m => m.Memo).FirstOrDefault(m => !string.IsNullOrWhiteSpace(m)) ?? "",
+                            CustomerJob = g.Select(c => c.CustomerJob).FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? "",
                             TotalAmount = g.Sum(x => x.Amount)
                         })
-                        .OrderByDescending(x => x.TotalAmount > 0) // Debits (true) come first, Credits (false) come second
-                        .ThenBy(x => x.AccountNumber)              // Optional: Keep accounts sorted cleanly
+                        .Where(x => Math.Abs(x.TotalAmount) > 0.0001)
+                        .OrderByDescending(x => x.TotalAmount > 0) // Debits first, then Credits
+                        .ThenBy(x => x.AccountNumber)
                         .ToList();
 
-                    // 5. EXECUTE INSERT FOR CONSOLIDATED ROWS
+                    // 4. Batch Insert
                     foreach (var item in consolidatedLines)
                     {
                         string debitStr = item.TotalAmount > 0 ? item.TotalAmount.ToString("N2") : "";
@@ -2196,17 +1991,15 @@ namespace VoucherPROVER2.Clients.DRC
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
                             command.Parameters.Add("?", OleDbType.VarWChar).Value = refNumber ?? (object)DBNull.Value;
-
                             command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrWhiteSpace(item.AccountNumber)
                                 ? (object)DBNull.Value
                                 : item.AccountNumber;
-
                             command.Parameters.Add("?", OleDbType.VarWChar).Value = item.Particulars ?? "";
-                            command.Parameters.Add("?", string.IsNullOrWhiteSpace(item.Class) ? (object)DBNull.Value : item.Class);
-                            command.Parameters.Add("?", item.Memo ?? (object)DBNull.Value);
-                            command.Parameters.Add("?", item.CustomerJob ?? (object)DBNull.Value);
-                            command.Parameters.Add("?", debitStr);
-                            command.Parameters.Add("?", creditStr);
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrWhiteSpace(item.Class) ? (object)DBNull.Value : item.Class;
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrWhiteSpace(item.Memo) ? (object)DBNull.Value : item.Memo;
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = string.IsNullOrWhiteSpace(item.CustomerJob) ? (object)DBNull.Value : item.CustomerJob;
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = debitStr;
+                            command.Parameters.Add("?", OleDbType.VarWChar).Value = creditStr;
 
                             command.ExecuteNonQuery();
                         }
@@ -2216,7 +2009,7 @@ namespace VoucherPROVER2.Clients.DRC
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error: {ex.Message}");
+                    MessageBox.Show($"Error inserting compiled APV rows: {ex.Message}");
                 }
             }
         }
