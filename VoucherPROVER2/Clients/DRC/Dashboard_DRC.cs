@@ -949,7 +949,7 @@ namespace VoucherPROVER2.Clients.DRC
                     textObject_CVBILLTotalCreditAmount.Text = $"PHP {balancedCreditTotal:N2}";
 
                 double amount = bills[0].AmountDue;
-                string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(amount);
+                string amountInWords = AccessToDatabase_DRC.AmountToWordsConverter.Convert(lineDebitTotal);
 
                 var c = bills[0];
                 string streetLine = string.Join(", ", new[] {

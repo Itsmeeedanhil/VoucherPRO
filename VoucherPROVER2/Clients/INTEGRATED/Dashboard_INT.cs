@@ -1261,7 +1261,7 @@ namespace VoucherPROVER2.Clients.INT
                     amountLines.Add("\u00A0");
                 }
 
-                const int maxMemoCharsPerLine = 32;
+                const int maxMemoCharsPerLine = 100;
 
                 foreach (var item in billSummaryList)
                 {
@@ -1781,6 +1781,17 @@ namespace VoucherPROVER2.Clients.INT
                 return value.Length <= maxLength ? value : value.Substring(0, maxLength);
             }
 
+            string GetCleanAccountName(string raw)
+            {
+                if (string.IsNullOrWhiteSpace(raw)) return "";
+                var match = System.Text.RegularExpressions.Regex.Match(raw.Trim(), @"^\d+\s*[-:.]?\s*(.*)$");
+                if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[1].Value))
+                {
+                    return match.Groups[1].Value.Trim();
+                }
+                return raw.Trim();
+            }
+
             using (OleDbConnection connection = new OleDbConnection(connectionString))
             {
                 connection.Open();
@@ -1803,7 +1814,9 @@ namespace VoucherPROVER2.Clients.INT
                     .SelectMany(b => b.ItemDetails.Select(d => new { Bill = b, Detail = d }))
                     .ToList();
 
-                // PASS 1: DEBITS
+                // -------------------------------------------------------------
+                // PASS 1: DEBITS (Clean A-Z Sort)
+                // -------------------------------------------------------------
                 var groupedDebits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount > 0)
                     .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
@@ -1811,7 +1824,9 @@ namespace VoucherPROVER2.Clients.INT
                         Particulars = g.Key,
                         Memo = string.Join("; ", g.Select(x => x.Detail.ItemLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalAmount = g.Sum(x => x.Detail.ItemLineAmount)
-                    });
+                    })
+                    .OrderBy(x => GetCleanAccountName(x.Particulars), StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
                 foreach (var entry in groupedDebits)
                 {
@@ -1829,9 +1844,13 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
+                // -------------------------------------------------------------
+                // COLLECT ALL CREDITS
+                // -------------------------------------------------------------
+                var creditEntries = new List<(string Particulars, double Amount, string Memo)>();
                 double totalDeductedCredits = 0;
 
-                // PASS 2: NEGATIVE EXPENSE LINES
+                // 1. Negative Expense Lines
                 var groupedExpenseCredits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount < 0)
                     .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
@@ -1841,25 +1860,13 @@ namespace VoucherPROVER2.Clients.INT
                         TotalCreditAmount = Math.Abs(g.Sum(x => x.Detail.ItemLineAmount))
                     });
 
-                foreach (var entry in groupedExpenseCredits)
+                foreach (var exp in groupedExpenseCredits)
                 {
-                    totalDeductedCredits += entry.TotalCreditAmount;
-                    creditTotalAmount += entry.TotalCreditAmount;
-
-                    using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                    {
-                        command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(entry.Particulars, 255));
-                        command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Debit", "");
-                        command.Parameters.AddWithValue("@Credit", entry.TotalCreditAmount.ToString("N2"));
-                        command.Parameters.AddWithValue("@Memo", SafeTruncate(entry.Memo, 255));
-                        command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
-                        command.ExecuteNonQuery();
-                    }
+                    totalDeductedCredits += exp.TotalCreditAmount;
+                    creditEntries.Add((exp.Particulars, exp.TotalCreditAmount, exp.Memo));
                 }
 
-                // PASS 3: DISCOUNTS / WITHHOLDING TAX
+                // 2. Discounts / Withholding Tax
                 var groupedDiscounts = bills
                     .Where(b => b.AppliedToTxnDiscountAmount > 0 && !string.IsNullOrEmpty(b.AppliedToTxnDiscountAccountRefFullName))
                     .GroupBy(b => b.AppliedToTxnDiscountAccountRefFullName.Trim())
@@ -1871,22 +1878,10 @@ namespace VoucherPROVER2.Clients.INT
                 foreach (var disc in groupedDiscounts)
                 {
                     totalDeductedCredits += disc.TotalDiscount;
-                    creditTotalAmount += disc.TotalDiscount;
-
-                    using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                    {
-                        command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(disc.AccountName, 255));
-                        command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Debit", "");
-                        command.Parameters.AddWithValue("@Credit", disc.TotalDiscount.ToString("N2"));
-                        command.Parameters.AddWithValue("@Memo", SafeTruncate("Withholding Tax Applied", 255));
-                        command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
-                        command.ExecuteNonQuery();
-                    }
+                    creditEntries.Add((disc.AccountName, disc.TotalDiscount, "Withholding Tax Applied"));
                 }
 
-                // PASS 4: APPLIED BILL CREDITS
+                // 3. Applied Bill Credits
                 var groupedBillCredits = bills
                     .Where(b => b.AppliedBillCredits != null && b.AppliedBillCredits.Count > 0)
                     .SelectMany(b => b.AppliedBillCredits)
@@ -1900,51 +1895,47 @@ namespace VoucherPROVER2.Clients.INT
                 foreach (var cred in groupedBillCredits)
                 {
                     totalDeductedCredits += cred.TotalCreditApplied;
-                    creditTotalAmount += cred.TotalCreditApplied;
+                    creditEntries.Add((cred.AccountName, cred.TotalCreditApplied, cred.Memo));
+                }
+
+                // 4. Net Vouchers Payable Entry
+                if (bills != null && bills.Count > 0)
+                {
+                    double netPaymentCredit = debitTotalAmount - totalDeductedCredits;
+                    string consolidatedMemo = string.Join(" | ", bills
+                        .Select(b => !string.IsNullOrWhiteSpace(b.BillMemo) ? b.BillMemo.Trim() : b.Memo?.Trim())
+                        .Where(m => !string.IsNullOrWhiteSpace(m))
+                        .Distinct());
+
+                    string apAccount = string.IsNullOrWhiteSpace(selectedAPAccount) ? "Vouchers Payable" : selectedAPAccount;
+
+                    if (netPaymentCredit > 0)
+                    {
+                        creditEntries.Add((apAccount, netPaymentCredit, consolidatedMemo));
+                    }
+                }
+
+                // -------------------------------------------------------------
+                // PASS 2: CREDITS (Clean A-Z Sort)
+                // -------------------------------------------------------------
+                var sortedCredits = creditEntries
+                    .OrderBy(c => GetCleanAccountName(c.Particulars), StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                foreach (var credit in sortedCredits)
+                {
+                    creditTotalAmount += credit.Amount;
 
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                     {
                         command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(cred.AccountName, 255));
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(credit.Particulars, 255));
                         command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Debit", "");
-                        command.Parameters.AddWithValue("@Credit", cred.TotalCreditApplied.ToString("N2"));
-                        command.Parameters.AddWithValue("@Memo", SafeTruncate(cred.Memo, 255));
+                        command.Parameters.AddWithValue("@Credit", credit.Amount.ToString("N2"));
+                        command.Parameters.AddWithValue("@Memo", SafeTruncate(credit.Memo, 255));
                         command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
                         command.ExecuteNonQuery();
-                    }
-                }
-
-                // PASS 5: VOUCHERS PAYABLE NET CREDIT ENTRY
-                if (bills != null && bills.Count > 0)
-                {
-                    try
-                    {
-                        double netPaymentCredit = debitTotalAmount - totalDeductedCredits;
-                        creditTotalAmount += netPaymentCredit;
-
-                        string consolidatedMemo = string.Join(" | ", bills
-                            .Select(b => !string.IsNullOrWhiteSpace(b.BillMemo) ? b.BillMemo.Trim() : b.Memo?.Trim())
-                            .Where(m => !string.IsNullOrWhiteSpace(m))
-                            .Distinct());
-
-                        string apAccount = string.IsNullOrWhiteSpace(selectedAPAccount) ? "Vouchers Payable" : selectedAPAccount;
-
-                        using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
-                        {
-                            command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                            command.Parameters.AddWithValue("@Particulars", SafeTruncate(apAccount, 255));
-                            command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
-                            command.Parameters.AddWithValue("@Debit", "");
-                            command.Parameters.AddWithValue("@Credit", netPaymentCredit.ToString("N2"));
-                            command.Parameters.AddWithValue("@Memo", SafeTruncate(consolidatedMemo, 255));
-                            command.Parameters.AddWithValue("@CustomerJob", (object)DBNull.Value);
-                            command.ExecuteNonQuery();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error processing AP Credit entry: {ex.Message}");
                     }
                 }
 
