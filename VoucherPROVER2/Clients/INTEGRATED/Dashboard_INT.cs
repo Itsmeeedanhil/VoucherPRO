@@ -1792,6 +1792,21 @@ namespace VoucherPROVER2.Clients.INT
                 return raw.Trim();
             }
 
+            // Formats account numbers with extra spacing after the dash
+            string FormatParticularSpacing(string raw, int spacesAfter = 6)
+            {
+                if (string.IsNullOrWhiteSpace(raw)) return "";
+                var match = System.Text.RegularExpressions.Regex.Match(raw.Trim(), @"^(\d+)\s*[-:.]\s*(.*)$");
+                if (match.Success)
+                {
+                    string code = match.Groups[1].Value.Trim();
+                    string name = match.Groups[2].Value.Trim();
+                    string padding = new string(' ', spacesAfter);
+                    return $"{code} -{padding}{name}";
+                }
+                return raw.Trim();
+            }
+
             using (OleDbConnection connection = new OleDbConnection(connectionString))
             {
                 connection.Open();
@@ -1834,7 +1849,8 @@ namespace VoucherPROVER2.Clients.INT
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                     {
                         command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(entry.Particulars, 255));
+                        // Applied formatting here
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(FormatParticularSpacing(entry.Particulars), 255));
                         command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Debit", entry.TotalAmount.ToString("N2"));
                         command.Parameters.AddWithValue("@Credit", "");
@@ -1929,7 +1945,8 @@ namespace VoucherPROVER2.Clients.INT
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                     {
                         command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(credit.Particulars, 255));
+                        // Applied formatting here
+                        command.Parameters.AddWithValue("@Particulars", SafeTruncate(FormatParticularSpacing(credit.Particulars), 255));
                         command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Debit", "");
                         command.Parameters.AddWithValue("@Credit", credit.Amount.ToString("N2"));

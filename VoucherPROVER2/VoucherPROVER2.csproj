@@ -161,7 +161,7 @@
       <DependentUpon>Dashboard_INT.cs</DependentUpon>
     </Compile>
     <Compile Include="Clients\INTEGRATED\Dataclass_INT.cs" />
-    <Compile Include="Clients\INTEGRATED\Layouts_ENA.cs" />
+    <Compile Include="Clients\INTEGRATED\Layouts_INT.cs" />
     <Compile Include="Clients\IVP\AccessQueries_IVP.cs" />
     <Compile Include="Clients\IVP\AccessToDatabase_IVP.cs" />
     <Compile Include="Clients\IVP\CRAPV_IVPBILL.cs">
