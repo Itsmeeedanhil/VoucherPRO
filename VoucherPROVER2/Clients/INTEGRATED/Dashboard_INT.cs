@@ -1334,7 +1334,29 @@ namespace VoucherPROVER2.Clients.INT
 
                 double realCheckTotal = bills[0].TotalCheckAmount > 0 ? bills[0].TotalCheckAmount : billSummaryList.Sum(x => x.Amount);
 
-                string amountInWords = "          " + AccessToDatabase_INT.AmountToWordsConverter.Convert(realCheckTotal);
+                //string amountInWords = "          " + AccessToDatabase_INT.AmountToWordsConverter.Convert(realCheckTotal);
+                string rawWords = "          " + AccessToDatabase_INT.AmountToWordsConverter.Convert(realCheckTotal);
+
+                // Set this to roughly the max characters that fit on your first line (adjust as needed)
+                int maxFirstLineChars = 55;
+
+                string amountInWords = rawWords;
+
+                if (rawWords.Length > maxFirstLineChars)
+                {
+                    // Find the last space before reaching the max character limit so words don't get cut in half
+                    int breakIndex = rawWords.LastIndexOf(' ', maxFirstLineChars);
+
+                    if (breakIndex != -1)
+                    {
+                        string line1 = rawWords.Substring(0, breakIndex);
+                        string line2 = rawWords.Substring(breakIndex + 1);
+
+                        // \r\n\r\n pushes the second line down with vertical spacing
+                        amountInWords = line1 + "\r\n\r\n" + line2;
+                    }
+                }
+
                 string refumber2 = refNumberCR.Contains("/") ? refNumberCR.Split('/').Last() : refNumberCR;
                 string bankaccount = (bills[0].BankAccount ?? "").Contains(":")
                                     ? (bills[0].BankAccount ?? "").Split(':').Last().Trim()
