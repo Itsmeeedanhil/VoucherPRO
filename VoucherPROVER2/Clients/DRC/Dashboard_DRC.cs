@@ -695,7 +695,7 @@ namespace VoucherPROVER2.Clients.DRC
                                         TextObject textObject_SubAccountCode = subReportDocument.ReportDefinition.ReportObjects["TextSubAccountCode"] as TextObject;
 
                                         string subbank = cvData[0].BankAccount ?? "";
-                                        string accountcode = cvData[0].AccountNumber ?? "";
+                                        string accountcode = cvData[0].BankAccountNumber ?? "";
 
                                         string subfinalbank = subbank.Contains(":")
                                             ? rawBank.Split(':').Last().Trim()

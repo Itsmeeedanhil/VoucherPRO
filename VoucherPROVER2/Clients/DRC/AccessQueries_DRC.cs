@@ -1150,6 +1150,7 @@ namespace VoucherPROVER2.Clients.DRC
 
                     DateTime txnDate = check.TxnDate?.GetValue() ?? DateTime.MinValue;
                     string bankAccount = check.AccountRef?.FullName?.GetValue() ?? "";
+                    string bankAccountListID = check.AccountRef?.ListID?.GetValue() ?? "";
                     string payee = check.PayeeEntityRef?.FullName?.GetValue() ?? "";
                     string memo = check.Memo?.GetValue() ?? "";
                     string address1 = check.Address?.Addr1?.GetValue() ?? "";
@@ -1160,7 +1161,18 @@ namespace VoucherPROVER2.Clients.DRC
                     double totalAmount = check.Amount?.GetValue() ?? 0;
                     string currentRef = check.RefNumber?.GetValue() ?? "";
 
-                    Console.WriteLine($"\n[Check #{i + 1}] Ref: {currentRef} | Payee: {payee} | Total: {totalAmount}");
+                    // Resolve the Bank Account Number (Credit Account Code)
+                    string bankAccountNumber = "";
+                    if (!string.IsNullOrEmpty(bankAccountListID) && accountNumbersDict.ContainsKey(bankAccountListID))
+                    {
+                        bankAccountNumber = accountNumbersDict[bankAccountListID];
+                    }
+                    else if (!string.IsNullOrEmpty(bankAccount) && accountNumbersDict.ContainsKey(bankAccount))
+                    {
+                        bankAccountNumber = accountNumbersDict[bankAccount];
+                    }
+
+                    Console.WriteLine($"\n[Check #{i + 1}] Ref: {currentRef} | Bank Code: {bankAccountNumber} | Payee: {payee} | Total: {totalAmount}");
 
                     // EXPENSE LINES
                     if (check.ExpenseLineRetList != null)
@@ -1187,6 +1199,7 @@ namespace VoucherPROVER2.Clients.DRC
                             {
                                 DateCreated = txnDate,
                                 BankAccount = bankAccount,
+                                BankAccountNumber = bankAccountNumber, // Bank Account Code
                                 PayeeFullName = payee,
                                 RefNumber = refNumber,
                                 TotalAmount = totalAmount,
@@ -1199,7 +1212,7 @@ namespace VoucherPROVER2.Clients.DRC
                                 AddressCity = addressCity,
 
                                 Account = expAccount,
-                                AccountNumber = accNumber,
+                                AccountNumber = accNumber, // Expense Line Code
                                 ExpenseClass = exp.ClassRef?.FullName?.GetValue() ?? "",
                                 ExpensesAmount = expAmount,
                                 ExpensesMemo = exp.Memo?.GetValue() ?? "",
@@ -1249,6 +1262,7 @@ namespace VoucherPROVER2.Clients.DRC
                                 {
                                     DateCreated = txnDate,
                                     BankAccount = bankAccount,
+                                    BankAccountNumber = bankAccountNumber, // Bank Account Code
                                     PayeeFullName = payee,
                                     RefNumber = refNumber,
                                     TotalAmount = totalAmount,
