@@ -1824,7 +1824,7 @@ namespace VoucherPROVER2.Clients.INT
                     string code = match.Groups[1].Value.Trim();
                     string name = match.Groups[2].Value.Trim();
                     string padding = new string(' ', spacesAfter);
-                    return $"{code} -{padding}{name}";
+                    return $"{code} {padding}{name}";
                 }
                 return raw.Trim();
             }

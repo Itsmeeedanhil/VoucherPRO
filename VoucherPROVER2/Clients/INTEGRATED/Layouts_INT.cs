@@ -92,7 +92,7 @@ namespace VoucherPROVER2.Clients.INT
                 int minusY = 50;
 
                 // Payee Name
-                e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(125 - minusX, 117 - minusY));
+                e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(115 - minusX, 117 - minusY));
 
                 // Date
                 e.Graphics.DrawString(formattedDate, payeeFont, Brushes.Black, new PointF(595 - minusX, 79 - minusY)); //605 x coordinate is for the date on the check
