@@ -1,23 +1,24 @@
+using CrystalDecisions.CrystalReports.Engine;
+using CrystalDecisions.ReportAppServer;
+using CrystalDecisions.Shared;
+using CrystalDecisions.Windows.Forms;
+using QBFC16Lib;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.OleDb;
 using System.Drawing;
 using System.Drawing.Printing;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using CrystalDecisions.Shared;
-using CrystalDecisions.CrystalReports.Engine;
-using CrystalDecisions.Windows.Forms;
-using CrystalDecisions.ReportAppServer;
-using static VoucherPROVER2.Clients.INT.Dataclass_INT;
-using System.IO;
-using System.Data.OleDb;
 using VoucherPROVER2.Clients.INT;
 using VoucherPROVER2.Clients.INTEGRATED;
-using QBFC16Lib;
+using static VoucherPROVER2.Clients.INT.Dataclass_INT;
 
 
 namespace VoucherPROVER2.Clients.INT
@@ -1358,9 +1359,12 @@ namespace VoucherPROVER2.Clients.INT
                 }
 
                 string refumber2 = refNumberCR.Contains("/") ? refNumberCR.Split('/').Last() : refNumberCR;
-                string bankaccount = (bills[0].BankAccount ?? "").Contains(":")
-                                    ? (bills[0].BankAccount ?? "").Split(':').Last().Trim()
-                                    : (bills[0].BankAccount ?? "");
+                string rawBankAccount = (bills[0].BankAccount ?? "").Contains(":")
+                    ? (bills[0].BankAccount ?? "").Split(':').Last().Trim()
+                    : (bills[0].BankAccount ?? "");
+
+                // Strips leading account numbers, dashes, spaces, and separators
+                string bankaccount = Regex.Replace(rawBankAccount, @"^\d+\s*[-:·.]*\s*", "").Trim();
 
                 var bObj = bills[0];
 
