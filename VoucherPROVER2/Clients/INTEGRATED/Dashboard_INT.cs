@@ -1354,7 +1354,7 @@ namespace VoucherPROVER2.Clients.INT
                         string line2 = rawWords.Substring(breakIndex + 1);
 
                         // \r\n\r\n pushes the second line down with vertical spacing
-                        amountInWords = line1 + "\r\n\r\n" + line2;
+                        amountInWords = line1 + "\r\n" + line2;
                     }
                 }
 
