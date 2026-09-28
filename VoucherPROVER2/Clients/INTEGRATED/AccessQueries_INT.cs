@@ -304,7 +304,7 @@ namespace VoucherPROVER2.Clients.INT
                 sessionManager.BeginSession("", ENOpenMode.omDontCare);
                 Console.WriteLine("[DEBUG] Session Opened Successfully.");
 
-                // 0. Build Chart of Accounts Root Map
+                // 0. Build Chart of Accounts Parent-Consolidation Map
                 Dictionary<string, string> accountMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 try
                 {
@@ -334,35 +334,47 @@ namespace VoucherPROVER2.Clients.INT
                                 }
                             }
 
+                            // Traverse every account up to its top-most Root Parent
                             foreach (var kvp in rawAccounts)
                             {
-                                var root = kvp.Value;
+                                var current = kvp.Value;
+                                var root = current;
 
                                 while (!string.IsNullOrWhiteSpace(root.ParentFullName) && rawAccounts.ContainsKey(root.ParentFullName))
                                 {
                                     root = rawAccounts[root.ParentFullName];
                                 }
 
+                                // Determine the Root Parent's account number
                                 string rootAccNum = root.AccNum;
                                 if (string.IsNullOrWhiteSpace(rootAccNum))
                                 {
-                                    var match = Regex.Match(root.FullName, @"^(\d+)");
-                                    if (match.Success)
+                                    var matchRoot = Regex.Match(root.FullName, @"^(\d+)");
+                                    if (matchRoot.Success)
                                     {
-                                        rootAccNum = match.Groups[1].Value;
+                                        rootAccNum = matchRoot.Groups[1].Value;
+                                    }
+                                    else
+                                    {
+                                        var matchCurrent = Regex.Match(current.FullName, @"^(\d+)");
+                                        if (matchCurrent.Success)
+                                            rootAccNum = matchCurrent.Groups[1].Value;
                                     }
                                 }
 
+                                // Clean the ROOT Parent account name
                                 string cleanRootName = Regex.Replace(root.Name, @"^\d+\s*[-·:]*\s*", "").Trim();
 
-                                string consolidatedDisplayName = !string.IsNullOrWhiteSpace(rootAccNum)
+                                string consolidatedParentName = !string.IsNullOrWhiteSpace(rootAccNum)
                                     ? $"{rootAccNum} - {cleanRootName}"
                                     : cleanRootName;
 
-                                accountMap[kvp.Key] = consolidatedDisplayName;
-                                if (!accountMap.ContainsKey(kvp.Value.Name))
+                                // Map every variation of sub-accounts to the Root Parent representation
+                                accountMap[kvp.Key] = consolidatedParentName;
+                                accountMap[current.FullName] = consolidatedParentName;
+                                if (!accountMap.ContainsKey(current.Name))
                                 {
-                                    accountMap[kvp.Value.Name] = consolidatedDisplayName;
+                                    accountMap[current.Name] = consolidatedParentName;
                                 }
                             }
                         }
@@ -371,6 +383,40 @@ namespace VoucherPROVER2.Clients.INT
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[DEBUG] Error building account map: {ex.Message}");
+                }
+
+                // Helper to resolve an account name to its top-level parent
+                string ResolveToParent(string raw)
+                {
+                    if (string.IsNullOrWhiteSpace(raw)) return "";
+                    string trimmed = raw.Trim();
+
+                    if (accountMap.ContainsKey(trimmed))
+                        return accountMap[trimmed];
+
+                    // If account has sub-account colons (e.g., "1601 - Input Tax-1:Input Tax-Others")
+                    if (trimmed.Contains(":"))
+                    {
+                        string rootPart = trimmed.Split(':')[0].Trim();
+                        if (accountMap.ContainsKey(rootPart))
+                            return accountMap[rootPart];
+
+                        string leafPart = trimmed.Split(':').Last().Trim();
+                        if (accountMap.ContainsKey(leafPart))
+                            return accountMap[leafPart];
+
+                        // If not in map, format the root part directly
+                        var numMatch = Regex.Match(rootPart, @"^(\d+)\s*[-·:]*\s*(.*)$");
+                        if (numMatch.Success)
+                        {
+                            string num = numMatch.Groups[1].Value;
+                            string name = Regex.Replace(numMatch.Groups[2].Value, @"^\d+\s*[-·:]*\s*", "").Trim();
+                            return $"{num} - {name}";
+                        }
+                        return rootPart;
+                    }
+
+                    return trimmed;
                 }
 
                 // 1. Query Bill Payment Check
@@ -419,11 +465,7 @@ namespace VoucherPROVER2.Clients.INT
                             double discAmt = applied.DiscountAmount?.GetValue() ?? 0;
                             string rawDiscAcc = applied.DiscountAccountRef?.FullName?.GetValue() ?? "";
 
-                            string formattedDiscAcc = accountMap.ContainsKey(rawDiscAcc)
-                                ? accountMap[rawDiscAcc]
-                                : rawDiscAcc;
-
-                            appliedTxnDetails[tId] = (appliedAmt, discAmt, formattedDiscAcc);
+                            appliedTxnDetails[tId] = (appliedAmt, discAmt, ResolveToParent(rawDiscAcc));
                         }
                     }
                 }
@@ -469,9 +511,7 @@ namespace VoucherPROVER2.Clients.INT
                     string billRefNumber = bill.RefNumber?.GetValue() ?? "";
                     string specificTxnID = bill.TxnID?.GetValue() ?? "";
 
-                    string resolvedAPAccount = accountMap.ContainsKey(billAPAccount)
-                        ? accountMap[billAPAccount]
-                        : billAPAccount;
+                    string resolvedAPAccount = ResolveToParent(billAPAccount);
 
                     double individualBillPaidAmt = 0;
                     double discountAmt = 0;
@@ -484,7 +524,6 @@ namespace VoucherPROVER2.Clients.INT
                         discountAcc = appliedTxnDetails[specificTxnID].DiscountAccount;
                     }
 
-                    // Check Bill lines for linked vendor credits
                     if (bill.LinkedTxnList != null)
                     {
                         for (int l = 0; l < bill.LinkedTxnList.Count; l++)
@@ -534,11 +573,10 @@ namespace VoucherPROVER2.Clients.INT
                         {
                             var exp = bill.ExpenseLineRetList.GetAt(i);
                             string rawAccountName = exp.AccountRef?.FullName?.GetValue() ?? "";
-                            string resolvedAccountName = accountMap.ContainsKey(rawAccountName) ? accountMap[rawAccountName] : rawAccountName;
 
                             bt.ItemDetails.Add(new ItemDetail
                             {
-                                ItemLineItemRefFullName = resolvedAccountName,
+                                ItemLineItemRefFullName = ResolveToParent(rawAccountName),
                                 ItemLineAmount = exp.Amount?.GetValue() ?? 0,
                                 ItemLineClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
                                 ItemLineCustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
@@ -556,9 +594,11 @@ namespace VoucherPROVER2.Clients.INT
                             if (orItem.ItemLineRet != null)
                             {
                                 var item = orItem.ItemLineRet;
+                                string rawAccountName = item.ItemRef?.FullName?.GetValue() ?? "";
+
                                 bt.ItemDetails.Add(new ItemDetail
                                 {
-                                    ItemLineItemRefFullName = item.ItemRef?.FullName?.GetValue() ?? "",
+                                    ItemLineItemRefFullName = ResolveToParent(rawAccountName),
                                     ItemLineAmount = item.Amount?.GetValue() ?? 0,
                                     ItemLineClassRefFullName = item.ClassRef?.FullName?.GetValue() ?? "",
                                     ItemLineCustomerJob = item.CustomerRef?.FullName?.GetValue() ?? "",
@@ -577,7 +617,7 @@ namespace VoucherPROVER2.Clients.INT
                 double totalDiscounts = bills.Sum(b => b.AppliedToTxnDiscountAmount);
                 double expectedCreditAmount = calculatedTotalDebits - totalPaidCheck - totalDiscounts;
 
-                // 3. Query Vendor Credits via IVendorCreditQuery using ORTxnQuery
+                // 3. Query Vendor Credits
                 try
                 {
                     IMsgSetRequest reqCred = sessionManager.CreateMsgSetRequest("US", 13, 0);
@@ -618,7 +658,6 @@ namespace VoucherPROVER2.Clients.INT
                                     {
                                         var exp = vCredit.ExpenseLineRetList.GetAt(e);
                                         string rawAcc = exp.AccountRef?.FullName?.GetValue() ?? "";
-                                        string resolvedAcc = accountMap.ContainsKey(rawAcc) ? accountMap[rawAcc] : rawAcc;
                                         double lineAmt = exp.Amount?.GetValue() ?? 0;
 
                                         double appliedThisLine = Math.Min(lineAmt, remainingCreditToAllocate);
@@ -629,7 +668,7 @@ namespace VoucherPROVER2.Clients.INT
                                             CreditTxnID = vCredit.TxnID?.GetValue() ?? "",
                                             CreditRefNumber = crRefNum,
                                             AppliedAmount = appliedThisLine,
-                                            AccountRefFullName = resolvedAcc,
+                                            AccountRefFullName = ResolveToParent(rawAcc),
                                             ClassRefFullName = exp.ClassRef?.FullName?.GetValue() ?? "",
                                             CustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
                                             Memo = !string.IsNullOrWhiteSpace(exp.Memo?.GetValue()) ? exp.Memo.GetValue() : crMemo
