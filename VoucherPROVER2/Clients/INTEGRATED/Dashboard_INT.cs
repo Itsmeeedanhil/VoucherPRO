@@ -857,6 +857,7 @@ namespace VoucherPROVER2.Clients.INT
 
                                 TextObject textObject_JVCheckDate = cRJV_INT.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
                                 TextObject textObject_JVRefnumber = cRJV_INT.ReportDefinition.ReportObjects["TextJVRefnumber"] as TextObject;
+                                TextObject textObject_JVMemo = cRJV_INT.ReportDefinition.ReportObjects["TextMemo"] as TextObject;
                                 
 
                                 TextObject textObject_CompanyName = cRJV_INT.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
@@ -883,8 +884,14 @@ namespace VoucherPROVER2.Clients.INT
                                     debitTotalAmount += line.Debit;
                                     creditTotalAmount += line.Credit;
                                 }
+                                // Safely get the first non-empty memo without index-out-of-bounds risk
+                                string firstMemo = journal
+                                    ?.Select(x => x?.Memo)
+                                    ?.FirstOrDefault(m => !string.IsNullOrWhiteSpace(m)) ?? "";
 
+                                
                                 if (textObject_JVRefnumber != null) textObject_JVRefnumber.Text = refNumberCR;
+                                if (textObject_JVMemo != null) textObject_JVMemo.Text = firstMemo;
 
                                 AccessToDatabase_INT accessToDatabase = new AccessToDatabase_INT();
                                 var signatories = accessToDatabase.RetrieveAllSignatoryData();
@@ -902,7 +909,7 @@ namespace VoucherPROVER2.Clients.INT
                                 {
                                     // Open the subreport document
                                     ReportDocument subReportDocument = cRJV_INT.OpenSubreport(subreportObject.SubreportName);
-
+                                    
                                 }
 
 
