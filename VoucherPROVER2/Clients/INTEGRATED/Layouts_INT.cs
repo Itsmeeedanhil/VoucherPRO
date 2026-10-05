@@ -52,7 +52,9 @@ namespace VoucherPROVER2.Clients.INT
             string formattedMonth = string.Join("   ", month.ToCharArray());
             string formattedDay = string.Join("   ", day.ToCharArray());
             string formattedYear = string.Join("   ", year.ToCharArray());
-            string formattedDate = $"{formattedMonth}     {formattedDay}     {formattedYear}";
+
+            // Month and Day grouped together
+            string formattedMonthDay = $"{formattedMonth}     {formattedDay}";
 
             string payee = checkTableData[0].PayeeFullName.ToString();
 
@@ -80,22 +82,30 @@ namespace VoucherPROVER2.Clients.INT
                 e.Graphics.TranslateTransform(-e.MarginBounds.Height + 180, 0 - 70);
 
                 e.Graphics.DrawString(payee, payeeFont, Brushes.Black, new PointF(60, 410));
-                e.Graphics.DrawString(formattedDate, dateFont, Brushes.Black, new PointF(530, 380));
+
+                // --- DATE SECTION ---
+                // 1. Month and Day
+                e.Graphics.DrawString(formattedMonthDay, dateFont, Brushes.Black, new PointF(530, 380));
+                // 2. Year only (Decrease 635 to shift further left, increase to shift right)
+                e.Graphics.DrawString(formattedYear, dateFont, Brushes.Black, new PointF(635, 380));
+
                 e.Graphics.DrawString(amount.ToString("N2"), dateFont, Brushes.Black, new PointF(550, 38 + 345 + 30));
                 e.Graphics.DrawString(amountInWords, amountinWordsFont, Brushes.Black, new PointF(25, 430 + 15));
             }
             else
             {
                 // PREVIEW MODE / NORMAL PRINTING
-                // Adjust "minusX" and "minusY" to shift the whole block left/up
                 int minusX = 30;
                 int minusY = 50;
 
                 // Payee Name
-                e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(105 - minusX, 117 - minusY));
+                e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(113 - minusX, 117 - minusY));
 
-                // Date
-                e.Graphics.DrawString(formattedDate, payeeFont, Brushes.Black, new PointF(595 - minusX, 79 - minusY)); //605 x coordinate is for the date on the check
+                // --- DATE SECTION ---
+                // 1. Month and Day
+                e.Graphics.DrawString(formattedMonthDay, payeeFont, Brushes.Black, new PointF(595 - minusX, 79 - minusY));
+                // 2. Year only (Decrease 700 to shift further left, increase to shift right)
+                e.Graphics.DrawString(formattedYear, payeeFont, Brushes.Black, new PointF(700 - minusX, 79 - minusY));
 
                 // Amount (Number)
                 e.Graphics.DrawString(amount.ToString("N2"), payeeFont, Brushes.Black, new PointF(635 - minusX, 117 - minusY));
