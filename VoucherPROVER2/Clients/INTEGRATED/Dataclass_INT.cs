@@ -249,5 +249,15 @@ namespace VoucherPROVER2.Clients.INT
             public double Amount { get; set; }
             public string PayeeFullName { get; set; }
         }
+
+        public class FormSignatories
+        {
+            public string PreparedByName { get; set; } = "";
+            public string PreparedByPosition { get; set; } = "";
+            public string ReviewedByName { get; set; } = "";
+            public string ReviewedByPosition { get; set; } = "";
+            public string ApprovedByName { get; set; } = "";
+            public string ApprovedByPosition { get; set; } = "";
+        }
     }
 }

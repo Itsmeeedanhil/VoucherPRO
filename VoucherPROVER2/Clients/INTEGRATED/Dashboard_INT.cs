@@ -48,6 +48,12 @@ namespace VoucherPROVER2.Clients.INT
         Label label_SeriesNumberText;
         Label label_SignatoryRRStatus;
         private Label label_VoucherType;
+
+        ComboBox comboBox_Signatory;
+        TextBox textBox_SignatoryName;
+        TextBox textBox_SignatoryPosition;
+        Label label_SignatoryStatus;
+
         private ComboBox comboBox_VoucherType;
 
         private Label label_APAccount;
@@ -159,7 +165,7 @@ namespace VoucherPROVER2.Clients.INT
             });
 
             if (comboBox_Company.Items.Count > 0)
-            {   
+            {
                 comboBox_Company.SelectedIndex = 0;
             }
 
@@ -236,28 +242,6 @@ namespace VoucherPROVER2.Clients.INT
                 "EMPLOYEES SUPPLIES VOUCHER"
             });
             comboBox_VoucherType.SelectedIndex = 0;
-            // =========================================================================
-/*
-            label_CurrencyText = new Label
-            {
-                Parent = panel_Company,
-                Width = sideBarWidth - 10,
-                Text = "SELECT CURRENCY:",
-                TextAlign = ContentAlignment.MiddleLeft,
-                Font = font_Label,
-                Margin = new Padding(0, 5, 0, 0)
-            };
-
-            comboBox_Currency = new ComboBox
-            {
-                Parent = panel_Company,
-                Width = sideBarWidth - 28,
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Font = font_Label,
-            };
-
-            comboBox_Currency.Items.AddRange(new string[] { "Peso (₱)", "Dollar ($)" });
-            comboBox_Currency.SelectedIndex = 0;*/
 
             return panel_Company;
         }
@@ -365,38 +349,6 @@ namespace VoucherPROVER2.Clients.INT
                         // If we get here, we found the Print button
                         item.Click += (s, e) =>
                         {
-                            // Check if we are in IVP mode
-                            /*if (GlobalVariables.client == "IVP")
-                            {
-                                try
-                                {
-                                    string formType = "";
-                                    if (comboBox_Forms.SelectedIndex == 1) formType = "CV";
-                                    else if (comboBox_Forms.SelectedIndex == 3) formType = "JV";
-                                    else if (comboBox_Forms.SelectedIndex == 4) formType = "APV";
-
-                                    string selectedCompany = comboBox_Company.SelectedItem?.ToString();
-
-                                    if (formType != "" && !string.IsNullOrEmpty(selectedCompany))
-                                    {
-                                        // 1. Increment in memory
-                                        seriesNumber++;
-
-                                        // 2. Update Database
-                                        accessToDatabase.UpdateManualSeriesNumber(formType, seriesNumber, selectedCompany);
-
-                                        // 3. Update Sidebar UI safely
-                                        this.BeginInvoke((MethodInvoker)delegate
-                                        {
-                                            UpdateSeriesNumberIVP(formType);
-                                        });
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    MessageBox.Show($"Error updating series number: {ex.Message}");
-                                }
-                            }*/ // FOR MANUAL ENTRY
 
                             if (GlobalVariables.client == "INT")
                             {
@@ -461,6 +413,7 @@ namespace VoucherPROVER2.Clients.INT
                 panel_Payee.Parent = panel_SideBar;
                 // ----------------------
             }
+
 
             // - REF NUMBER ---------------------------------------------
             panel_RefNumber = Panel_SBRefNumber();
@@ -715,9 +668,9 @@ namespace VoucherPROVER2.Clients.INT
 
 
                                     AccessToDatabase_INT accessToDatabase = new AccessToDatabase_INT();
-                                    var signatories = accessToDatabase.RetrieveAllSignatoryData();
+                                    var signatories = accessToDatabase.RetrieveAllSignatoryData("CV");
 
-                                    
+
                                     double amount = cvData[0].TotalAmount;
                                     string amountInWords = AccessToDatabase_INT.AmountToWordsConverter.Convert(amount);
                                     string rawBank = cvData[0].BankAccount ?? "";
@@ -755,7 +708,7 @@ namespace VoucherPROVER2.Clients.INT
                                     textObject_CVTotal.Text = cvData[0].TotalAmount.ToString("N2");
 
 
-                                    
+
 
                                     textObject_PreparedBy.Text = signatories.PreparedByName;
                                     textObject_PreparedByPos.Text = signatories.PreparedByPosition;
@@ -824,22 +777,33 @@ namespace VoucherPROVER2.Clients.INT
 
                         else if (comboBox_Forms.SelectedIndex == 3)
                         {
+                            string refNumberCR = textBox_ReferenceNumber_CR.Text.Trim();
+                            string selectedVoucherTitle = comboBox_VoucherType?.SelectedItem?.ToString()?.Trim() ?? "JOURNAL VOUCHER";
+
+                            // =========================================================================
+                            // VALIDATE FORMAT (PREVENTS ESV FROM DISPLAYING JV AND VICE-VERSA)
+                            // =========================================================================
+                            if (!ValidateVoucherReferenceNumber(selectedVoucherTitle, refNumberCR, out string validationError))
+                            {
+                                MessageBox.Show(validationError, "Voucher Type Mismatch", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                return;
+                            }
+
                             CRJV_INT cRJV_INT = new CRJV_INT();
                             string databasePath = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
                             SetDatabaseLocation(cRJV_INT, databasePath);
 
                             AccessQueries_INT accessQueries = new AccessQueries_INT();
-                            string refNumberCR = textBox_ReferenceNumber_CR.Text;
 
                             journal = accessQueries.GetJournalEntryForGrid(refNumberCR);
 
                             if (journal != null && journal.Count > 0)
                             {
                                 // =========================================================================
-                                // READ VOUCHER TYPE SELECTION
+                                // READ VOUCHER TYPE SELECTION & SET LABELS
                                 // =========================================================================
-                                string selectedVoucherTitle = comboBox_VoucherType?.SelectedItem?.ToString() ?? "JOURNAL ENTRY VOUCHER";
-                                string voucherNoLabel = (selectedVoucherTitle == "EMPLOYEE SUPPLIES VOUCHER") ? "E.S.V. No.:" : "J.V. No.:";
+                                bool isESV = selectedVoucherTitle.StartsWith("EMPLOYEE", StringComparison.OrdinalIgnoreCase);
+                                string voucherNoLabel = isESV ? "E.S.V. No.:" : "J.V. No.:";
 
                                 // Pass title to report
                                 if (cRJV_INT.ReportDefinition.ReportObjects["TextReportTitle"] is TextObject textObject_ReportTitle)
@@ -847,75 +811,64 @@ namespace VoucherPROVER2.Clients.INT
                                     textObject_ReportTitle.Text = selectedVoucherTitle;
                                 }
 
-                                // Pass label to report
+                                // Pass label to report (E.S.V. No.: or J.V. No.:)
                                 if (cRJV_INT.ReportDefinition.ReportObjects["TextVoucherNoLabel"] is TextObject textObject_VoucherNoLabel)
                                 {
                                     textObject_VoucherNoLabel.Text = voucherNoLabel;
                                 }
                                 // =========================================================================
 
-
                                 TextObject textObject_JVCheckDate = cRJV_INT.ReportDefinition.ReportObjects["TextJVCheckDate"] as TextObject;
                                 TextObject textObject_JVRefnumber = cRJV_INT.ReportDefinition.ReportObjects["TextJVRefnumber"] as TextObject;
                                 TextObject textObject_JVMemo = cRJV_INT.ReportDefinition.ReportObjects["TextMemo"] as TextObject;
-                                
 
                                 TextObject textObject_CompanyName = cRJV_INT.ReportDefinition.ReportObjects["TextCompanyName"] as TextObject;
-                                if (textObject_CompanyName != null && comboBox_Company != null && comboBox_Company.SelectedItem != null)
+                                if (textObject_CompanyName != null && comboBox_Company?.SelectedItem != null)
                                 {
                                     textObject_CompanyName.Text = comboBox_Company.SelectedItem.ToString();
                                 }
 
                                 TextObject textObject_PreparedBy = cRJV_INT.ReportDefinition.ReportObjects["TextPreparedBy"] as TextObject;
-                                //TextObject textObject_PreparedByPos = cRJV_INT.ReportDefinition.ReportObjects["TextPreparedByPosition"] as TextObject;
                                 TextObject textObject_CheckedBy = cRJV_INT.ReportDefinition.ReportObjects["TextCheckedBy"] as TextObject;
-                                //TextObject textObject_CheckedByPos = cRJV_INT.ReportDefinition.ReportObjects["TextCheckedByPosition"] as TextObject;
                                 TextObject textObject_ApprovedBy = cRJV_INT.ReportDefinition.ReportObjects["TextApprovedBy"] as TextObject;
-                                //TextObject textObject_ApprovedByPos = cRJV_INT.ReportDefinition.ReportObjects["TextApprovedByPosition"] as TextObject;
 
-                                if (textObject_JVCheckDate != null) textObject_JVCheckDate.Text = journal[0].Date.ToString("MMMM dd, yyyy");
+                                if (textObject_JVCheckDate != null)
+                                    textObject_JVCheckDate.Text = journal[0].Date.ToString("MMMM dd, yyyy");
 
-                                string Refnumber = refNumberCR;
-                                double debitTotalAmount = 0;
-                                double creditTotalAmount = 0;
-
-                                foreach (var line in journal)
-                                {
-                                    debitTotalAmount += line.Debit;
-                                    creditTotalAmount += line.Credit;
-                                }
-                                // Safely get the first non-empty memo without index-out-of-bounds risk
                                 string firstMemo = journal
                                     ?.Select(x => x?.Memo)
                                     ?.FirstOrDefault(m => !string.IsNullOrWhiteSpace(m)) ?? "";
 
-                                
-                                if (textObject_JVRefnumber != null) textObject_JVRefnumber.Text = refNumberCR;
-                                if (textObject_JVMemo != null) textObject_JVMemo.Text = firstMemo;
+                                string displayMemo = firstMemo.Contains('.')
+                                    ? firstMemo.Split(new[] { '.' }, 2)[1].Trim()
+                                    : firstMemo.Trim();
+
+                                // Break long unbroken strings so Crystal Reports can wrap cleanly
+                                displayMemo = WrapLongWords(displayMemo, 32);
+
+                                if (textObject_JVRefnumber != null)
+                                    textObject_JVRefnumber.Text = refNumberCR;
+
+                                if (textObject_JVMemo != null)
+                                    textObject_JVMemo.Text = displayMemo;
 
                                 AccessToDatabase_INT accessToDatabase = new AccessToDatabase_INT();
-                                var signatories = accessToDatabase.RetrieveAllSignatoryData();
+                                var signatories = accessToDatabase.RetrieveAllSignatoryData("JV");
 
-                                textObject_PreparedBy.Text = signatories.PreparedByName;
-                                //textObject_PreparedByPos.Text = signatories.PreparedByPosition;
-                                textObject_CheckedBy.Text = signatories.ReviewedByName;
-                                //textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
-                                textObject_ApprovedBy.Text = signatories.ApprovedByName;
-                                //textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
+                                if (textObject_PreparedBy != null) textObject_PreparedBy.Text = signatories.PreparedByName;
+                                if (textObject_CheckedBy != null) textObject_CheckedBy.Text = signatories.ReviewedByName;
+                                if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = signatories.ApprovedByName;
 
-                                // 4. Handle Subreport
+                                // Subreport handling
                                 SubreportObject subreportObject = cRJV_INT.ReportDefinition.ReportObjects["SubreportJVDetailsIVP"] as SubreportObject;
                                 if (subreportObject != null)
                                 {
-                                    // Open the subreport document
                                     ReportDocument subReportDocument = cRJV_INT.OpenSubreport(subreportObject.SubreportName);
-                                    
                                 }
-
 
                                 InsertDataToJournalCompiled(refNumberCR, journal);
 
-                                // 6. Final Report Settings
+                                // Final Report Settings
                                 cRJV_INT.SetParameterValue("ReferenceNumber", refNumberCR);
 
                                 panel_Printing.Visible = false;
@@ -948,6 +901,26 @@ namespace VoucherPROVER2.Clients.INT
 
             return panel_RefNumber_CR;
         }
+
+        private static string WrapLongWords(string text, int maxWordLength = 40)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+
+            var words = text.Split(' ');
+            for (int i = 0; i < words.Length; i++)
+            {
+                if (words[i].Length > maxWordLength)
+                {
+                    // Insert space or newline every `maxWordLength` characters
+                    var chunks = Enumerable.Range(0, (words[i].Length + maxWordLength - 1) / maxWordLength)
+                                           .Select(chIdx => words[i].Substring(chIdx * maxWordLength,
+                                                    Math.Min(maxWordLength, words[i].Length - chIdx * maxWordLength)));
+                    words[i] = string.Join(" ", chunks);
+                }
+            }
+            return string.Join(" ", words);
+        }
+
 
         private bool GenerateAPVReport_INT(string refNumberCR)
         {
@@ -998,18 +971,14 @@ namespace VoucherPROVER2.Clients.INT
 
                     AccessToDatabase_INT accessToDatabase = new AccessToDatabase_INT();
 
-                    var (PreparedByName, PreparedByPosition,
-                         ReviewedByName, ReviewedByPosition,
-                         RecommendingApprovalName, RecommendingApprovalPosition,
-                         ApprovedByName, ApprovedByPosition,
-                         ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
+                    var signatories = accessToDatabase.RetrieveAllSignatoryData("APV");
 
-                    if (textObject_PreparedBy != null) textObject_PreparedBy.Text = PreparedByName;
-                    if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = PreparedByPosition;
-                    if (textObject_CheckedBy != null) textObject_CheckedBy.Text = ReviewedByName;
-                    if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = ReviewedByPosition;
-                    if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = ApprovedByName;
-                    if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = ApprovedByPosition;
+                    if (textObject_PreparedBy != null) textObject_PreparedBy.Text = signatories.PreparedByName;
+                    if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = signatories.PreparedByPosition;
+                    if (textObject_CheckedBy != null) textObject_CheckedBy.Text = signatories.ReviewedByName;
+                    if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
+                    if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = signatories.ApprovedByName;
+                    if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
                 }
                 catch
                 {
@@ -1221,18 +1190,14 @@ namespace VoucherPROVER2.Clients.INT
 
                     AccessToDatabase_INT accessToDatabase = new AccessToDatabase_INT();
 
-                    var (PreparedByName, PreparedByPosition,
-                         ReviewedByName, ReviewedByPosition,
-                         RecommendingApprovalName, RecommendingApprovalPosition,
-                         ApprovedByName, ApprovedByPosition,
-                         ReceivedByName, ReceivedByPosition) = accessToDatabase.RetrieveAllSignatoryData();
+                    var signatories = accessToDatabase.RetrieveAllSignatoryData("CV");
 
-                    if (textObject_PreparedBy != null) textObject_PreparedBy.Text = PreparedByName;
-                    if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = PreparedByPosition;
-                    if (textObject_CheckedBy != null) textObject_CheckedBy.Text = ReviewedByName;
-                    if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = ReviewedByPosition;
-                    if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = ApprovedByName;
-                    if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = ApprovedByPosition;
+                    if (textObject_PreparedBy != null) textObject_PreparedBy.Text = signatories.PreparedByName;
+                    if (textObject_PreparedByPos != null) textObject_PreparedByPos.Text = signatories.PreparedByPosition;
+                    if (textObject_CheckedBy != null) textObject_CheckedBy.Text = signatories.ReviewedByName;
+                    if (textObject_CheckedByPos != null) textObject_CheckedByPos.Text = signatories.ReviewedByPosition;
+                    if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = signatories.ApprovedByName;
+                    if (textObject_ApprovedByPos != null) textObject_ApprovedByPos.Text = signatories.ApprovedByPosition;
                 }
                 catch
                 {
@@ -1506,13 +1471,15 @@ namespace VoucherPROVER2.Clients.INT
                 // Group Positive Item Debits
                 var groupedItemDebits = checkData
                     .Where(x => !string.IsNullOrEmpty(x.Item) && x.ItemAmount > 0)
-                    .GroupBy(x => new {
+                    .GroupBy(x => new
+                    {
                         Name = x.Item.Trim(),
                         Class = x.ItemClass ?? "",
                         Memo = x.ExpensesMemo ?? "",
                         CustomerJob = x.ExpensesCustomerJob ?? ""
                     })
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         Particulars = g.Key.Name,
                         Class = g.Key.Class,
                         Memo = g.Key.Memo,
@@ -1523,13 +1490,15 @@ namespace VoucherPROVER2.Clients.INT
                 // Group Positive Expense Debits
                 var groupedExpenseDebits = checkData
                     .Where(x => !string.IsNullOrEmpty(x.Account) && x.ExpensesAmount > 0)
-                    .GroupBy(x => new {
+                    .GroupBy(x => new
+                    {
                         Name = x.Account.Trim(),
                         Class = x.ExpenseClass ?? "",
                         Memo = x.ExpensesMemo ?? "",
                         CustomerJob = x.ExpensesCustomerJob ?? ""
                     })
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         Particulars = g.Key.Name,
                         Class = g.Key.Class,
                         Memo = g.Key.Memo,
@@ -1569,13 +1538,15 @@ namespace VoucherPROVER2.Clients.INT
                 // Group Negative Item Credits (e.g. discounts/returns)
                 var groupedItemCredits = checkData
                     .Where(x => !string.IsNullOrEmpty(x.Item) && x.ItemAmount < 0)
-                    .GroupBy(x => new {
+                    .GroupBy(x => new
+                    {
                         Name = x.Item.Trim(),
                         Class = x.ItemClass ?? "",
                         Memo = x.ExpensesMemo ?? "",
                         CustomerJob = x.ExpensesCustomerJob ?? ""
                     })
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         Particulars = g.Key.Name,
                         Class = g.Key.Class,
                         Memo = g.Key.Memo,
@@ -1586,13 +1557,15 @@ namespace VoucherPROVER2.Clients.INT
                 // Group Negative Expense Credits (e.g. Tax Withholdings / EWT)
                 var groupedExpenseCredits = checkData
                     .Where(x => !string.IsNullOrEmpty(x.Account) && x.ExpensesAmount < 0)
-                    .GroupBy(x => new {
+                    .GroupBy(x => new
+                    {
                         Name = x.Account.Trim(),
                         Class = x.ExpenseClass ?? "",
                         Memo = x.ExpensesMemo ?? "",
                         CustomerJob = x.ExpensesCustomerJob ?? ""
                     })
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         Particulars = g.Key.Name,
                         Class = g.Key.Class,
                         Memo = g.Key.Memo,
@@ -1665,7 +1638,8 @@ namespace VoucherPROVER2.Clients.INT
                 // =========================================================================
                 var descriptionOnlyEntries = checkData
                     .Where(x => string.IsNullOrEmpty(x.Item) && string.IsNullOrEmpty(x.Account) && !string.IsNullOrEmpty(x.ItemDescription))
-                    .GroupBy(x => new {
+                    .GroupBy(x => new
+                    {
                         Description = x.ItemDescription.Trim(),
                         Memo = x.ExpensesMemo ?? "",
                         CustomerJob = x.ExpensesCustomerJob ?? ""
@@ -1704,7 +1678,6 @@ namespace VoucherPROVER2.Clients.INT
             double debitTotalAmount = 0;
             double creditTotalAmount = 0;
 
-            // Local helper function to safely truncate text to database limits
             string SafeTruncate(string value, int maxLength)
             {
                 if (string.IsNullOrEmpty(value)) return "";
@@ -1730,18 +1703,16 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                // 2. Prepare Insert Query (Added [AccountNumber] field)
-                string insertQuery = @"
-                        INSERT INTO JV_Compiled 
-                        (RefNumber, [AccountNumber], [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
-                        VALUES 
-                        (@RefNumber, @AccountNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
+                // 2. Prepare Insert Query
+                string insertQuery = @"INSERT INTO JV_Compiled 
+                               (RefNumber, [AccountNumber], [Particulars], [Class], [Name], [Debit], [Credit], [Memo]) 
+                               VALUES 
+                               (@RefNumber, @AccountNumber, @Particulars, @Class, @Name, @Debit, @Credit, @Memo)";
 
                 foreach (var line in journalData)
                 {
                     try
                     {
-                        // MAPPING VARIABLES (With Safe Truncation to prevent DB overflow)
                         string accountNumber = SafeTruncate(line.AccountNumber, 50);
                         string particulars = SafeTruncate(line.AccountName, 500);
                         string className = line.Class;
@@ -1751,9 +1722,6 @@ namespace VoucherPROVER2.Clients.INT
                         string debitStr = "";
                         string creditStr = "";
 
-                        // ---------------------------------------------------------
-                        // SEPARATE DEBIT / CREDIT LOGIC
-                        // ---------------------------------------------------------
                         if (line.Debit != 0)
                         {
                             debitTotalAmount += line.Debit;
@@ -1765,25 +1733,15 @@ namespace VoucherPROVER2.Clients.INT
                             creditStr = line.Credit.ToString("N2");
                         }
 
-                        // EXECUTE INSERT
                         using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                         {
-                            // OleDb relies strictly on POSITIONAL parameter matching.
-                            // The order below EXACTLY matches the INSERT statement above.
                             command.Parameters.AddWithValue("@RefNumber", refNumber);
                             command.Parameters.AddWithValue("@AccountNumber", string.IsNullOrEmpty(accountNumber) ? (object)DBNull.Value : accountNumber);
                             command.Parameters.AddWithValue("@Particulars", particulars);
-
-                            // Handle Class nulls
                             command.Parameters.AddWithValue("@Class", string.IsNullOrEmpty(className) ? (object)DBNull.Value : className);
-
-                            // Name Parameter
                             command.Parameters.AddWithValue("@Name", string.IsNullOrEmpty(nameValue) ? (object)DBNull.Value : nameValue);
-
-                            // Insert separated Debit and Credit strings
                             command.Parameters.AddWithValue("@Debit", debitStr);
                             command.Parameters.AddWithValue("@Credit", creditStr);
-
                             command.Parameters.AddWithValue("@Memo", memoValue);
 
                             command.ExecuteNonQuery();
@@ -1798,7 +1756,6 @@ namespace VoucherPROVER2.Clients.INT
                 connection.Close();
             }
 
-            // Console Log for verification
             Console.WriteLine($"Processed. Total Debit: {debitTotalAmount:F2}, Total Credit: {creditTotalAmount:F2}");
         }
 
@@ -1868,7 +1825,8 @@ namespace VoucherPROVER2.Clients.INT
                 var groupedDebits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount > 0)
                     .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         Particulars = g.Key,
                         Memo = string.Join("; ", g.Select(x => x.Detail.ItemLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalAmount = g.Sum(x => x.Detail.ItemLineAmount)
@@ -1903,7 +1861,8 @@ namespace VoucherPROVER2.Clients.INT
                 var groupedExpenseCredits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount < 0)
                     .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         Particulars = g.Key,
                         Memo = string.Join("; ", g.Select(x => x.Detail.ItemLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalCreditAmount = Math.Abs(g.Sum(x => x.Detail.ItemLineAmount))
@@ -1919,7 +1878,8 @@ namespace VoucherPROVER2.Clients.INT
                 var groupedDiscounts = bills
                     .Where(b => b.AppliedToTxnDiscountAmount > 0 && !string.IsNullOrEmpty(b.AppliedToTxnDiscountAccountRefFullName))
                     .GroupBy(b => b.AppliedToTxnDiscountAccountRefFullName.Trim())
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         AccountName = g.Key,
                         TotalDiscount = g.Sum(b => Math.Abs(b.AppliedToTxnDiscountAmount))
                     });
@@ -1935,7 +1895,8 @@ namespace VoucherPROVER2.Clients.INT
                     .Where(b => b.AppliedBillCredits != null && b.AppliedBillCredits.Count > 0)
                     .SelectMany(b => b.AppliedBillCredits)
                     .GroupBy(c => c.AccountRefFullName.Trim())
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         AccountName = g.Key,
                         TotalCreditApplied = g.Sum(c => c.AppliedAmount),
                         Memo = string.Join("; ", g.Select(c => $"Credit #{c.CreditRefNumber} - {c.Memo}".Trim()).Distinct())
@@ -2040,7 +2001,8 @@ namespace VoucherPROVER2.Clients.INT
                 var groupedItemDebits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ItemLineItemRefFullName) && x.Detail.ItemLineAmount > 0)
                     .GroupBy(x => x.Detail.ItemLineItemRefFullName.Trim())
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         Particulars = g.Key,
                         Memo = string.Join("; ", g.Select(x => x.Detail.ItemLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalAmount = g.Sum(x => x.Detail.ItemLineAmount)
@@ -2049,7 +2011,8 @@ namespace VoucherPROVER2.Clients.INT
                 var groupedExpenseDebits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount > 0)
                     .GroupBy(x => x.Detail.ExpenseLineItemRefFullName.Trim())
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         Particulars = g.Key,
                         Memo = string.Join("; ", g.Select(x => x.Detail.ExpenseLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalAmount = g.Sum(x => x.Detail.ExpenseLineAmount)
@@ -2076,11 +2039,13 @@ namespace VoucherPROVER2.Clients.INT
                 // =========================================================================
                 var groupedExpenseCredits = allDetails
                     .Where(x => !string.IsNullOrEmpty(x.Detail.ExpenseLineItemRefFullName) && x.Detail.ExpenseLineAmount < 0)
-                    .GroupBy(x => {
+                    .GroupBy(x =>
+                    {
                         string rawAcc = x.Detail.ExpenseLineItemRefFullName.Trim();
                         return rawAcc.Contains(":") ? rawAcc.Split(':').Last().Trim() : rawAcc;
                     })
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         Particulars = g.Key,
                         Memo = string.Join("; ", g.Select(x => x.Detail.ExpenseLineMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalCreditAmount = Math.Abs(g.Sum(x => x.Detail.ExpenseLineAmount))
@@ -2109,11 +2074,13 @@ namespace VoucherPROVER2.Clients.INT
                 // Discounts
                 var groupedDiscounts = bills
                     .Where(b => b.AppliedToTxnDiscountAmount > 0 && !string.IsNullOrEmpty(b.AppliedToTxnDiscountAccountRefFullName))
-                    .GroupBy(b => {
+                    .GroupBy(b =>
+                    {
                         string rawAcc = b.AppliedToTxnDiscountAccountRefFullName;
                         return rawAcc.Contains(":") ? rawAcc.Split(':').Last().Trim() : rawAcc.Trim();
                     })
-                    .Select(g => new {
+                    .Select(g => new
+                    {
                         AccountName = g.Key,
                         Memos = string.Join("; ", bills.Select(x => x.Memo ?? x.BillMemo).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct()),
                         TotalDiscount = g.Sum(b => Math.Abs(b.AppliedToTxnDiscountAmount))
@@ -2240,7 +2207,7 @@ namespace VoucherPROVER2.Clients.INT
                     checkivp = new List<CheckTableGrid>();
 
                     object data = null;
-                    
+
                     if (GlobalVariables.client == "INT")
                     {
                         if (comboBox_Forms.SelectedIndex == 2) // Check
@@ -2300,12 +2267,9 @@ namespace VoucherPROVER2.Clients.INT
         {
             FlowLayoutPanel panel_Signatory = new FlowLayoutPanel
             {
-                //Parent = groupBox_Signatory,
-                //Parent = panel_SideBar,
                 Dock = DockStyle.Top,
                 Height = 141,
                 Width = sideBarWidth - 10,
-                //BackColor = Color.Transparent,
                 BackColor = Color.LightGray,
                 Padding = new Padding(5, 2, 5, 0),
                 BorderStyle = BorderStyle.FixedSingle,
@@ -2317,11 +2281,10 @@ namespace VoucherPROVER2.Clients.INT
                 Width = sideBarWidth - 30,
                 Text = "SIGNATORY",
                 TextAlign = ContentAlignment.MiddleCenter,
-                //Font = new Font("Microsoft Sans Serif", 8, FontStyle.Bold),
                 Font = font_Label,
             };
 
-            ComboBox comboBox_Signatory = new ComboBox
+            comboBox_Signatory = new ComboBox
             {
                 Parent = panel_Signatory,
                 Width = sideBarWidth - 28,
@@ -2329,32 +2292,8 @@ namespace VoucherPROVER2.Clients.INT
                 Font = font_Label,
             };
 
-            if (GlobalVariables.client == "INT")
-            {
-                comboBox_Signatory.Items.AddRange(new string[]
-                {
-                    "Select Signatory Option",
-                    "Prepared By:",
-                    "Checked By:",
-                    "A/P:",
-                    //"Received Payment By:",
-                });
-            }
-
-
-            else
-            {
-                comboBox_Signatory.Items.AddRange(new string[]
-                {
-                    "Select Signatory Option",
-                    "Prepared By:",
-                    "Checked By:",
-                    "Approved By:",
-                    "Noted By:",
-                });
-            }
-
-            comboBox_Signatory.SelectedIndex = 0;
+            // Populate options dynamically depending on the current form
+            UpdateSignatoryDropdownOptions();
 
             Label label_SignatoryName = new Label
             {
@@ -2365,11 +2304,15 @@ namespace VoucherPROVER2.Clients.INT
                 Font = new Font("Microsoft Sans Serif", 8),
             };
 
-            TextBox textBox_SignatoryName = new TextBox
+            textBox_SignatoryName = new TextBox
             {
                 Parent = panel_Signatory,
-                Width = 165, // 250
+                Width = 165,
                 Font = new Font("Microsoft Sans Serif", 8),
+            };
+            textBox_SignatoryName.Leave += (sender, e) =>
+            {
+                textBox_SignatoryName.Text = AccessToDatabase_INT.ToTitleCase(textBox_SignatoryName.Text);
             };
 
             Label label_SignatoryPosition = new Label
@@ -2381,11 +2324,15 @@ namespace VoucherPROVER2.Clients.INT
                 Font = new Font("Microsoft Sans Serif", 8),
             };
 
-            TextBox textBox_SignatoryPosition = new TextBox
+            textBox_SignatoryPosition = new TextBox
             {
                 Parent = panel_Signatory,
-                Width = 165, // 250
+                Width = 165,
                 Font = new Font("Microsoft Sans Serif", 8),
+            };
+            textBox_SignatoryPosition.Leave += (sender, e) =>
+            {
+                textBox_SignatoryPosition.Text = AccessToDatabase_INT.ToTitleCase(textBox_SignatoryPosition.Text);
             };
 
             Button button_SaveSignatory = new Button
@@ -2399,12 +2346,11 @@ namespace VoucherPROVER2.Clients.INT
                 BackColor = Color.Transparent,
             };
 
-            Label label_SignatoryStatus = new Label
+            label_SignatoryStatus = new Label
             {
                 Parent = panel_Signatory,
                 Height = 22,
                 Width = 110,
-                //Text = "Saved!",
                 TextAlign = ContentAlignment.MiddleCenter,
                 Font = new Font("Microsoft Sans Serif", 8),
                 Margin = new Padding(0, 3, 0, 0),
@@ -2414,16 +2360,23 @@ namespace VoucherPROVER2.Clients.INT
             {
                 if (comboBox_Signatory.SelectedIndex == 0)
                 {
-                    MessageBox.Show("Please selecet an option");
+                    MessageBox.Show("Please select an option", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
                 {
-                    string signatoryName = textBox_SignatoryName.Text;
-                    string signatoryPosition = textBox_SignatoryPosition.Text;
+                    string currentFormType = GetCurrentFormTypeKey();
+
+                    // Auto convert to First Letter Uppercase (Title Case)
+                    string signatoryName = AccessToDatabase_INT.ToTitleCase(textBox_SignatoryName.Text.Trim());
+                    string signatoryPosition = AccessToDatabase_INT.ToTitleCase(textBox_SignatoryPosition.Text.Trim());
+
+                    textBox_SignatoryName.Text = signatoryName;
+                    textBox_SignatoryPosition.Text = signatoryPosition;
 
                     int choice = comboBox_Signatory.SelectedIndex;
 
-                    accessToDatabase.SaveSignatoryData(choice, signatoryName, signatoryPosition);
+                    // Save scoped by current form selection
+                    accessToDatabase.SaveSignatoryData(currentFormType, choice, signatoryName, signatoryPosition);
                     label_SignatoryStatus.Text = "Saved";
                 }
             };
@@ -2438,8 +2391,11 @@ namespace VoucherPROVER2.Clients.INT
                 else
                 {
                     label_SignatoryStatus.Text = "";
+                    string currentFormType = GetCurrentFormTypeKey();
                     int choice = comboBox_Signatory.SelectedIndex;
-                    var signatoryData = accessToDatabase.RetrieveSignatoryData(choice);
+
+                    // Retrieve scoped by current form selection
+                    var signatoryData = accessToDatabase.RetrieveSignatoryData(currentFormType, choice);
 
                     textBox_SignatoryName.Text = signatoryData.Name;
                     textBox_SignatoryPosition.Text = signatoryData.Position;
@@ -2447,6 +2403,40 @@ namespace VoucherPROVER2.Clients.INT
             };
 
             return panel_Signatory;
+        }
+
+        private void UpdateSignatoryDropdownOptions()
+        {
+            if (comboBox_Signatory == null) return;
+
+            comboBox_Signatory.Items.Clear();
+
+            if (GlobalVariables.client == "INT")
+            {
+                // Index 3 is Journal Voucher -> "Approved By:"
+                string thirdOption = (comboBox_Forms != null && comboBox_Forms.SelectedIndex == 3) ? "Approved By:" : "A/P:";
+
+                comboBox_Signatory.Items.AddRange(new string[]
+                {
+            "Select Signatory Option",
+            "Prepared By:",
+            "Checked By:",
+            thirdOption
+                });
+            }
+            else
+            {
+                comboBox_Signatory.Items.AddRange(new string[]
+                {
+            "Select Signatory Option",
+            "Prepared By:",
+            "Checked By:",
+            "Approved By:",
+            "Noted By:"
+                });
+            }
+
+            comboBox_Signatory.SelectedIndex = 0;
         }
 
         private FlowLayoutPanel Panel_SBRRSignatory()
@@ -2731,6 +2721,18 @@ namespace VoucherPROVER2.Clients.INT
             return panel_Printing;
         }
 
+        private string GetCurrentFormTypeKey()
+        {
+            switch (comboBox_Forms?.SelectedIndex)
+            {
+                case 1: return "CV";          // Check Voucher / Bills Payment
+                case 2: return "CHECK";       // Check
+                case 3: return "JV";          // Journal Voucher
+                case 4: return "APV";         // Check Voucher / Enter Bills
+                default: return "DEFAULT";
+            }
+        }
+
         private void ComboBox_Forms_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (reportViewer != null)
@@ -2741,6 +2743,13 @@ namespace VoucherPROVER2.Clients.INT
 
             seriesNumber = 0;
             textBox_SeriesNumber.Text = "";
+
+            // Rebuild the signatory items so JV gets "Approved By:" and CV/APV gets "A/P:"
+            UpdateSignatoryDropdownOptions();
+
+            if (textBox_SignatoryName != null) textBox_SignatoryName.Text = "";
+            if (textBox_SignatoryPosition != null) textBox_SignatoryPosition.Text = "";
+            if (label_SignatoryStatus != null) label_SignatoryStatus.Text = "";
 
             if (GlobalVariables.client == "INT")
             {
@@ -2937,6 +2946,36 @@ namespace VoucherPROVER2.Clients.INT
         {
             if (string.IsNullOrEmpty(value)) return value;
             return value.Length > maxLength ? value.Substring(0, maxLength) : value;
+        }
+
+        private bool ValidateVoucherReferenceNumber(string voucherTitle, string refNumber, out string errorMessage)
+        {
+            errorMessage = "";
+            string trimmedRef = refNumber.Trim();
+
+            bool isESV = voucherTitle.StartsWith("EMPLOYEE", StringComparison.OrdinalIgnoreCase);
+
+            if (isESV)
+            {
+                // ESV format: xxx-xx (e.g. 123-26)
+                if (!Regex.IsMatch(trimmedRef, @"^\d{3}-\d{2}$"))
+                {
+                    errorMessage = "Invalid Reference Number for Employees Supplies Voucher.\nExpected format: 123-26 (xxx-xx)";
+                    return false;
+                }
+            }
+            else
+            {
+                // Journal Voucher format: 6 digits (e.g. 000001)
+                // If your system allows fewer leading zeros before formatting, use @"^\d{1,6}$"
+                if (!Regex.IsMatch(trimmedRef, @"^\d{6}$"))
+                {
+                    errorMessage = "Invalid Reference Number for Journal Voucher.\nExpected format: 000001 (6-digit numeric format)";
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

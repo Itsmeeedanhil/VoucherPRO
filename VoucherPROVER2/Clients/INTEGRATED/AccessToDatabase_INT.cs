@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static VoucherPROVER2.Clients.INT.Dataclass_INT;
 
 namespace VoucherPROVER2.Clients.INT
 {
@@ -188,7 +189,7 @@ namespace VoucherPROVER2.Clients.INT
             Console.WriteLine("All data from specified tables has been deleted.");
         }
 
-        public void SaveSignatoryData(int choice, string name, string position)
+        /*public void SaveSignatoryData(int choice, string name, string position)
         {
             string accessConnectionString = GetAccessConnectionString();
 
@@ -220,9 +221,9 @@ namespace VoucherPROVER2.Clients.INT
                                 case 2:
                                     signatoryQuery = "UPDATE Signatory SET ReviewedByName = ?, ReviewedByPosition = ?";
                                     break;
-                                /*case 3:
+                                *//*case 3:
                                     signatoryQuery = "UPDATE Signatory SET RecommendingApprovalName = ?, RecommendingApprovalPosition = ?";
-                                    break;*/
+                                    break;*//*
                                 case 3:
                                     signatoryQuery = "UPDATE Signatory SET ApprovedByName = ?, ApprovedByPosition = ?";
                                     break;
@@ -243,9 +244,9 @@ namespace VoucherPROVER2.Clients.INT
                                 case 2:
                                     signatoryQuery = "UPDATE Signatory SET ReviewedByName = ?, ReviewedByPosition = ?";
                                     break;
-                                /*case 3:
+                                *//*case 3:
                                     signatoryQuery = "UPDATE Signatory SET RecommendingApprovalName = ?, RecommendingApprovalPosition = ?";
-                                    break;*/
+                                    break;*//*
                                 case 3:
                                     signatoryQuery = "UPDATE Signatory SET ApprovedByName = ?, ApprovedByPosition = ?";
                                     break;
@@ -266,9 +267,9 @@ namespace VoucherPROVER2.Clients.INT
                                 case 2:
                                     signatoryQuery = "UPDATE Signatory SET ReviewedByName = ?, ReviewedByPosition = ?";
                                     break;
-                                /*case 3:
+                                *//*case 3:
                                     signatoryQuery = "UPDATE Signatory SET RecommendingApprovalName = ?, RecommendingApprovalPosition = ?";
-                                    break;*/
+                                    break;*//*
                                 case 3:
                                     signatoryQuery = "UPDATE Signatory SET ApprovedByName = ?, ApprovedByPosition = ?";
                                     break;
@@ -289,9 +290,9 @@ namespace VoucherPROVER2.Clients.INT
                                 case 2:
                                     signatoryQuery = "UPDATE Signatory SET ReviewedByName = ?, ReviewedByPosition = ?";
                                     break;
-                                /*case 3:
+                                *//*case 3:
                                     signatoryQuery = "UPDATE Signatory SET RecommendingApprovalName = ?, RecommendingApprovalPosition = ?";
-                                    break;*/
+                                    break;*//*
                                 case 3:
                                     signatoryQuery = "UPDATE Signatory SET ApprovedByName = ?, ApprovedByPosition = ?";
                                     break;
@@ -317,9 +318,9 @@ namespace VoucherPROVER2.Clients.INT
                                     signatoryQuery = "INSERT INTO Signatory (ReviewedByName, ReviewedByPosition) VALUES (?, ?)";
                                     break;
 
-                                /*case 3:
+                                *//*case 3:
                                     signatoryQuery = "INSERT INTO Signatory (RecommendingApprovalName, RecommendingApprovalPosition) VALUES (?, ?)";
-                                    break;*/
+                                    break;*//*
 
                                 case 3:
                                     signatoryQuery = "INSERT INTO Signatory (ApprovedByName, ApprovedByPosition) VALUES (?, ?)";
@@ -379,10 +380,10 @@ namespace VoucherPROVER2.Clients.INT
                                     signatoryCommand.Parameters.AddWithValue("@ReviewedByPosition", position);
                                     break;
 
-                                /*case 3:
+                                *//*case 3:
                                     signatoryCommand.Parameters.AddWithValue("@RecommendingApprovalName", name);
                                     signatoryCommand.Parameters.AddWithValue("@RecommendingApprovalPosition", position);
-                                    break;*/
+                                    break;*//*
 
                                 case 3:
                                     signatoryCommand.Parameters.AddWithValue("@ApprovedByName", name);
@@ -412,10 +413,10 @@ namespace VoucherPROVER2.Clients.INT
                                     signatoryCommand.Parameters.AddWithValue("@ReviewedByPosition", position);
                                     break;
 
-                                /*case 3:
+                                *//*case 3:
                                     signatoryCommand.Parameters.AddWithValue("@RecommendingApprovalName", name);
                                     signatoryCommand.Parameters.AddWithValue("@RecommendingApprovalPosition", position);
-                                    break;*/
+                                    break;*//*
 
                                 case 3:
                                     signatoryCommand.Parameters.AddWithValue("@ApprovedByName", name);
@@ -445,10 +446,10 @@ namespace VoucherPROVER2.Clients.INT
                                     signatoryCommand.Parameters.AddWithValue("@ReviewedByPosition", position);
                                     break;
 
-                                /*case 3:
+                                *//*case 3:
                                     signatoryCommand.Parameters.AddWithValue("@RecommendingApprovalName", name);
                                     signatoryCommand.Parameters.AddWithValue("@RecommendingApprovalPosition", position);
-                                    break;*/
+                                    break;*//*
 
                                 case 3:
                                     signatoryCommand.Parameters.AddWithValue("@ApprovedByName", name);
@@ -478,10 +479,10 @@ namespace VoucherPROVER2.Clients.INT
                                     signatoryCommand.Parameters.AddWithValue("@ReviewedByPosition", position);
                                     break;
 
-                                /*case 3:
+                                *//*case 3:
                                     signatoryCommand.Parameters.AddWithValue("@RecommendingApprovalName", name);
                                     signatoryCommand.Parameters.AddWithValue("@RecommendingApprovalPosition", position);
-                                    break;*/
+                                    break;*//*
 
                                 case 3:
                                     signatoryCommand.Parameters.AddWithValue("@ApprovedByName", name);
@@ -578,9 +579,9 @@ namespace VoucherPROVER2.Clients.INT
                                 query = "SELECT TOP 1 ReviewedByName, ReviewedByPosition FROM Signatory";
                                 break;
 
-                            /*case 3:
+                            *//*case 3:
                                 query = "SELECT TOP 1 RecommendingApprovalName, RecommendingApprovalPosition FROM Signatory";
-                                break;*/
+                                break;*//*
 
                             case 3:
                                 query = "SELECT TOP 1 ApprovedByName, ApprovedByPosition FROM Signatory";
@@ -606,9 +607,9 @@ namespace VoucherPROVER2.Clients.INT
                                 query = "SELECT TOP 1 ReviewedByName, ReviewedByPosition FROM Signatory";
                                 break;
 
-                            /*case 3:
+                            *//*case 3:
                                 query = "SELECT TOP 1 RecommendingApprovalName, RecommendingApprovalPosition FROM Signatory";
-                                break;*/
+                                break;*//*
 
                             case 3:
                                 query = "SELECT TOP 1 ApprovedByName, ApprovedByPosition FROM Signatory";
@@ -634,9 +635,9 @@ namespace VoucherPROVER2.Clients.INT
                                 query = "SELECT TOP 1 ReviewedByName, ReviewedByPosition FROM Signatory";
                                 break;
 
-                            /*case 3:
+                            *//*case 3:
                                 query = "SELECT TOP 1 RecommendingApprovalName, RecommendingApprovalPosition FROM Signatory";
-                                break;*/
+                                break;*//*
 
                             case 3:
                                 query = "SELECT TOP 1 ApprovedByName, ApprovedByPosition FROM Signatory";
@@ -699,10 +700,10 @@ namespace VoucherPROVER2.Clients.INT
                                             position = reader["ReviewedByPosition"].ToString();
                                             break;
 
-                                        /*case 3:
+                                        *//*case 3:
                                             name = reader["RecommendingApprovalName"].ToString();
                                             position = reader["RecommendingApprovalPosition"].ToString();
-                                            break;*/
+                                            break;*//*
 
                                         case 3:
                                             name = reader["ApprovedByName"].ToString();
@@ -732,10 +733,10 @@ namespace VoucherPROVER2.Clients.INT
                                             position = reader["ReviewedByPosition"].ToString();
                                             break;
 
-                                        /*case 3:
+                                        *//*case 3:
                                             name = reader["RecommendingApprovalName"].ToString();
                                             position = reader["RecommendingApprovalPosition"].ToString();
-                                            break;*/
+                                            break;*//*
 
                                         case 3:
                                             name = reader["ApprovedByName"].ToString();
@@ -765,10 +766,10 @@ namespace VoucherPROVER2.Clients.INT
                                             position = reader["ReviewedByPosition"].ToString();
                                             break;
 
-                                        /*case 3:
+                                        *//*case 3:
                                             name = reader["RecommendingApprovalName"].ToString();
                                             position = reader["RecommendingApprovalPosition"].ToString();
-                                            break;*/
+                                            break;*//*
 
                                         case 3:
                                             name = reader["ApprovedByName"].ToString();
@@ -1040,7 +1041,7 @@ namespace VoucherPROVER2.Clients.INT
                         ToTitleCase(receivedByName),
                         ToTitleCase(receivedByPosition)
                     );
-        }
+        }*/
 
 
         public static string ToTitleCase(string input)
@@ -1419,5 +1420,155 @@ namespace VoucherPROVER2.Clients.INT
                 }
             }
         }
+
+        public void SaveSignatoryData(string formType, int choice, string name, string position)
+        {
+            string connectionString = GetAccessConnectionString();
+            using (OleDbConnection conn = new OleDbConnection(connectionString))
+            {
+                conn.Open();
+
+                // 1. Ensure a record for this FormType exists; if not, create one
+                string checkQuery = "SELECT COUNT(*) FROM Signatory WHERE [FormType] = @FormType";
+                int exists = 0;
+                using (OleDbCommand checkCmd = new OleDbCommand(checkQuery, conn))
+                {
+                    checkCmd.Parameters.AddWithValue("@FormType", formType);
+                    exists = Convert.ToInt32(checkCmd.ExecuteScalar());
+                }
+
+                if (exists == 0)
+                {
+                    string insertRowQuery = "INSERT INTO Signatory ([FormType]) VALUES (@FormType)";
+                    using (OleDbCommand insertCmd = new OleDbCommand(insertRowQuery, conn))
+                    {
+                        insertCmd.Parameters.AddWithValue("@FormType", formType);
+                        insertCmd.ExecuteNonQuery();
+                    }
+                }
+
+                // 2. Map the choice (1, 2, 3...) to the matching column names
+                string nameCol = "";
+                string posCol = "";
+
+                switch (choice)
+                {
+                    case 1: // Prepared By
+                        nameCol = "[PreparedByName]";
+                        posCol = "[PreparedByPosition]";
+                        break;
+                    case 2: // Checked By
+                        nameCol = "[ReviewedByName]";
+                        posCol = "[ReviewedByPosition]";
+                        break;
+                    case 3: // Approved By / A/P
+                        nameCol = "[ApprovedByName]";
+                        posCol = "[ApprovedByPosition]";
+                        break;
+                    case 4: // Received By
+                        nameCol = "[ReceivedByName]";
+                        posCol = "[ReceivedByPosition]";
+                        break;
+                    default:
+                        return;
+                }
+
+                // 3. Update the specific signatory columns for this FormType
+                string updateQuery = $"UPDATE Signatory SET {nameCol} = @Name, {posCol} = @Position WHERE [FormType] = @FormType";
+                using (OleDbCommand cmd = new OleDbCommand(updateQuery, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Name", name ?? "");
+                    cmd.Parameters.AddWithValue("@Position", position ?? "");
+                    cmd.Parameters.AddWithValue("@FormType", formType);
+                    cmd.ExecuteNonQuery();
+                }
+
+                conn.Close();
+            }
+        }
+
+        public (string Name, string Position) RetrieveSignatoryData(string formType, int choice)
+        {
+            string connectionString = GetAccessConnectionString();
+            using (OleDbConnection conn = new OleDbConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM Signatory WHERE [FormType] = @FormType";
+                using (OleDbCommand cmd = new OleDbCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@FormType", formType);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            // Helper to safely get column value without throwing if column is missing
+                            string GetVal(string col)
+                            {
+                                try { return reader[col]?.ToString() ?? ""; } catch { return ""; }
+                            }
+
+                            switch (choice)
+                            {
+                                case 1:
+                                    return (GetVal("PreparedByName"), GetVal("PreparedByPosition"));
+                                case 2:
+                                    return (GetVal("ReviewedByName"), GetVal("ReviewedByPosition"));
+                                case 3:
+                                    return (GetVal("ApprovedByName"), GetVal("ApprovedByPosition"));
+                                case 4:
+                                    return (GetVal("ReceivedByName"), GetVal("ReceivedByPosition"));
+                            }
+                        }
+                    }
+                }
+            }
+            return ("", "");
+        }
+
+        public (string PreparedByName, string PreparedByPosition,
+        string ReviewedByName, string ReviewedByPosition,
+        string RecommendingApprovalName, string RecommendingApprovalPosition,
+        string ApprovedByName, string ApprovedByPosition,
+        string ReceivedByName, string ReceivedByPosition) RetrieveAllSignatoryData(string formType)
+        {
+            string connectionString = GetAccessConnectionString();
+            using (OleDbConnection conn = new OleDbConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM Signatory WHERE [FormType] = @FormType";
+                using (OleDbCommand cmd = new OleDbCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@FormType", formType);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            string SafeRead(string col)
+                            {
+                                try { return reader[col]?.ToString() ?? ""; } catch { return ""; }
+                            }
+
+                            return (
+                                ToTitleCase(SafeRead("PreparedByName")),
+                                ToTitleCase(SafeRead("PreparedByPosition")),
+                                ToTitleCase(SafeRead("ReviewedByName")),
+                                ToTitleCase(SafeRead("ReviewedByPosition")),
+                                "",
+                                "",
+                                ToTitleCase(SafeRead("ApprovedByName")),
+                                ToTitleCase(SafeRead("ApprovedByPosition")),
+                                ToTitleCase(SafeRead("ReceivedByName")),
+                                ToTitleCase(SafeRead("ReceivedByPosition"))
+                            );
+                        }
+                    }
+                }
+            }
+
+            return ("", "", "", "", "", "", "", "", "", "");
+        }
+
+
     }
+
 }
