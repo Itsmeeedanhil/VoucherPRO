@@ -54,7 +54,7 @@ namespace VoucherPROVER2.Clients.INT
             string formattedYear = string.Join("   ", year.ToCharArray());
 
             // Month and Day grouped together
-            string formattedMonthDay = $"{formattedMonth}     {formattedDay}";
+            string formattedMonthDay = $"{formattedMonth}   {formattedDay}";
 
             string payee = checkTableData[0].PayeeFullName.ToString();
 
@@ -99,7 +99,7 @@ namespace VoucherPROVER2.Clients.INT
                 int minusY = 50;
 
                 // Payee Name
-                e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(113 - minusX, 117 - minusY));
+                e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(117 - minusX, 117 - minusY));
 
                 // --- DATE SECTION ---
                 // 1. Month and Day
