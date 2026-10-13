@@ -99,13 +99,13 @@ namespace VoucherPROVER2.Clients.INT
                 int minusY = 50;
 
                 // Payee Name
-                e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(117 - minusX, 117 - minusY));
+                e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(125 - minusX, 117 - minusY));
 
                 // --- DATE SECTION ---
                 // 1. Month and Day
-                e.Graphics.DrawString(formattedMonthDay, payeeFont, Brushes.Black, new PointF(595 - minusX, 79 - minusY));
+                e.Graphics.DrawString(formattedMonthDay, payeeFont, Brushes.Black, new PointF(600 - minusX, 79 - minusY));
                 // 2. Year only (Decrease 700 to shift further left, increase to shift right)
-                e.Graphics.DrawString(formattedYear, payeeFont, Brushes.Black, new PointF(700 - minusX, 79 - minusY));
+                e.Graphics.DrawString(formattedYear, payeeFont, Brushes.Black, new PointF(695 - minusX, 79 - minusY));
 
                 // Amount (Number)
                 e.Graphics.DrawString(amount.ToString("N2"), payeeFont, Brushes.Black, new PointF(635 - minusX, 117 - minusY));
