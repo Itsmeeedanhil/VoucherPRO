@@ -2967,14 +2967,15 @@ namespace VoucherPROVER2.Clients.INT
             else
             {
                 // Journal Voucher formats:
-                // Old: xx.xx.xx (e.g., 10.06.26)
+                // Old (2-digit middle): xx.xx.xx (e.g., 10.06.26)
+                // Old (3-digit middle): xx.xxx.xx (e.g., 10.126.26)
                 // New: 6 digits (e.g., 000001)
-                bool isOldFormat = Regex.IsMatch(trimmedRef, @"^\d{2}\.\d{2}\.\d{2}$");
+                bool isOldFormat = Regex.IsMatch(trimmedRef, @"^\d{2}\.\d{2,3}\.\d{2}$");
                 bool isNewFormat = Regex.IsMatch(trimmedRef, @"^\d{6}$");
 
                 if (!isOldFormat && !isNewFormat)
                 {
-                    errorMessage = "Invalid Reference Number for Journal Voucher.\nExpected format: 10.06.26 (xx.xx.xx) or 000001 (6-digit numeric format)";
+                    errorMessage = "Invalid Reference Number for Journal Voucher.\nExpected format:\n- Old: 10.06.26 / 10.126.26 (xx.xx.xx or xx.xxx.xx)\n- New: 000001 (6 digits)";
                     return false;
                 }
             }
