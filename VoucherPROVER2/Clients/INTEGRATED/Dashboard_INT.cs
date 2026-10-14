@@ -844,7 +844,7 @@ namespace VoucherPROVER2.Clients.INT
                                     : firstMemo.Trim();
 
                                 // Break long unbroken strings so Crystal Reports can wrap cleanly
-                                displayMemo = WrapLongWords(displayMemo, 32);
+                                displayMemo = WrapLongWords(displayMemo, 30);
 
                                 if (textObject_JVRefnumber != null)
                                     textObject_JVRefnumber.Text = refNumberCR;
@@ -2957,7 +2957,7 @@ namespace VoucherPROVER2.Clients.INT
 
             if (isESV)
             {
-                // ESV format: xxx-xx (e.g. 123-26)
+                // ESV format: xxx-xx (e.g., 123-26)
                 if (!Regex.IsMatch(trimmedRef, @"^\d{3}-\d{2}$"))
                 {
                     errorMessage = "Invalid Reference Number for Employees Supplies Voucher.\nExpected format: 123-26 (xxx-xx)";
@@ -2966,11 +2966,15 @@ namespace VoucherPROVER2.Clients.INT
             }
             else
             {
-                // Journal Voucher format: 6 digits (e.g. 000001)
-                // If your system allows fewer leading zeros before formatting, use @"^\d{1,6}$"
-                if (!Regex.IsMatch(trimmedRef, @"^\d{6}$"))
+                // Journal Voucher formats:
+                // Old: xx.xx.xx (e.g., 10.06.26)
+                // New: 6 digits (e.g., 000001)
+                bool isOldFormat = Regex.IsMatch(trimmedRef, @"^\d{2}\.\d{2}\.\d{2}$");
+                bool isNewFormat = Regex.IsMatch(trimmedRef, @"^\d{6}$");
+
+                if (!isOldFormat && !isNewFormat)
                 {
-                    errorMessage = "Invalid Reference Number for Journal Voucher.\nExpected format: 000001 (6-digit numeric format)";
+                    errorMessage = "Invalid Reference Number for Journal Voucher.\nExpected format: 10.06.26 (xx.xx.xx) or 000001 (6-digit numeric format)";
                     return false;
                 }
             }
