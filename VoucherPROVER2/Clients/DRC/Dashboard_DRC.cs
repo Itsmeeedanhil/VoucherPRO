@@ -1312,12 +1312,12 @@ namespace VoucherPROVER2.Clients.DRC
 
                 if (textObject_CVBILLCheckNumber != null) textObject_CVBILLCheckNumber.Text = textBox_SeriesNumber.Text;
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
-                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DateCreated.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
                 if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
                 if (textObject_CVBILLBank != null) textObject_CVBILLBank.Text = bankName;
                 if (textObject_CVBILLNumber != null) textObject_CVBILLNumber.Text = bills[0].RefNumber ?? "";
-                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DateCreated.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLDue != null) textObject_CVBILLDue.Text = totalCheckAmount.ToString("N2");
 
                 // Subreport Handling (Populates Bank Account as CREDIT row)
