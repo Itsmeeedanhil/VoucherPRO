@@ -48,13 +48,17 @@ namespace VoucherPROVER2.Clients.INT
             string day = dateCreated.ToString("dd");
             string year = dateCreated.ToString("yyyy");
 
-            // Format Date with spaces
-            string formattedMonth = string.Join("   ", month.ToCharArray());
-            string formattedDay = string.Join("   ", day.ToCharArray());
-            string formattedYear = string.Join("   ", year.ToCharArray());
+            // Individual digits for Month (MM), Day (DD), and Year (YYYY)
+            string M1 = month[0].ToString();
+            string M2 = month[1].ToString();
 
-            // Month and Day grouped together
-            string formattedMonthDay = $"{formattedMonth}    {formattedDay}";
+            string D1 = day[0].ToString();
+            string D2 = day[1].ToString();
+
+            string Y1 = year[0].ToString();
+            string Y2 = year[1].ToString();
+            string Y3 = year[2].ToString();
+            string Y4 = year[3].ToString();
 
             string payee = checkTableData[0].PayeeFullName.ToString();
 
@@ -81,15 +85,28 @@ namespace VoucherPROVER2.Clients.INT
                 e.Graphics.RotateTransform(-90);
                 e.Graphics.TranslateTransform(-e.MarginBounds.Height + 180, 0 - 70);
 
+                // Payee Name
                 e.Graphics.DrawString(payee, payeeFont, Brushes.Black, new PointF(60, 410));
 
                 // --- DATE SECTION ---
-                // 1. Month and Day
-                e.Graphics.DrawString(formattedMonthDay, dateFont, Brushes.Black, new PointF(530, 380));
-                // 2. Year only (Decrease 635 to shift further left, increase to shift right)
-                e.Graphics.DrawString(formattedYear, dateFont, Brushes.Black, new PointF(635, 380));
+                // 1. Month (MM)
+                e.Graphics.DrawString(M1, dateFont, Brushes.Black, new PointF(530, 380));
+                e.Graphics.DrawString(M2, dateFont, Brushes.Black, new PointF(548, 380));
 
+                // 2. Day (DD)
+                e.Graphics.DrawString(D1, dateFont, Brushes.Black, new PointF(575, 380));
+                e.Graphics.DrawString(D2, dateFont, Brushes.Black, new PointF(593, 380));
+
+                // 3. Year (YYYY)
+                e.Graphics.DrawString(Y1, dateFont, Brushes.Black, new PointF(635, 380));
+                e.Graphics.DrawString(Y2, dateFont, Brushes.Black, new PointF(653, 380));
+                e.Graphics.DrawString(Y3, dateFont, Brushes.Black, new PointF(671, 380));
+                e.Graphics.DrawString(Y4, dateFont, Brushes.Black, new PointF(689, 380));
+
+                // Amount (Number)
                 e.Graphics.DrawString(amount.ToString("N2"), dateFont, Brushes.Black, new PointF(550, 38 + 345 + 30));
+
+                // Amount (Words)
                 e.Graphics.DrawString(amountInWords, amountinWordsFont, Brushes.Black, new PointF(25, 430 + 15));
             }
             else
@@ -102,10 +119,19 @@ namespace VoucherPROVER2.Clients.INT
                 e.Graphics.DrawString(payee, payeeFont2, Brushes.Black, new PointF(125 - minusX, 117 - minusY));
 
                 // --- DATE SECTION ---
-                // 1. Month and Day
-                e.Graphics.DrawString(formattedMonthDay, payeeFont, Brushes.Black, new PointF(603 - minusX, 79 - minusY));
-                // 2. Year only (Decrease 700 to shift further left, increase to shift right)
-                e.Graphics.DrawString(formattedYear, payeeFont, Brushes.Black, new PointF(693 - minusX, 79 - minusY));
+                // 1. Month (MM)
+                e.Graphics.DrawString(M1, payeeFont, Brushes.Black, new PointF(603 - minusX, 79 - minusY));
+                e.Graphics.DrawString(M2, payeeFont, Brushes.Black, new PointF(621 - minusX, 79 - minusY));
+
+                // 2. Day (DD)
+                e.Graphics.DrawString(D1, payeeFont, Brushes.Black, new PointF(648 - minusX, 79 - minusY));
+                e.Graphics.DrawString(D2, payeeFont, Brushes.Black, new PointF(666 - minusX, 79 - minusY));
+
+                // 3. Year (YYYY)
+                e.Graphics.DrawString(Y1, payeeFont, Brushes.Black, new PointF(693 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y2, payeeFont, Brushes.Black, new PointF(711 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y3, payeeFont, Brushes.Black, new PointF(729 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y4, payeeFont, Brushes.Black, new PointF(747 - minusX, 79 - minusY));
 
                 // Amount (Number)
                 e.Graphics.DrawString(amount.ToString("N2"), payeeFont, Brushes.Black, new PointF(635 - minusX, 117 - minusY));
