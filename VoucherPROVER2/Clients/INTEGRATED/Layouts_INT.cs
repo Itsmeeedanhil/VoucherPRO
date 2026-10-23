@@ -124,14 +124,14 @@ namespace VoucherPROVER2.Clients.INT
                 e.Graphics.DrawString(M2, payeeFont, Brushes.Black, new PointF(621 - minusX, 79 - minusY));
 
                 // 2. Day (DD)
-                e.Graphics.DrawString(D1, payeeFont, Brushes.Black, new PointF(648 - minusX, 79 - minusY));
-                e.Graphics.DrawString(D2, payeeFont, Brushes.Black, new PointF(666 - minusX, 79 - minusY));
+                e.Graphics.DrawString(D1, payeeFont, Brushes.Black, new PointF(652 - minusX, 79 - minusY));
+                e.Graphics.DrawString(D2, payeeFont, Brushes.Black, new PointF(670 - minusX, 79 - minusY));
 
                 // 3. Year (YYYY)
-                e.Graphics.DrawString(Y1, payeeFont, Brushes.Black, new PointF(693 - minusX, 79 - minusY));
-                e.Graphics.DrawString(Y2, payeeFont, Brushes.Black, new PointF(711 - minusX, 79 - minusY));
-                e.Graphics.DrawString(Y3, payeeFont, Brushes.Black, new PointF(729 - minusX, 79 - minusY));
-                e.Graphics.DrawString(Y4, payeeFont, Brushes.Black, new PointF(747 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y1, payeeFont, Brushes.Black, new PointF(699 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y2, payeeFont, Brushes.Black, new PointF(717 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y3, payeeFont, Brushes.Black, new PointF(735 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y4, payeeFont, Brushes.Black, new PointF(753 - minusX, 79 - minusY));
 
                 // Amount (Number)
                 e.Graphics.DrawString(amount.ToString("N2"), payeeFont, Brushes.Black, new PointF(635 - minusX, 117 - minusY));
