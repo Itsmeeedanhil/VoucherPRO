@@ -120,18 +120,18 @@ namespace VoucherPROVER2.Clients.INT
 
                 // --- DATE SECTION ---
                 // 1. Month (MM)
-                e.Graphics.DrawString(M1, payeeFont, Brushes.Black, new PointF(600 - minusX, 79 - minusY));
-                e.Graphics.DrawString(M2, payeeFont, Brushes.Black, new PointF(619 - minusX, 79 - minusY));
+                e.Graphics.DrawString(M1, payeeFont, Brushes.Black, new PointF(602 - minusX, 79 - minusY));
+                e.Graphics.DrawString(M2, payeeFont, Brushes.Black, new PointF(621 - minusX, 79 - minusY));
 
                 // 2. Day (DD)
-                e.Graphics.DrawString(D1, payeeFont, Brushes.Black, new PointF(649 - minusX, 79 - minusY));
-                e.Graphics.DrawString(D2, payeeFont, Brushes.Black, new PointF(668 - minusX, 79 - minusY));
+                e.Graphics.DrawString(D1, payeeFont, Brushes.Black, new PointF(651 - minusX, 79 - minusY));
+                e.Graphics.DrawString(D2, payeeFont, Brushes.Black, new PointF(671 - minusX, 79 - minusY));
 
                 // 3. Year (YYYY)
-                e.Graphics.DrawString(Y1, payeeFont, Brushes.Black, new PointF(697 - minusX, 79 - minusY));
-                e.Graphics.DrawString(Y2, payeeFont, Brushes.Black, new PointF(715 - minusX, 79 - minusY));
-                e.Graphics.DrawString(Y3, payeeFont, Brushes.Black, new PointF(733 - minusX, 79 - minusY));
-                e.Graphics.DrawString(Y4, payeeFont, Brushes.Black, new PointF(751 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y1, payeeFont, Brushes.Black, new PointF(700 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y2, payeeFont, Brushes.Black, new PointF(719 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y3, payeeFont, Brushes.Black, new PointF(740 - minusX, 79 - minusY));
+                e.Graphics.DrawString(Y4, payeeFont, Brushes.Black, new PointF(758 - minusX, 79 - minusY));
 
                 // Amount (Number)
                 e.Graphics.DrawString(amount.ToString("N2"), payeeFont, Brushes.Black, new PointF(635 - minusX, 117 - minusY));
