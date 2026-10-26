@@ -435,7 +435,7 @@ namespace VoucherPROVER2.Clients.INT
                 IBillPaymentCheckRetList bpList = r1.Detail as IBillPaymentCheckRetList;
                 if (bpList == null || bpList.Count == 0)
                 {
-                    MessageBox.Show("Bill Payment Check not found: " + refNumber);
+                    //MessageBox.Show("Bill Payment Check not found: " + refNumber);
                     return bills;
                 }
 
@@ -443,20 +443,43 @@ namespace VoucherPROVER2.Clients.INT
 
                 string actualCheckRefNumber = bp.RefNumber?.GetValue() ?? "";
 
-                // --- ADD THIS CHECK ---
-                // Ensure the retrieved check number matches the requested parameter exactly
-                if (!string.Equals(actualCheckRefNumber.Trim(), refNumber.Trim(), StringComparison.OrdinalIgnoreCase))
+                // 1. Gather all returned reference numbers from QuickBooks
+                List<string> foundRefNumbers = new List<string>();
+                IBillPaymentCheckRet exactBp = null;
+
+                for (int idx = 0; idx < bpList.Count; idx++)
                 {
-                    Console.WriteLine($"[DEBUG] Bill Payment Check mismatch: Searched '{refNumber}', found '{actualCheckRefNumber}'.");
+                    var item = bpList.GetAt(idx);
+                    string rNum = item.RefNumber?.GetValue()?.Trim() ?? "";
+
+                    if (!string.IsNullOrEmpty(rNum) && !foundRefNumbers.Contains(rNum))
+                    {
+                        foundRefNumbers.Add(rNum);
+                    }
+
+                    // Check for the exact match
+                    if (string.Equals(rNum, refNumber.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        exactBp = item;
+                    }
+                }
+
+                // 2. If no exact match was found, format all candidates into the error dialog
+                if (exactBp == null)
+                {
+                    string mismatchList = string.Join("\n - ", foundRefNumbers);
+
                     MessageBox.Show(
-                        $"Bill Payment Check Reference Number mismatch!\n\nSearched: {refNumber}\nFound in QuickBooks: {actualCheckRefNumber}",
+                        $"Reference Number mismatch for '{refNumber}'!\n\n" +
+                        $"No exact match found. QuickBooks returned the following check(s):\n - {mismatchList}\n\n" +
+                        "Please enter the exact reference number.",
                         "Reference Number Mismatch",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Warning
                     );
-                    return bills; // Returns empty list, aborting processing
+
+                    return bills; // Returns empty list; report will not generate
                 }
-                // ----------------------
 
 
                 DateTime payDate = bp.TxnDate?.GetValue() ?? DateTime.MinValue;
@@ -925,6 +948,43 @@ namespace VoucherPROVER2.Clients.INT
                     Console.WriteLine("No checks found.");
                     return checks;
                 }
+
+                // Collect all found numbers and search for exact match
+                List<string> foundRefs = new List<string>();
+                ICheckRet exactCheck = null;
+
+                for (int idx = 0; idx < list.Count; idx++)
+                {
+                    var chk = list.GetAt(idx);
+                    string rNum = chk.RefNumber?.GetValue()?.Trim() ?? "";
+
+                    if (!string.IsNullOrEmpty(rNum) && !foundRefs.Contains(rNum))
+                    {
+                        foundRefs.Add(rNum);
+                    }
+
+                    if (string.Equals(rNum, refNumber.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        exactCheck = chk;
+                    }
+                }
+
+                if (exactCheck == null)
+                {
+                    string mismatchList = string.Join("\n - ", foundRefs);
+
+                    MessageBox.Show(
+                        $"Reference Number mismatch for '{refNumber}'!\n\n" +
+                        $"No exact match found. QuickBooks returned the following check(s):\n - {mismatchList}\n\n" +
+                        "Please enter the exact reference number.",
+                        "Reference Number Mismatch",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning
+                    );
+
+                    return checks;
+                }
+
 
                 Console.WriteLine($"Found {list.Count} check(s).");
 

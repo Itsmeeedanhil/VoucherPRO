@@ -647,19 +647,6 @@ namespace VoucherPROVER2.Clients.INT
                                 if (cvData != null && cvData.Count > 0)
                                 {
 
-                                    // CHECK: Validate that currentRef and search refNumber are exactly identical
-                                    string currentRef = cvData[0].RefNumber?.Trim() ?? "";
-
-                                    if (!string.Equals(currentRef, refNumberCR, StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        MessageBox.Show(
-                                            $"Reference Number mismatch!\n\nSearched: {refNumberCR}\nFound in QuickBooks: {currentRef}\n\nPlease check the reference number and try again.",
-                                            "Reference Number Mismatch",
-                                            MessageBoxButtons.OK,
-                                            MessageBoxIcon.Error
-                                        );
-                                        return; // Stop execution: do not display the report
-                                    }
 
 
                                     cvDataExists = true;
@@ -1162,21 +1149,6 @@ namespace VoucherPROVER2.Clients.INT
 
                 if (bills == null || bills.Count == 0)
                     return false;
-
-
-                // --- ADD THIS CHECK ---
-                string checkRef = bills[0].RefNumber?.Trim() ?? "";
-                if (!string.Equals(checkRef, refNumberCR.Trim(), StringComparison.OrdinalIgnoreCase))
-                {
-                    MessageBox.Show(
-                        $"Bill Payment Check Reference Number mismatch!\n\nSearched: {refNumberCR}\nFound in QuickBooks: {checkRef}\n\nReport generation cancelled.",
-                        "Reference Number Mismatch",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
-                    );
-                    return false;
-                }
-                // ----------------------
 
 
                 TextObject textObject_CVBILLAmountInWords = null;
