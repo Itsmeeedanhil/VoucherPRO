@@ -441,6 +441,24 @@ namespace VoucherPROVER2.Clients.INT
 
                 IBillPaymentCheckRet bp = bpList.GetAt(0);
 
+                string actualCheckRefNumber = bp.RefNumber?.GetValue() ?? "";
+
+                // --- ADD THIS CHECK ---
+                // Ensure the retrieved check number matches the requested parameter exactly
+                if (!string.Equals(actualCheckRefNumber.Trim(), refNumber.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"[DEBUG] Bill Payment Check mismatch: Searched '{refNumber}', found '{actualCheckRefNumber}'.");
+                    MessageBox.Show(
+                        $"Bill Payment Check Reference Number mismatch!\n\nSearched: {refNumber}\nFound in QuickBooks: {actualCheckRefNumber}",
+                        "Reference Number Mismatch",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning
+                    );
+                    return bills; // Returns empty list, aborting processing
+                }
+                // ----------------------
+
+
                 DateTime payDate = bp.TxnDate?.GetValue() ?? DateTime.MinValue;
                 string payee = bp.PayeeEntityRef?.FullName?.GetValue() ?? "";
                 string address1 = bp.Address?.Addr1?.GetValue() ?? "";
@@ -556,7 +574,7 @@ namespace VoucherPROVER2.Clients.INT
                         Amount = individualBillPaidAmt,
                         AppliedAmount = individualBillPaidAmt,
                         TotalCheckAmount = totalCheckAmountPaid,
-                        RefNumber = refNumber,
+                        RefNumber = actualCheckRefNumber,
                         AppliedRefNumber = billRefNumber,
                         AppliedToTxnTxnID = specificTxnID,
                         Memo = memo,
@@ -705,7 +723,7 @@ namespace VoucherPROVER2.Clients.INT
         }
 
 
-        public List<CheckTableExpensesAndItems> GetCheckExpensesAndItemsData_INT(string refNumber)
+        /*public List<CheckTableExpensesAndItems> GetCheckExpensesAndItemsData_INT(string refNumber)
         {
             QBSessionManager sessionManager = new QBSessionManager();
             List<CheckTableExpensesAndItems> checks = new List<CheckTableExpensesAndItems>();
@@ -784,7 +802,7 @@ namespace VoucherPROVER2.Clients.INT
                                 DateCreated = txnDate,
                                 BankAccount = bankAccount,
                                 PayeeFullName = payee,
-                                RefNumber = refNumber,
+                                RefNumber = currentRef,
                                 TotalAmount = totalAmount,
                                 DueDate = txnDate,
                                 Memo = memo,
@@ -863,6 +881,161 @@ namespace VoucherPROVER2.Clients.INT
             finally
             {
                 Console.WriteLine("--- Closing Session ---");
+                try { sessionManager.EndSession(); sessionManager.CloseConnection(); }
+                catch { }
+            }
+
+            return checks;
+        }*/
+
+        public List<CheckTableExpensesAndItems> GetCheckExpensesAndItemsData_INT(string refNumber)
+        {
+            QBSessionManager sessionManager = new QBSessionManager();
+            List<CheckTableExpensesAndItems> checks = new List<CheckTableExpensesAndItems>();
+
+            try
+            {
+                Console.WriteLine("--- Starting QuickBooks Session ---");
+                string AppName = "QuickBooks Check Retrieval";
+                sessionManager.OpenConnection2("", AppName, ENConnectionType.ctLocalQBD);
+                sessionManager.BeginSession("", ENOpenMode.omDontCare);
+
+                IMsgSetRequest request = sessionManager.CreateMsgSetRequest("US", 13, 0);
+                request.Attributes.OnError = ENRqOnError.roeContinue;
+
+                ICheckQuery checkQuery = request.AppendCheckQueryRq();
+
+                // Kept as mcStartsWith per your requirement
+                checkQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.MatchCriterion
+                    .SetValue(ENMatchCriterion.mcStartsWith);
+
+                checkQuery.ORTxnQuery.TxnFilter.ORRefNumberFilter.RefNumberFilter.RefNumber
+                    .SetValue(refNumber);
+
+                checkQuery.IncludeLineItems.SetValue(true);
+
+                Console.WriteLine($"Querying for RefNumber starting with: {refNumber}");
+                IMsgSetResponse response = sessionManager.DoRequests(request);
+                IResponse qbResponse = response.ResponseList.GetAt(0);
+
+                ICheckRetList list = qbResponse.Detail as ICheckRetList;
+
+                if (list == null || list.Count == 0)
+                {
+                    Console.WriteLine("No checks found.");
+                    return checks;
+                }
+
+                Console.WriteLine($"Found {list.Count} check(s).");
+
+                for (int i = 0; i < list.Count; i++)
+                {
+                    ICheckRet check = list.GetAt(i);
+
+                    // HEADER DATA
+                    DateTime txnDate = check.TxnDate?.GetValue() ?? DateTime.MinValue;
+                    string bankAccount = check.AccountRef?.FullName?.GetValue() ?? "";
+                    string payee = check.PayeeEntityRef?.FullName?.GetValue() ?? "";
+                    string memo = check.Memo?.GetValue() ?? "";
+                    string address1 = check.Address?.Addr1?.GetValue() ?? "";
+                    string address2 = check.Address?.Addr2?.GetValue() ?? "";
+                    string address3 = check.Address?.Addr3?.GetValue() ?? "";
+                    string address4 = check.Address?.Addr4?.GetValue() ?? "";
+                    string addressCity = check.Address?.City?.GetValue() ?? "";
+                    double totalAmount = check.Amount?.GetValue() ?? 0;
+                    string currentRef = check.RefNumber?.GetValue() ?? "";
+
+                    Console.WriteLine($"\n[Check #{i + 1}] Ref: {currentRef} | Payee: {payee} | Total: {totalAmount}");
+
+                    // EXPENSE LINES
+                    if (check.ExpenseLineRetList != null)
+                    {
+                        for (int e = 0; e < check.ExpenseLineRetList.Count; e++)
+                        {
+                            IExpenseLineRet exp = check.ExpenseLineRetList.GetAt(e);
+                            string expAccount = exp.AccountRef?.FullName?.GetValue() ?? "";
+                            double expAmount = exp.Amount?.GetValue() ?? 0;
+
+                            checks.Add(new CheckTableExpensesAndItems
+                            {
+                                DateCreated = txnDate,
+                                BankAccount = bankAccount,
+                                PayeeFullName = payee,
+                                RefNumber = currentRef,
+                                TotalAmount = totalAmount,
+                                DueDate = txnDate,
+                                Memo = memo,
+                                AddressBlockAddr1 = address1,
+                                AddressBlockAddr2 = address2,
+                                AddressBlockAddr3 = address3,
+                                AddressBlockAddr4 = address4,
+                                AddressCity = addressCity,
+
+                                Account = expAccount,
+                                ExpenseClass = exp.ClassRef?.FullName?.GetValue() ?? "",
+                                ExpensesAmount = expAmount,
+                                ExpensesMemo = exp.Memo?.GetValue() ?? "",
+                                ExpensesCustomerJob = exp.CustomerRef?.FullName?.GetValue() ?? "",
+
+                                ItemType = ItemType.Expense
+                            });
+                        }
+                    }
+
+                    // ITEM LINES
+                    if (check.ORItemLineRetList != null)
+                    {
+                        for (int iLine = 0; iLine < check.ORItemLineRetList.Count; iLine++)
+                        {
+                            IORItemLineRet orItemLine = (IORItemLineRet)check.ORItemLineRetList.GetAt(iLine);
+
+                            if (orItemLine.ItemLineRet != null)
+                            {
+                                IItemLineRet item = orItemLine.ItemLineRet;
+                                string itemName = item.ItemRef?.FullName?.GetValue() ?? "";
+                                double itemAmount = item.Amount?.GetValue() ?? 0;
+
+                                checks.Add(new CheckTableExpensesAndItems
+                                {
+                                    DateCreated = txnDate,
+                                    BankAccount = bankAccount,
+                                    PayeeFullName = payee,
+
+                                    // Fixed: Assign currentRef here so it matches the expense line behavior
+                                    RefNumber = currentRef,
+
+                                    TotalAmount = totalAmount,
+                                    DueDate = txnDate,
+                                    Memo = memo,
+                                    AddressBlockAddr1 = address1,
+                                    AddressBlockAddr2 = address2,
+                                    AddressBlockAddr3 = address3,
+                                    AddressBlockAddr4 = address4,
+                                    AddressCity = addressCity,
+
+                                    Item = itemName,
+                                    ItemDescription = item.Desc?.GetValue() ?? "",
+                                    ItemClass = item.ClassRef?.FullName?.GetValue() ?? "",
+                                    ItemAmount = itemAmount,
+
+                                    ItemType = ItemType.Item
+                                });
+                            }
+                            else if (orItemLine.ItemGroupLineRet != null)
+                            {
+                                Console.WriteLine("   -> [Item Group] Found a Group/Bundle (Skipping logic not implemented)");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"CRITICAL ERROR: {ex.Message}");
+                MessageBox.Show($"Error: {ex.Message}");
+            }
+            finally
+            {
                 try { sessionManager.EndSession(); sessionManager.CloseConnection(); }
                 catch { }
             }

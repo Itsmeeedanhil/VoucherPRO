@@ -646,6 +646,22 @@ namespace VoucherPROVER2.Clients.INT
 
                                 if (cvData != null && cvData.Count > 0)
                                 {
+
+                                    // CHECK: Validate that currentRef and search refNumber are exactly identical
+                                    string currentRef = cvData[0].RefNumber?.Trim() ?? "";
+
+                                    if (!string.Equals(currentRef, refNumberCR, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        MessageBox.Show(
+                                            $"Reference Number mismatch!\n\nSearched: {refNumberCR}\nFound in QuickBooks: {currentRef}\n\nPlease check the reference number and try again.",
+                                            "Reference Number Mismatch",
+                                            MessageBoxButtons.OK,
+                                            MessageBoxIcon.Error
+                                        );
+                                        return; // Stop execution: do not display the report
+                                    }
+
+
                                     cvDataExists = true;
 
                                     TextObject textObject_CVPayee = cRCV_INT.ReportDefinition.ReportObjects["TextCVPayee"] as TextObject;
@@ -680,7 +696,7 @@ namespace VoucherPROVER2.Clients.INT
                                         ? rawBank.Split(':').Last().Trim()
                                         : rawBank;
 
-                                    textObject_CVRefNumber.Text = refNumberCR;
+                                    textObject_CVRefNumber.Text = cvData[0].RefNumber;
 
                                     var b = cvData[0];
 
@@ -1147,6 +1163,22 @@ namespace VoucherPROVER2.Clients.INT
                 if (bills == null || bills.Count == 0)
                     return false;
 
+
+                // --- ADD THIS CHECK ---
+                string checkRef = bills[0].RefNumber?.Trim() ?? "";
+                if (!string.Equals(checkRef, refNumberCR.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show(
+                        $"Bill Payment Check Reference Number mismatch!\n\nSearched: {refNumberCR}\nFound in QuickBooks: {checkRef}\n\nReport generation cancelled.",
+                        "Reference Number Mismatch",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+                    return false;
+                }
+                // ----------------------
+
+
                 TextObject textObject_CVBILLAmountInWords = null;
                 TextObject textObject_CVBILLCheckDate = null;
                 TextObject textObject_CVBILLBankAccount = null;
@@ -1330,7 +1362,7 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                string refumber2 = refNumberCR.Contains("/") ? refNumberCR.Split('/').Last() : refNumberCR;
+                string refumber2 = bills[0].RefNumber.Contains("/") ? bills[0].RefNumber.Split('/').Last() : bills[0].RefNumber;
                 string rawBankAccount = (bills[0].BankAccount ?? "").Contains(":")
                     ? (bills[0].BankAccount ?? "").Split(':').Last().Trim()
                     : (bills[0].BankAccount ?? "");
