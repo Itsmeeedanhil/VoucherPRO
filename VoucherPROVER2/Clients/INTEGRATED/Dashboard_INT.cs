@@ -482,7 +482,6 @@ namespace VoucherPROVER2.Clients.INT
                 "Check Voucher / Bills Payment",
                 "Check",
                 "Journal Voucher",
-                "Check Voucher / Enter Bills"
 
             });
                 comboBox_Forms.SelectedIndex = 0;
