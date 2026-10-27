@@ -464,14 +464,20 @@ namespace VoucherPROVER2.Clients.INT
                     }
                 }
 
-                // 2. If no exact match was found, format all candidates into the error dialog
+                // 2. If no exact match was found, sort sequentially and display
                 if (exactBp == null)
                 {
-                    string mismatchList = string.Join("\n - ", foundRefNumbers);
+                    // Natural / Numeric sequential sort (handles both pure numbers and alphanumeric check refs)
+                    var sortedRefNumbers = foundRefNumbers
+                        .OrderBy(r => long.TryParse(r, out long num) ? num : long.MaxValue)
+                        .ThenBy(r => r)
+                        .ToList();
+
+                    string mismatchList = string.Join("\n - ", sortedRefNumbers);
 
                     MessageBox.Show(
                         $"Reference Number mismatch for '{refNumber}'!\n\n" +
-                        $"No exact match found. QuickBooks returned the following check(s):\n - {mismatchList}\n\n" +
+                        $"No exact match found. QuickBooks returned the following check(s) in sequence:\n - {mismatchList}\n\n" +
                         "Please enter the exact reference number.",
                         "Reference Number Mismatch",
                         MessageBoxButtons.OK,
@@ -971,11 +977,17 @@ namespace VoucherPROVER2.Clients.INT
 
                 if (exactCheck == null)
                 {
-                    string mismatchList = string.Join("\n - ", foundRefs);
+                    // Natural / Numeric sequential sort
+                    var sortedRefs = foundRefs
+                        .OrderBy(r => long.TryParse(r, out long num) ? num : long.MaxValue)
+                        .ThenBy(r => r)
+                        .ToList();
+
+                    string mismatchList = string.Join("\n - ", sortedRefs);
 
                     MessageBox.Show(
                         $"Reference Number mismatch for '{refNumber}'!\n\n" +
-                        $"No exact match found. QuickBooks returned the following check(s):\n - {mismatchList}\n\n" +
+                        $"No exact match found. QuickBooks returned the following check(s) in sequence:\n - {mismatchList}\n\n" +
                         "Please enter the exact reference number.",
                         "Reference Number Mismatch",
                         MessageBoxButtons.OK,
