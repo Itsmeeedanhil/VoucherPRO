@@ -870,6 +870,15 @@ namespace VoucherPROVER2.Clients.INT
 
                                 InsertDataToJournalCompiled(refNumberCR, journal);
 
+                                // =========================================================================
+                                // CALCULATE & PASS TOTALS TO MAIN REPORT
+                                // =========================================================================
+                                double totalDebit = journal.Sum(x => x.Debit);
+                                double totalCredit = journal.Sum(x => x.Credit);
+
+                                cRJV_INT.SetParameterValue("TotalDebit", totalDebit > 0 ? totalDebit.ToString("N2") : "");
+                                cRJV_INT.SetParameterValue("TotalCredit", totalCredit > 0 ? totalCredit.ToString("N2") : "");
+
                                 // Final Report Settings
                                 cRJV_INT.SetParameterValue("ReferenceNumber", refNumberCR);
 
