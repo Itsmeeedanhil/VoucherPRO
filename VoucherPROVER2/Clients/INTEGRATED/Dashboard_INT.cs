@@ -727,7 +727,7 @@ namespace VoucherPROVER2.Clients.INT
                                     textObject_CVPayee.Text = cvData[0].PayeeFullName;
                                     textObject_CVAddress.Text = fullAddress;
                                     Console.WriteLine($"Payee Address: {fullAddress}"); // Debugging line
-                                    textObject_CVDatenow.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                                    textObject_CVDatenow.Text = cvData[0].DueDate.ToString("MMMM dd, yyyy");
                                     textObject_CVTotal.Text = cvData[0].TotalAmount.ToString("N2");
 
 
