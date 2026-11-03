@@ -1180,7 +1180,8 @@ namespace VoucherPROVER2.Clients.INT
                     return false;
 
 
-                TextObject textObject_CVBILLAmountInWords = null;
+                TextObject textObject_Line1 = null;
+                TextObject textObject_Line2 = null;
                 TextObject textObject_CVBILLCheckDate = null;
                 TextObject textObject_CVBILLBankAccount = null;
                 TextObject textObject_CVBILLAmount = null;
@@ -1204,7 +1205,8 @@ namespace VoucherPROVER2.Clients.INT
                     textObject_CVBILLAddress = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLAddress"] as TextObject;
                     textObject_CVBILLDate = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLDate"] as TextObject;
 
-                    textObject_CVBILLAmountInWords = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLAmountinWords"] as TextObject;
+                    textObject_Line1 = cRCV_INTBILL.ReportDefinition.ReportObjects["TextAmountInWordsLine1"] as TextObject;
+                    textObject_Line2 = cRCV_INTBILL.ReportDefinition.ReportObjects["TextAmountInWordsLine2"] as TextObject;
                     textObject_CVBILLCheckDate = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLCheckDate"] as TextObject;
                     textObject_CVBILLRefnumber = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVRefNumber"] as TextObject;
                     textObject_CVBILLBankAccount = cRCV_INTBILL.ReportDefinition.ReportObjects["TextCVBILLBankAccount"] as TextObject;
@@ -1339,27 +1341,24 @@ namespace VoucherPROVER2.Clients.INT
                 string billRemarksAmountText = string.Join("\r\n", amountLines);
 
                 double realCheckTotal = bills[0].TotalCheckAmount > 0 ? bills[0].TotalCheckAmount : billSummaryList.Sum(x => x.Amount);
+                string rawWords = AccessToDatabase_INT.AmountToWordsConverter.Convert(realCheckTotal);
 
-                //string amountInWords = "          " + AccessToDatabase_INT.AmountToWordsConverter.Convert(realCheckTotal);
-                string rawWords = "          " + AccessToDatabase_INT.AmountToWordsConverter.Convert(realCheckTotal);
+                // 1. Indent Line 1 as needed
+                string fullText = "          " + rawWords;
 
-                // Set this to roughly the max characters that fit on your first line (adjust as needed)
-                int maxFirstLineChars = 55;
+                // Line 1 has the full width of the box (adjust to match the maximum width of Line 1)
+                int maxLine1Chars = 74;
 
-                string amountInWords = rawWords;
+                string line1 = fullText;
+                string line2 = "";
 
-                if (rawWords.Length > maxFirstLineChars)
+                if (fullText.Length > maxLine1Chars)
                 {
-                    // Find the last space before reaching the max character limit so words don't get cut in half
-                    int breakIndex = rawWords.LastIndexOf(' ', maxFirstLineChars);
-
+                    int breakIndex = fullText.LastIndexOf(' ', maxLine1Chars);
                     if (breakIndex != -1)
                     {
-                        string line1 = rawWords.Substring(0, breakIndex);
-                        string line2 = rawWords.Substring(breakIndex + 1);
-
-                        // \r\n\r\n pushes the second line down with vertical spacing
-                        amountInWords = line1 + "\r\n" + line2;
+                        line1 = fullText.Substring(0, breakIndex).TrimEnd();
+                        line2 = fullText.Substring(breakIndex + 1).TrimStart();
                     }
                 }
 
@@ -1379,10 +1378,11 @@ namespace VoucherPROVER2.Clients.INT
             bObj.VendorAddressCity
         }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().TrimEnd(',')));
 
-                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = DateTime.Now.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
                 if (textObject_CVBILLRefnumber != null) textObject_CVBILLRefnumber.Text = refumber2;
-                if (textObject_CVBILLAmountInWords != null) textObject_CVBILLAmountInWords.Text = amountInWords;
+                if (textObject_Line1 != null) textObject_Line1.Text = line1;
+                if (textObject_Line2 != null) textObject_Line2.Text = line2;
                 if (textObject_CVBILLAmount != null) textObject_CVBILLAmount.Text = realCheckTotal.ToString("N2");
                 if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
