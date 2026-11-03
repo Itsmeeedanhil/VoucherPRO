@@ -1568,6 +1568,43 @@ namespace VoucherPROVER2.Clients.INT
             return ("", "", "", "", "", "", "", "", "", "");
         }
 
+        public void ResetSignatoryData()
+        {
+            string accessConnectionString = GetAccessConnectionString();
+
+            using (OleDbConnection conn = new OleDbConnection(accessConnectionString))
+            {
+                try
+                {
+                    conn.Open();
+
+                    // 1. Clear main Signatory table (reset names and positions to empty strings)
+                    string resetSignatoryQuery = @"
+                UPDATE Signatory 
+                SET PreparedByName = '', PreparedByPosition = '',
+                    ReviewedByName = '', ReviewedByPosition = '',
+                    ApprovedByName = '', ApprovedByPosition = '',
+                    ReceivedByName = '', ReceivedByPosition = ''";
+
+                    using (OleDbCommand cmd = new OleDbCommand(resetSignatoryQuery, conn))
+                    {
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    // 2. Clear SignatoryForRR table if applicable
+                    string resetRRQuery = "UPDATE SignatoryForRR SET ReceivedBy = '', CheckedBy = ''";
+                    using (OleDbCommand cmdRR = new OleDbCommand(resetRRQuery, conn))
+                    {
+                        cmdRR.ExecuteNonQuery();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error resetting signatory tables: {ex.Message}");
+                }
+            }
+        }
+
 
     }
 

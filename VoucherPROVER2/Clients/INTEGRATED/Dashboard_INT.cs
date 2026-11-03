@@ -31,7 +31,28 @@ namespace VoucherPROVER2.Clients.INT
 
             accessToDatabase = new AccessToDatabase_INT();
 
+            // 1. Reset database signatory data on open
+            accessToDatabase.ResetSignatoryData();
+
+            // 2. Reset database signatory data on form close
+            this.FormClosing += Dashboard_INT_FormClosing;
+
             this.CreateHandle();
+        }
+
+        private void Dashboard_INT_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            try
+            {
+                if (accessToDatabase != null)
+                {
+                    accessToDatabase.ResetSignatoryData();
+                }
+            }
+            catch
+            {
+                // Suppress errors during application exit
+            }
         }
 
         private PrintDocument printDocument;
@@ -2555,7 +2576,7 @@ namespace VoucherPROVER2.Clients.INT
             {
                 //Parent = panel_SideBar,
                 Dock = DockStyle.Top,
-                Height = 110,
+                Height = 50,
                 Width = sideBarWidth - 10,
                 BackColor = Color.LightGray,
                 Padding = new Padding(5),
@@ -2570,6 +2591,7 @@ namespace VoucherPROVER2.Clients.INT
                 Height = 28,
                 Width = 108,
                 BackColor = Color.Transparent,
+                Visible = false,
             };
             button_ZoomOut.Click += (sender, e) =>
             {
@@ -2586,6 +2608,7 @@ namespace VoucherPROVER2.Clients.INT
                 Height = 28,
                 Width = 108,
                 BackColor = Color.Transparent,
+                Visible = false,
             };
             button_ZoomIn.Click += (sender, e) =>
             {
@@ -2599,6 +2622,7 @@ namespace VoucherPROVER2.Clients.INT
                 Height = 28,
                 Width = 108,
                 BackColor = Color.Transparent,
+                Visible = false,
             };
             button_PreviousPage.Click += (sender, e) =>
             {
@@ -2615,6 +2639,7 @@ namespace VoucherPROVER2.Clients.INT
                 Height = 28,
                 Width = 108,
                 BackColor = Color.Transparent,
+                Visible = false,
             };
             button_NextPage.Click += (sender, e) =>
             {
@@ -2979,20 +3004,22 @@ namespace VoucherPROVER2.Clients.INT
             else
             {
                 // Journal Voucher formats:
-                // Old (2-digit middle): xx.xx.xx (e.g., 10.06.26)
-                // Old (3-digit middle): xx.xxx.xx (e.g., 10.126.26)
-                // New: 6 digits (e.g., 000001)
-                bool isOldFormat = Regex.IsMatch(trimmedRef, @"^\d{2}\.\d{2,3}\.\d{2}$");
+                // - xx.xx.xx   (e.g., 10.06.26)
+                // - xx.xxx.xx  (e.g., 10.126.26)
+                // - xx.xxx.xxx (e.g., 10.126.261)
+                // - New 6 digits (e.g., 000001)
+                bool isOldFormat = Regex.IsMatch(trimmedRef, @"^\d{2}\.\d{2,3}\.\d{2,3}$");
                 bool isNewFormat = Regex.IsMatch(trimmedRef, @"^\d{6}$");
 
                 if (!isOldFormat && !isNewFormat)
                 {
-                    errorMessage = "Invalid Reference Number for Journal Voucher.\nExpected format:\n- Old: 10.06.26 / 10.126.26 (xx.xx.xx or xx.xxx.xx)\n- New: 000001 (6 digits)";
+                    errorMessage = "Invalid Reference Number for Journal Voucher.\nExpected format:\n- Dot format: 10.06.26 / 10.126.26 / 10.126.261 (xx.xx.xx, xx.xxx.xx, or xx.xxx.xxx)\n- New: 000001 (6 digits)";
                     return false;
                 }
             }
 
             return true;
         }
+
     }
 }
