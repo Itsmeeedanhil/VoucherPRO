@@ -1059,7 +1059,8 @@ namespace VoucherPROVER2.Clients.INT
 
                     BillTable bt = new BillTable
                     {
-                        DateCreated = billTxnDate,      // Transaction date of the Bill
+                        DateCreated = billTxnDate,
+                        BillCheckDate = payDate, // Transaction date of the Bill
                         DueDate = billDueDate,          // Due date of the Bill (Fixed)
                         PayeeFullName = payee,
                         Address = address1,

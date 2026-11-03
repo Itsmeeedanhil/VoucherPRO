@@ -20,7 +20,7 @@ namespace VoucherPROVER2.Clients.INT
             public string RefNumber { get; set; }
             public string Address { get; set; } //AddressAddr
             public string Address2 { get; set; } //AddressAddr2
-
+            public DateTime BillCheckDate { get; set; }
             public string AppliedRefNumber { get; set; } //AppliedToTxnRefNumber
             public string AppliedToTxnTxnID { get; set; } //AppliedToTxnTxnID
 
