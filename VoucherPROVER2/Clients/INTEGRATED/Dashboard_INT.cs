@@ -1378,13 +1378,13 @@ namespace VoucherPROVER2.Clients.INT
             bObj.VendorAddressCity
         }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().TrimEnd(',')));
 
-                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].BillCheckDate.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
                 if (textObject_CVBILLRefnumber != null) textObject_CVBILLRefnumber.Text = refumber2;
                 if (textObject_Line1 != null) textObject_Line1.Text = line1;
                 if (textObject_Line2 != null) textObject_Line2.Text = line2;
                 if (textObject_CVBILLAmount != null) textObject_CVBILLAmount.Text = realCheckTotal.ToString("N2");
-                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLCheckDate != null) textObject_CVBILLCheckDate.Text = bills[0].BillCheckDate.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLPayee != null) textObject_CVBILLPayee.Text = bills[0].PayeeFullName ?? "";
                 if (textObject_CVBILLBankAccount != null) textObject_CVBILLBankAccount.Text = bankaccount;
                 if (TextObject_CVBILLAmountdetails != null) TextObject_CVBILLAmountdetails.Text = realCheckTotal.ToString("N2");
