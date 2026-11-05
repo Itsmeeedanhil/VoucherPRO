@@ -1179,7 +1179,6 @@ namespace VoucherPROVER2.Clients.INT
                 if (bills == null || bills.Count == 0)
                     return false;
 
-
                 TextObject textObject_Line1 = null;
                 TextObject textObject_Line2 = null;
                 TextObject textObject_CVBILLCheckDate = null;
@@ -1269,14 +1268,16 @@ namespace VoucherPROVER2.Clients.INT
                     amountLines.Add("\u00A0");
                 }
 
-                const int maxMemoCharsPerLine = 100;
+                // Calibrated to match the visual box width of TEXTREMARKS (~38 characters)
+                // If text still wraps into a 2nd line unexpectedly, lower this to 35-36
+                const int maxMemoCharsPerLine = 39;
 
                 foreach (var item in billSummaryList)
                 {
-                    string rawMemo = item.Memo ?? "";
+                    string rawMemo = (item.Memo ?? "").Trim();
                     var wrappedMemoParts = new List<string>();
 
-                    // Handle multi-line memos or strings longer than 255 chars cleanly
+                    // Handle multi-line memos or strings with manual line breaks
                     string[] lines = rawMemo.Replace("\r\n", "\n").Split('\n');
 
                     foreach (var line in lines)
@@ -1288,7 +1289,7 @@ namespace VoucherPROVER2.Clients.INT
                         {
                             string word = rawWord;
 
-                            // Automatically break unbroken tokens longer than 32 chars (e.g., long invoice references)
+                            // Split unusually long continuous tokens (e.g., long invoice/account numbers)
                             while (word.Length > maxMemoCharsPerLine)
                             {
                                 if (!string.IsNullOrEmpty(currentLine))
@@ -1327,12 +1328,10 @@ namespace VoucherPROVER2.Clients.INT
                     }
 
                     // Sync memo lines 1-to-1 with amount lines
+                    // First line gets the formatted amount; overflow/wrapped lines receive a non-breaking space
                     for (int i = 0; i < wrappedMemoParts.Count; i++)
                     {
                         memoLines.Add(wrappedMemoParts[i]);
-
-                        // First line displays the formatted amount; wrapped/blank lines use a non-breaking space
-                        // to maintain identical line height inside Crystal Reports
                         amountLines.Add(i == 0 ? item.Amount.ToString("N2") : "\u00A0");
                     }
                 }
@@ -1807,7 +1806,7 @@ namespace VoucherPROVER2.Clients.INT
             string GetCleanAccountName(string raw)
             {
                 if (string.IsNullOrWhiteSpace(raw)) return "";
-                var match = System.Text.RegularExpressions.Regex.Match(raw.Trim(), @"^\d+\s*[-:.]?\s*(.*)$");
+                var match = System.Text.RegularExpressions.Regex.Match(raw.Trim(), @"^[\d]+(?:[-\.][\dA-Za-z]+)*\s*[-:.]?\s*(.*)$");
                 if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[1].Value))
                 {
                     return match.Groups[1].Value.Trim();
@@ -1815,17 +1814,17 @@ namespace VoucherPROVER2.Clients.INT
                 return raw.Trim();
             }
 
-            // Formats account numbers with extra spacing after the dash
+            // Formats account numbers with extra spacing after the dash/code
             string FormatParticularSpacing(string raw, int spacesAfter = 6)
             {
                 if (string.IsNullOrWhiteSpace(raw)) return "";
-                var match = System.Text.RegularExpressions.Regex.Match(raw.Trim(), @"^(\d+)\s*[-:.]\s*(.*)$");
+                var match = System.Text.RegularExpressions.Regex.Match(raw.Trim(), @"^([\d]+(?:[-\.][\dA-Za-z]+)*)\s*[-:.]\s*(.*)$");
                 if (match.Success)
                 {
                     string code = match.Groups[1].Value.Trim();
                     string name = match.Groups[2].Value.Trim();
                     string padding = new string(' ', spacesAfter);
-                    return $"{code} {padding}{name}";
+                    return $"{code}{padding}{name}";
                 }
                 return raw.Trim();
             }
@@ -1873,7 +1872,6 @@ namespace VoucherPROVER2.Clients.INT
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                     {
                         command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                        // Applied formatting here
                         command.Parameters.AddWithValue("@Particulars", SafeTruncate(FormatParticularSpacing(entry.Particulars), 255));
                         command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Debit", entry.TotalAmount.ToString("N2"));
@@ -1932,7 +1930,7 @@ namespace VoucherPROVER2.Clients.INT
                     {
                         AccountName = g.Key,
                         TotalCreditApplied = g.Sum(c => c.AppliedAmount),
-                        Memo = string.Join("; ", g.Select(c => $"Credit #{c.CreditRefNumber} - {c.Memo}".Trim()).Distinct())
+                        Memo = string.Join("; ", g.Select(c => $"Credit #{c.CreditRefNumber} {c.Memo}".Trim()).Distinct())
                     });
 
                 foreach (var cred in groupedBillCredits)
@@ -1972,7 +1970,6 @@ namespace VoucherPROVER2.Clients.INT
                     using (OleDbCommand command = new OleDbCommand(insertQuery, connection))
                     {
                         command.Parameters.AddWithValue("@RefNumber", refNumber ?? (object)DBNull.Value);
-                        // Applied formatting here
                         command.Parameters.AddWithValue("@Particulars", SafeTruncate(FormatParticularSpacing(credit.Particulars), 255));
                         command.Parameters.AddWithValue("@Class", (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Debit", "");

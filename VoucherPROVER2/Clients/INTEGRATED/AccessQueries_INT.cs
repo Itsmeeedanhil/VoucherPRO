@@ -346,25 +346,31 @@ namespace VoucherPROVER2.Clients.INT
                                     root = rawAccounts[root.ParentFullName];
                                 }
 
-                                // Determine the Root Parent's account number
+                                // Determine the Root Parent's account number (supports formats like 16410-2, 14600-2, 1601.1)
                                 string rootAccNum = root.AccNum;
                                 if (string.IsNullOrWhiteSpace(rootAccNum))
                                 {
-                                    var matchRoot = Regex.Match(root.FullName, @"^(\d+)");
+                                    var matchRoot = Regex.Match(root.FullName, @"^([\d]+(?:[-\.][\dA-Za-z]+)*)");
                                     if (matchRoot.Success)
                                     {
                                         rootAccNum = matchRoot.Groups[1].Value;
                                     }
                                     else
                                     {
-                                        var matchCurrent = Regex.Match(current.FullName, @"^(\d+)");
+                                        var matchCurrent = Regex.Match(current.FullName, @"^([\d]+(?:[-\.][\dA-Za-z]+)*)");
                                         if (matchCurrent.Success)
                                             rootAccNum = matchCurrent.Groups[1].Value;
                                     }
                                 }
 
-                                // Clean the ROOT Parent account name
-                                string cleanRootName = Regex.Replace(root.Name, @"^\d+\s*[-·:]*\s*", "").Trim();
+                                // Clean the ROOT Parent account name: strip the full code if it was entered in the name field
+                                string cleanRootName = root.Name;
+                                if (!string.IsNullOrWhiteSpace(rootAccNum) && cleanRootName.StartsWith(rootAccNum, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    cleanRootName = cleanRootName.Substring(rootAccNum.Length).Trim();
+                                }
+                                // Strip leading separators (e.g., "- ", ": ", "· ")
+                                cleanRootName = Regex.Replace(cleanRootName, @"^[-·:]*\s*", "").Trim();
 
                                 string consolidatedParentName = !string.IsNullOrWhiteSpace(rootAccNum)
                                     ? $"{rootAccNum} - {cleanRootName}"
@@ -407,11 +413,11 @@ namespace VoucherPROVER2.Clients.INT
                             return accountMap[leafPart];
 
                         // If not in map, format the root part directly
-                        var numMatch = Regex.Match(rootPart, @"^(\d+)\s*[-·:]*\s*(.*)$");
+                        var numMatch = Regex.Match(rootPart, @"^([\d]+(?:[-\.][\dA-Za-z]+)*)\s*[-·:]*\s*(.*)$");
                         if (numMatch.Success)
                         {
                             string num = numMatch.Groups[1].Value;
-                            string name = Regex.Replace(numMatch.Groups[2].Value, @"^\d+\s*[-·:]*\s*", "").Trim();
+                            string name = Regex.Replace(numMatch.Groups[2].Value, @"^[-·:]*\s*", "").Trim();
                             return $"{num} - {name}";
                         }
                         return rootPart;
@@ -600,8 +606,8 @@ namespace VoucherPROVER2.Clients.INT
                     BillTable bt = new BillTable
                     {
                         DateCreated = billTxnDate,
-                        BillCheckDate = payDate, // Transaction date of the Bill
-                        DueDate = billDueDate,          // Due date of the Bill (Fixed)
+                        BillCheckDate = payDate,
+                        DueDate = billDueDate,
                         PayeeFullName = payee,
                         Address = address1,
                         Address2 = address2,
