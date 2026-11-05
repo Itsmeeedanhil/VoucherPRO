@@ -1378,7 +1378,7 @@ namespace VoucherPROVER2.Clients.INT
             bObj.VendorAddressCity
         }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().TrimEnd(',')));
 
-                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DueDate.ToString("MMMM dd, yyyy");
+                if (textObject_CVBILLDate != null) textObject_CVBILLDate.Text = bills[0].DateCreated.ToString("MMMM dd, yyyy");
                 if (textObject_CVBILLAddress != null) textObject_CVBILLAddress.Text = fullAddress;
                 if (textObject_CVBILLRefnumber != null) textObject_CVBILLRefnumber.Text = refumber2;
                 if (textObject_Line1 != null) textObject_Line1.Text = line1;
