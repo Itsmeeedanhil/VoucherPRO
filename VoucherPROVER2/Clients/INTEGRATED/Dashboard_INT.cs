@@ -1814,18 +1814,47 @@ namespace VoucherPROVER2.Clients.INT
                 return raw.Trim();
             }
 
-            // Formats account numbers with extra spacing after the dash/code
-            string FormatParticularSpacing(string raw, int spacesAfter = 6)
+            string FormatParticularSpacing(string raw)
             {
                 if (string.IsNullOrWhiteSpace(raw)) return "";
+
                 var match = System.Text.RegularExpressions.Regex.Match(raw.Trim(), @"^([\d]+(?:[-\.][\dA-Za-z]+)*)\s*[-:.]\s*(.*)$");
                 if (match.Success)
                 {
                     string code = match.Groups[1].Value.Trim();
                     string name = match.Groups[2].Value.Trim();
-                    string padding = new string(' ', spacesAfter);
+
+                    int spacesCount;
+
+                    if (code.Length >= 7)
+                    {
+                        // 7+ characters (e.g., 16410-2, 14600-2)
+                        spacesCount = 1;
+                    }
+                    else if (code.Length == 6)
+                    {
+                        // 6 characters (e.g., 7004-2, 7004-3)
+                        spacesCount = 3;
+                    }
+                    else if (code.Length == 5)
+                    {
+                        // 5-digit codes (e.g., 60017, 23000, 50011)
+                        spacesCount = 4;
+                    }
+                    else if (code.Length == 4)
+                    {
+                        // 4-digit codes (e.g., 7018, 1601, 2300) -> bumped to 6 so 3 spaces on 7004-2 lands flush
+                        spacesCount = 6;
+                    }
+                    else
+                    {
+                        spacesCount = 3;
+                    }
+
+                    string padding = new string(' ', spacesCount);
                     return $"{code}{padding}{name}";
                 }
+
                 return raw.Trim();
             }
 
