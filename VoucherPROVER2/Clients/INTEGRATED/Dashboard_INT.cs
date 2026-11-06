@@ -879,6 +879,8 @@ namespace VoucherPROVER2.Clients.INT
                                 if (textObject_CheckedBy != null) textObject_CheckedBy.Text = signatories.ReviewedByName;
                                 if (textObject_ApprovedBy != null) textObject_ApprovedBy.Text = signatories.ApprovedByName;
 
+                                InsertDataToJournalCompiled(refNumberCR, journal);
+
                                 // Subreport handling
                                 SubreportObject subreportObject = cRJV_INT.ReportDefinition.ReportObjects["SubreportJVDetailsIVP"] as SubreportObject;
                                 if (subreportObject != null)
@@ -886,7 +888,6 @@ namespace VoucherPROVER2.Clients.INT
                                     ReportDocument subReportDocument = cRJV_INT.OpenSubreport(subreportObject.SubreportName);
                                 }
 
-                                InsertDataToJournalCompiled(refNumberCR, journal);
 
                                 // =========================================================================
                                 // CALCULATE & PASS TOTALS TO MAIN REPORT

@@ -1158,68 +1158,75 @@ namespace VoucherPROVER2.Clients.INT
                 IResponse qbResponse = response.ResponseList.GetAt(0);
                 IJournalEntryRetList list = qbResponse.Detail as IJournalEntryRetList;
 
-                if (list != null)
+                if (list != null && list.Count > 0)
                 {
+                    // 3. FIND THE MOST RECENTLY MODIFIED TRANSACTION MATCHING THIS REF NUMBER
+                    IJournalEntryRet targetEntry = null;
+                    DateTime latestTimeModified = DateTime.MinValue;
+
                     for (int i = 0; i < list.Count; i++)
                     {
                         IJournalEntryRet je = list.GetAt(i);
-                        string docNum = je.RefNumber.GetValue();
+                        string docNum = je.RefNumber?.GetValue() ?? "";
 
-                        // FILTER STRICTLY
-                        if (docNum != refNumber)
+                        // Strictly match RefNumber
+                        if (docNum == refNumber)
                         {
-                            continue;
-                        }
+                            DateTime modifiedDate = je.TimeModified != null ? je.TimeModified.GetValue() : je.TxnDate.GetValue();
 
-                        DateTime date = je.TxnDate.GetValue();
-
-                        if (je.ORJournalLineList != null)
-                        {
-                            for (int j = 0; j < je.ORJournalLineList.Count; j++)
+                            if (modifiedDate >= latestTimeModified)
                             {
-                                IORJournalLine orLine = je.ORJournalLineList.GetAt(j);
-                                JournalGridItem item = new JournalGridItem
-                                {
-                                    Date = date,
-                                    Num = docNum,
-                                    Type = "General Journal"
-                                };
-
-                                if (orLine.JournalDebitLine != null)
-                                {
-                                    var line = orLine.JournalDebitLine;
-                                    string fullAccountName = line.AccountRef?.FullName?.GetValue() ?? "";
-
-                                    item.AccountName = fullAccountName;
-                                    // Match from Chart of Accounts Map
-                                    item.AccountNumber = GetAccountNumberFromMap(accountMap, fullAccountName);
-                                    item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
-                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 500);
-                                    item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
-                                    item.Debit = line.Amount?.GetValue() ?? 0;
-                                    item.Credit = 0;
-                                }
-                                else if (orLine.JournalCreditLine != null)
-                                {
-                                    var line = orLine.JournalCreditLine;
-                                    string fullAccountName = line.AccountRef?.FullName?.GetValue() ?? "";
-
-                                    item.AccountName = fullAccountName;
-                                    // Match from Chart of Accounts Map
-                                    item.AccountNumber = GetAccountNumberFromMap(accountMap, fullAccountName);
-                                    item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
-                                    item.Memo = Truncate(line.Memo?.GetValue() ?? "", 500);
-                                    item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
-                                    item.Debit = 0;
-                                    item.Credit = line.Amount?.GetValue() ?? 0;
-                                }
-
-                                gridItems.Add(item);
+                                latestTimeModified = modifiedDate;
+                                targetEntry = je;
                             }
                         }
+                    }
 
-                        // STOP IMMEDIATELY
-                        break;
+                    // 4. PARSE THE TARGET ENTRY'S LINES
+                    if (targetEntry != null && targetEntry.ORJournalLineList != null)
+                    {
+                        string docNum = targetEntry.RefNumber?.GetValue() ?? refNumber;
+                        DateTime date = targetEntry.TxnDate.GetValue();
+
+                        for (int j = 0; j < targetEntry.ORJournalLineList.Count; j++)
+                        {
+                            IORJournalLine orLine = targetEntry.ORJournalLineList.GetAt(j);
+                            JournalGridItem item = new JournalGridItem
+                            {
+                                Date = date,
+                                Num = docNum,
+                                Type = "General Journal"
+                            };
+
+                            if (orLine.JournalDebitLine != null)
+                            {
+                                var line = orLine.JournalDebitLine;
+                                string fullAccountName = line.AccountRef?.FullName?.GetValue() ?? "";
+
+                                item.AccountName = fullAccountName;
+                                item.AccountNumber = GetAccountNumberFromMap(accountMap, fullAccountName);
+                                item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
+                                item.Memo = Truncate(line.Memo?.GetValue() ?? "", 500);
+                                item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
+                                item.Debit = line.Amount?.GetValue() ?? 0;
+                                item.Credit = 0;
+                            }
+                            else if (orLine.JournalCreditLine != null)
+                            {
+                                var line = orLine.JournalCreditLine;
+                                string fullAccountName = line.AccountRef?.FullName?.GetValue() ?? "";
+
+                                item.AccountName = fullAccountName;
+                                item.AccountNumber = GetAccountNumberFromMap(accountMap, fullAccountName);
+                                item.Name = line.EntityRef?.FullName?.GetValue() ?? "";
+                                item.Memo = Truncate(line.Memo?.GetValue() ?? "", 500);
+                                item.Class = line.ClassRef?.FullName?.GetValue() ?? "";
+                                item.Debit = 0;
+                                item.Credit = line.Amount?.GetValue() ?? 0;
+                            }
+
+                            gridItems.Add(item);
+                        }
                     }
                 }
             }
