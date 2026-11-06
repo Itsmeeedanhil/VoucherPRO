@@ -863,11 +863,8 @@ namespace VoucherPROVER2.Clients.INT
                                     ?.FirstOrDefault(m => !string.IsNullOrWhiteSpace(m)) ?? "";
 
                                 string displayMemo = firstMemo.Contains('.')
-                                    ? firstMemo.Split(new[] { '.' }, 2)[1].Trim()
-                                    : firstMemo.Trim();
-
-                                // Break long unbroken strings so Crystal Reports can wrap cleanly
-                                displayMemo = WrapLongWords(displayMemo, 30);
+                                        ? firstMemo.Split(new[] { '.' }, 2)[1].Trim()
+                                        : firstMemo.Trim();
 
                                 if (textObject_JVRefnumber != null)
                                     textObject_JVRefnumber.Text = refNumberCR;
@@ -934,22 +931,26 @@ namespace VoucherPROVER2.Clients.INT
             return panel_RefNumber_CR;
         }
 
-        private static string WrapLongWords(string text, int maxWordLength = 40)
+        private string WrapLongWords(string input, int maxWordLength = 30)
         {
-            if (string.IsNullOrEmpty(text)) return "";
+            if (string.IsNullOrWhiteSpace(input))
+                return string.Empty;
 
-            var words = text.Split(' ');
+            string[] words = input.Split(new[] { ' ' }, StringSplitOptions.None);
+
             for (int i = 0; i < words.Length; i++)
             {
                 if (words[i].Length > maxWordLength)
                 {
-                    // Insert space or newline every `maxWordLength` characters
-                    var chunks = Enumerable.Range(0, (words[i].Length + maxWordLength - 1) / maxWordLength)
-                                           .Select(chIdx => words[i].Substring(chIdx * maxWordLength,
-                                                    Math.Min(maxWordLength, words[i].Length - chIdx * maxWordLength)));
+                    var chunks = new List<string>();
+                    for (int j = 0; j < words[i].Length; j += maxWordLength)
+                    {
+                        chunks.Add(words[i].Substring(j, Math.Min(maxWordLength, words[i].Length - j)));
+                    }
                     words[i] = string.Join(" ", chunks);
                 }
             }
+
             return string.Join(" ", words);
         }
 
