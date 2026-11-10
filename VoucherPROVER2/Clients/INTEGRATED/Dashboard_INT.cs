@@ -2373,7 +2373,7 @@ namespace VoucherPROVER2.Clients.INT
             };
             textBox_SignatoryName.Leave += (sender, e) =>
             {
-                textBox_SignatoryName.Text = AccessToDatabase_INT.ToTitleCase(textBox_SignatoryName.Text);
+                textBox_SignatoryName.Text = AccessToDatabase_INT.CapitalizeFirstLetterOfWords(textBox_SignatoryName.Text);
             };
 
             Label label_SignatoryPosition = new Label
@@ -2393,7 +2393,7 @@ namespace VoucherPROVER2.Clients.INT
             };
             textBox_SignatoryPosition.Leave += (sender, e) =>
             {
-                textBox_SignatoryPosition.Text = AccessToDatabase_INT.ToTitleCase(textBox_SignatoryPosition.Text);
+                textBox_SignatoryPosition.Text = AccessToDatabase_INT.CapitalizeFirstLetterOfWords(textBox_SignatoryPosition.Text);
             };
 
             Button button_SaveSignatory = new Button
@@ -2428,8 +2428,8 @@ namespace VoucherPROVER2.Clients.INT
                     string currentFormType = GetCurrentFormTypeKey();
 
                     // Auto convert to First Letter Uppercase (Title Case)
-                    string signatoryName = AccessToDatabase_INT.ToTitleCase(textBox_SignatoryName.Text.Trim());
-                    string signatoryPosition = AccessToDatabase_INT.ToTitleCase(textBox_SignatoryPosition.Text.Trim());
+                    string signatoryName = AccessToDatabase_INT.CapitalizeFirstLetterOfWords(textBox_SignatoryName.Text.Trim());
+                    string signatoryPosition = AccessToDatabase_INT.CapitalizeFirstLetterOfWords(textBox_SignatoryPosition.Text.Trim());
 
                     textBox_SignatoryName.Text = signatoryName;
                     textBox_SignatoryPosition.Text = signatoryPosition;

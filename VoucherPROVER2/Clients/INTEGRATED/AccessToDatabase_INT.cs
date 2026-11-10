@@ -1044,13 +1044,20 @@ namespace VoucherPROVER2.Clients.INT
         }*/
 
 
-        public static string ToTitleCase(string input)
+        public static string CapitalizeFirstLetterOfWords(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
                 return string.Empty;
 
-            // ToTitleCase works best when text is fully lowercased first
-            return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(input.ToLower());
+            var words = input.Split(' ');
+            for (int i = 0; i < words.Length; i++)
+            {
+                if (words[i].Length > 0)
+                {
+                    words[i] = char.ToUpper(words[i][0]) + words[i].Substring(1);
+                }
+            }
+            return string.Join(" ", words);
         }
 
 
@@ -1549,16 +1556,16 @@ namespace VoucherPROVER2.Clients.INT
                             }
 
                             return (
-                                ToTitleCase(SafeRead("PreparedByName")),
-                                ToTitleCase(SafeRead("PreparedByPosition")),
-                                ToTitleCase(SafeRead("ReviewedByName")),
-                                ToTitleCase(SafeRead("ReviewedByPosition")),
+                                CapitalizeFirstLetterOfWords(SafeRead("PreparedByName")),
+                                CapitalizeFirstLetterOfWords(SafeRead("PreparedByPosition")),
+                                CapitalizeFirstLetterOfWords(SafeRead("ReviewedByName")),
+                                CapitalizeFirstLetterOfWords(SafeRead("ReviewedByPosition")),
                                 "",
                                 "",
-                                ToTitleCase(SafeRead("ApprovedByName")),
-                                ToTitleCase(SafeRead("ApprovedByPosition")),
-                                ToTitleCase(SafeRead("ReceivedByName")),
-                                ToTitleCase(SafeRead("ReceivedByPosition"))
+                                CapitalizeFirstLetterOfWords(SafeRead("ApprovedByName")),
+                                CapitalizeFirstLetterOfWords(SafeRead("ApprovedByPosition")),
+                                CapitalizeFirstLetterOfWords(SafeRead("ReceivedByName")),
+                                CapitalizeFirstLetterOfWords(SafeRead("ReceivedByPosition"))
                             );
                         }
                     }
