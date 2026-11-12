@@ -769,7 +769,32 @@ namespace VoucherPROVER2.Clients.INT
 
 
 
-                                        textObject_Remarks.Text = SafeTruncate(cvData[0].Memo, 500);
+                                        string memoText = SafeTruncate(cvData[0].Memo ?? "", 500);
+
+                                        // Case A: If your Memo already contains a manual line break (\r\n or \n) after the first line
+                                        if (memoText.Contains("\r\n"))
+                                        {
+                                            int idx = memoText.IndexOf("\r\n");
+                                            memoText = memoText.Insert(idx, "\r\n");
+                                        }
+                                        else if (memoText.Contains("\n"))
+                                        {
+                                            int idx = memoText.IndexOf('\n');
+                                            memoText = memoText.Insert(idx, "\n");
+                                        }
+                                        // Case B: If Memo is one continuous line, break at ~35 characters (adjust to fit your 6.5 cm box width)
+                                        else if (memoText.Length > 35)
+                                        {
+                                            int lastSpace = memoText.LastIndexOf(' ', 35);
+                                            if (lastSpace > 0)
+                                            {
+                                                memoText = memoText.Substring(0, lastSpace)
+                                                         + Environment.NewLine + Environment.NewLine
+                                                         + memoText.Substring(lastSpace + 1);
+                                            }
+                                        }
+
+                                        textObject_Remarks.Text = memoText;
                                         textObject_CVSubTotal.Text = cvData[0].TotalAmount.ToString("N2");
 
                                         InsertDataToCheckVoucherCompiledINT(refNumberCR, cvData);
@@ -1434,10 +1459,52 @@ namespace VoucherPROVER2.Clients.INT
                     TextObject textObject_BILLSubRemarksAmount = subReportDocumentINT.ReportDefinition.ReportObjects["TextBILLRemarksAmount"] as TextObject;
 
                     if (textObject_BILLSubRemarks != null)
-                        textObject_BILLSubRemarks.Text = billRemarksMemoText;
+                    {
+                        string formattedMemo = billRemarksMemoText ?? "";
+
+                        if (formattedMemo.Contains("\r\n"))
+                        {
+                            int idx = formattedMemo.IndexOf("\r\n");
+                            formattedMemo = formattedMemo.Insert(idx, "\r\n");
+                        }
+                        else if (formattedMemo.Contains("\n"))
+                        {
+                            int idx = formattedMemo.IndexOf('\n');
+                            formattedMemo = formattedMemo.Insert(idx, "\n");
+                        }
+                        else if (formattedMemo.Length > 35)
+                        {
+                            int lastSpace = formattedMemo.LastIndexOf(' ', 35);
+                            if (lastSpace > 0)
+                            {
+                                formattedMemo = formattedMemo.Substring(0, lastSpace)
+                                              + Environment.NewLine + Environment.NewLine
+                                              + formattedMemo.Substring(lastSpace + 1);
+                            }
+                        }
+
+                        textObject_BILLSubRemarks.Text = formattedMemo;
+                    }
 
                     if (textObject_BILLSubRemarksAmount != null)
-                        textObject_BILLSubRemarksAmount.Text = billRemarksAmountText;
+                    {
+                        string formattedAmount = billRemarksAmountText ?? "";
+
+                        // If amount text has multiple lines (e.g. subtotal list), duplicate the first newline
+                        if (formattedAmount.Contains("\r\n"))
+                        {
+                            int idx = formattedAmount.IndexOf("\r\n");
+                            formattedAmount = formattedAmount.Insert(idx, "\r\n");
+                        }
+                        else if (formattedAmount.Contains("\n"))
+                        {
+                            int idx = formattedAmount.IndexOf('\n');
+                            formattedAmount = formattedAmount.Insert(idx, "\n");
+                        }
+                        // If the amount is just a single line, no newline is needed since it sits on line 1
+
+                        textObject_BILLSubRemarksAmount.Text = formattedAmount;
+                    }
                 }
 
                 cRCV_INTBILL.SetParameterValue("ReferenceNumber", refNumberCR);
