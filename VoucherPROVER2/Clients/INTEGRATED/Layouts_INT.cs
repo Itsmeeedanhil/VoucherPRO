@@ -15,6 +15,7 @@ namespace VoucherPROVER2.Clients.INT
         Font font_Ten = new Font("Times New Roman", 10, FontStyle.Regular);
         Font font_Nine = new Font("Times New Roman", 9, FontStyle.Regular);
         Font font_Eleven = new Font("Times New Roman", 11, FontStyle.Regular);
+        Font font_Twelve = new Font("Times New Roman", 12, FontStyle.Regular);
         Font font_Eight = new Font("Times New Roman", 8, FontStyle.Regular);
 
         public void PrintPage_INT(object sender, PrintPageEventArgs e, int layoutIndex, string seriesNumber, object data, string payeeOverride = "")
@@ -116,7 +117,7 @@ namespace VoucherPROVER2.Clients.INT
                 int minusY = 50;
 
                 // Payee Name
-                e.Graphics.DrawString(payee, payeeFont, Brushes.Black, new PointF(125 - minusX, 117 - minusY));
+                e.Graphics.DrawString(payee, font_Twelve, Brushes.Black, new PointF(125 - minusX, 117 - minusY));
 
                 // --- DATE SECTION ---
                 // 1. Month (MM)
