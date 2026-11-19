@@ -13,6 +13,7 @@ namespace VoucherPROVER2.Clients.INT
     public class Layouts_INT
     {
         Font font_Ten = new Font("Times New Roman", 10, FontStyle.Regular);
+        Font font_Ten_Bold = new Font("Times New Roman", 10, FontStyle.Bold);
         Font font_Nine = new Font("Times New Roman", 9, FontStyle.Regular);
         Font font_Eleven = new Font("Times New Roman", 11, FontStyle.Regular);
         Font font_Twelve = new Font("Times New Roman", 12, FontStyle.Regular);
@@ -75,7 +76,7 @@ namespace VoucherPROVER2.Clients.INT
             Font amountinWordsFont = font_Eight;
             Font dateFont = font_Nine;
             Font payeeFont = font_Eleven;
-            Font payeeFont2 = font_Ten;
+            Font payeeFont2 = font_Ten_Bold;
 
             // ----------------------------------------------------------------------
             // PRINTING LOGIC (Coordinates)

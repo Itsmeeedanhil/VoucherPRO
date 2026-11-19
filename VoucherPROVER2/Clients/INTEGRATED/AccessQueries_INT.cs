@@ -1257,6 +1257,9 @@ namespace VoucherPROVER2.Clients.INT
                 request.Attributes.OnError = ENRqOnError.roeContinue;
 
                 IAccountQuery accountQuery = request.AppendAccountQueryRq();
+                // Include both Active and Inactive accounts
+                accountQuery.ORAccountListQuery.AccountListFilter.ActiveStatus.SetValue(ENActiveStatus.asAll);
+
                 IMsgSetResponse response = sessionManager.DoRequests(request);
 
                 IResponse qbResponse = response.ResponseList.GetAt(0);
@@ -1268,7 +1271,7 @@ namespace VoucherPROVER2.Clients.INT
                     {
                         IAccountRet account = accountList.GetAt(i);
                         string fullName = account.FullName?.GetValue() ?? "";
-                        string acctNum = account.AccountNumber?.GetValue() ?? "";
+                        string acctNum = account.AccountNumber?.GetValue()?.Trim() ?? "";
 
                         if (!string.IsNullOrEmpty(fullName) && !map.ContainsKey(fullName))
                         {
@@ -1285,13 +1288,12 @@ namespace VoucherPROVER2.Clients.INT
             return map;
         }
 
-        // Safe lookup method with fallback logic
         private string GetAccountNumberFromMap(Dictionary<string, string> map, string fullName)
         {
             if (string.IsNullOrWhiteSpace(fullName)) return "";
 
             // 1. Direct match from Chart of Accounts Map
-            if (map.TryGetValue(fullName, out string acctNum) && !string.IsNullOrWhiteSpace(acctNum))
+            if (map.TryGetValue(fullName.Trim(), out string acctNum) && !string.IsNullOrWhiteSpace(acctNum))
             {
                 return acctNum;
             }
@@ -1305,10 +1307,10 @@ namespace VoucherPROVER2.Clients.INT
             if (string.IsNullOrWhiteSpace(fullName)) return "";
 
             // Handles sub-accounts by evaluating the last leaf account name if present
-            string targetPart = fullName.Contains(':') ? fullName.Split(':').Last().Trim() : fullName;
+            string targetPart = fullName.Contains(':') ? fullName.Split(':').Last().Trim() : fullName.Trim();
 
-            // Split on spaces, middle dots (·), hyphens, or colons
-            var parts = targetPart.Split(new[] { ' ', '·', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
+            // Do NOT split on '-' so hyphenated account codes like "9000-12" stay intact
+            var parts = targetPart.Split(new[] { ' ', '·' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length > 0 && parts[0].Any(char.IsDigit))
             {
