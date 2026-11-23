@@ -1292,29 +1292,48 @@ namespace VoucherPROVER2.Clients.INT
         {
             if (string.IsNullOrWhiteSpace(fullName)) return "";
 
+            string trimmedName = fullName.Trim();
+
             // 1. Direct match from Chart of Accounts Map
-            if (map.TryGetValue(fullName.Trim(), out string acctNum) && !string.IsNullOrWhiteSpace(acctNum))
+            if (map.TryGetValue(trimmedName, out string acctNum) && !string.IsNullOrWhiteSpace(acctNum))
             {
                 return acctNum;
             }
 
-            // 2. Fallback: Check if FullName contains an embedded number prefix
-            return ExtractAccountNumber(fullName);
+            // 2. If it's a sub-account, walk up the parent hierarchy in the map
+            // Example: "Parent:Child:Grandchild" -> checks "Parent:Child", then "Parent"
+            string currentPath = trimmedName;
+            while (currentPath.Contains(':'))
+            {
+                int lastColon = currentPath.LastIndexOf(':');
+                currentPath = currentPath.Substring(0, lastColon).Trim();
+
+                if (map.TryGetValue(currentPath, out string parentAcctNum) && !string.IsNullOrWhiteSpace(parentAcctNum))
+                {
+                    return parentAcctNum;
+                }
+            }
+
+            // 3. Fallback: Check if any segment in FullName (from child up to parent) contains an embedded number prefix
+            return ExtractAccountNumber(trimmedName);
         }
 
         private string ExtractAccountNumber(string fullName)
         {
             if (string.IsNullOrWhiteSpace(fullName)) return "";
 
-            // Handles sub-accounts by evaluating the last leaf account name if present
-            string targetPart = fullName.Contains(':') ? fullName.Split(':').Last().Trim() : fullName.Trim();
+            // Split hierarchy from parent to child, and check from child back up to parent
+            var hierarchy = fullName.Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
 
-            // Do NOT split on '-' so hyphenated account codes like "9000-12" stay intact
-            var parts = targetPart.Split(new[] { ' ', '·' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length > 0 && parts[0].Any(char.IsDigit))
+            for (int i = hierarchy.Length - 1; i >= 0; i--)
             {
-                return parts[0];
+                string segment = hierarchy[i].Trim();
+                var parts = segment.Split(new[] { ' ', '·', '-' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length > 0 && parts[0].All(char.IsDigit))
+                {
+                    return parts[0];
+                }
             }
 
             return "";
