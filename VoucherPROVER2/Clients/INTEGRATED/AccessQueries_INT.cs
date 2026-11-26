@@ -13,6 +13,7 @@ namespace VoucherPROVER2.Clients.INT
     public class AccessQueries_INT : IDisposable
     {
         private QBSessionManager _sessionManager;
+        private bool _isConnectionOpen = false;
         private bool _isSessionOpen = false;
 
         // Cached Chart of Accounts maps (loaded once per form session)
@@ -26,11 +27,24 @@ namespace VoucherPROVER2.Clients.INT
                 _sessionManager = new QBSessionManager();
             }
 
-            if (!_isSessionOpen)
+            try
             {
-                _sessionManager.OpenConnection2("", "VoucherPro INT", ENConnectionType.ctLocalQBD);
-                _sessionManager.BeginSession("", ENOpenMode.omDontCare);
-                _isSessionOpen = true;
+                if (!_isConnectionOpen)
+                {
+                    _sessionManager.OpenConnection2("", "VoucherPro INT", ENConnectionType.ctLocalQBD);
+                    _isConnectionOpen = true;
+                }
+
+                if (!_isSessionOpen)
+                {
+                    _sessionManager.BeginSession("", ENOpenMode.omDontCare);
+                    _isSessionOpen = true;
+                }
+            }
+            catch
+            {
+                Dispose();
+                throw;
             }
 
             return _sessionManager;
@@ -44,19 +58,29 @@ namespace VoucherPROVER2.Clients.INT
 
         public void Dispose()
         {
-            if (_sessionManager != null && _isSessionOpen)
+            if (_sessionManager != null)
             {
                 try
                 {
-                    _sessionManager.EndSession();
-                    _sessionManager.CloseConnection();
+                    if (_isSessionOpen)
+                    {
+                        _sessionManager.EndSession();
+                    }
                 }
                 catch { }
-                finally
+
+                try
                 {
-                    _isSessionOpen = false;
-                    _sessionManager = null;
+                    if (_isConnectionOpen)
+                    {
+                        _sessionManager.CloseConnection();
+                    }
                 }
+                catch { }
+
+                _isSessionOpen = false;
+                _isConnectionOpen = false;
+                _sessionManager = null;
             }
         }
 

@@ -1021,6 +1021,22 @@ namespace VoucherPROVER2.Clients.INT
                 return false;
             }
         }
+        private void ClearCurrentReport()
+        {
+            if (reportViewer != null && reportViewer.ReportSource != null)
+            {
+                if (reportViewer.ReportSource is ReportDocument oldDoc)
+                {
+                    reportViewer.ReportSource = null;
+                    oldDoc.Close();
+                    oldDoc.Dispose();
+                }
+                else
+                {
+                    reportViewer.ReportSource = null;
+                }
+            }
+        }
 
         private bool GenerateBillPaymentReport_INT(string refNumberCR)
         {
@@ -1045,6 +1061,8 @@ namespace VoucherPROVER2.Clients.INT
 
                 // Populate MS Access Staging Database BEFORE loading report
                 var (totalDebit, totalCredit) = InsertDataToBillCompiled(refNumberCR, bills, selectedAP);
+
+                ClearCurrentReport();
 
                 CRCV_INTBILL cRCV_INTBILL = new CRCV_INTBILL();
                 string databasePathBILL = Path.Combine(Application.StartupPath, "CheckDatabase.accdb");
@@ -1252,7 +1270,12 @@ namespace VoucherPROVER2.Clients.INT
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"KAYAK ERROR HEHEHE:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    $"Bill Payment Report Error:\n{ex.Message}\n\nInner: {ex.InnerException?.Message}\n\nLine/Stack:\n{ex.StackTrace}",
+                    "Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
                 return false;
             }
         }
